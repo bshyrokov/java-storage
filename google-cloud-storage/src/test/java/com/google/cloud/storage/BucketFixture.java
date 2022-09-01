@@ -112,8 +112,7 @@ public final class BucketFixture implements TestRule {
     }
 
     public Builder setBucketNameFmtString(String bucketNameFmtString) {
-      this.bucketNameFmtString =
-          requireNonNull(bucketNameFmtString, "bucketNameFmtString must be non null");
+      this.bucketNameFmtString = requireNonNull(bucketNameFmtString, "bucketNameFmtString must be non null");
       return this;
     }
 
@@ -123,8 +122,7 @@ public final class BucketFixture implements TestRule {
     }
 
     public BucketFixture build() {
-      return new BucketFixture(
-          requireNonNull(handle, "handle must be non null"), bucketNameFmtString, cleanupStrategy);
+      return new BucketFixture(handle, bucketNameFmtString, cleanupStrategy);
     }
   }
 }

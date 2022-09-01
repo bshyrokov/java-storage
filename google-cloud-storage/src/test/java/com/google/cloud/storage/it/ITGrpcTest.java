@@ -47,24 +47,25 @@ public final class ITGrpcTest {
   @ClassRule(order = 1)
   public static final TestBench TEST_BENCH =
       TestBench.newBuilder().setContainerName("it-grpc").setDockerImageTag("v0.26.0").build();
-
   @Rule
-  public final StorageFixture storageFixture;
-
+  public StorageFixture storageFixture;
   @Rule
-  public final BucketFixture bucketFixture;
+  public BucketFixture bucketFixture;
 
-  public ITGrpcTest(StorageFixture storageFixture) {
+  public final String clientName;
+
+  public ITGrpcTest(String clientName, StorageFixture storageFixture) {
     this.storageFixture = storageFixture;
     this.bucketFixture = BucketFixture.newBuilder()
         .setBucketNameFmtString("java-storage-gcs-grpc-team-%s")
         .setCleanupStrategy(CleanupStrategy.ALWAYS)
         .setHandle(storageFixture::getInstance)
         .build();
+    this.clientName = clientName;
   }
 
   @Parameters( name = "{0}")
-  public static Collection<StorageFixture> data() {
+  public static Collection<Object[]> data() {
     StorageFixture grpcStorageFixture = StorageFixture.from(
         () ->
             StorageOptions.grpc()
@@ -73,12 +74,13 @@ public final class ITGrpcTest {
                 .setProjectId("test-project-id")
                 .build());
     StorageFixture jsonStorageFixture = StorageFixture.defaultHttp();
-    return Arrays.asList(grpcStorageFixture, jsonStorageFixture);
+    return Arrays.asList(new Object[] {"JSON/storage.googleapis.com", jsonStorageFixture},
+        new Object[] {"GRPC/" + TEST_BENCH.getGRPCBaseUri(), grpcStorageFixture});
   }
 
   @Test
   public void testCreateBucket() {
-    LOGGER.info("Running testCreateBucket with " + storageFixture.getInstance().getOptions().getHost());
+    LOGGER.info("Running testCreateBucket with " + clientName);
     final String bucketName = RemoteStorageHelper.generateBucketName();
     Bucket bucket = storageFixture.getInstance().create(BucketInfo.of(bucketName));
     assertThat(bucket.getName()).isEqualTo(bucketName);
@@ -86,7 +88,7 @@ public final class ITGrpcTest {
 
   @Test
   public void listBlobs() {
-    LOGGER.info("Running listBlobs with " + storageFixture.getInstance().getOptions().getHost());
+    LOGGER.info("Running listBlobs with " + clientName);
     BucketInfo bucketInfo = bucketFixture.getBucketInfo();
     Page<Blob> list = storageFixture.getInstance().list(bucketInfo.getName());
     ImmutableList<String> bucketNames =
@@ -99,7 +101,7 @@ public final class ITGrpcTest {
 
   @Test
   public void listBuckets() {
-    LOGGER.info("Running listBuckets with " + storageFixture.getInstance().getOptions().getHost());
+    LOGGER.info("Running listBuckets with " + clientName);
     Page<Bucket> list = storageFixture.getInstance().list();
     ImmutableList<String> bucketNames =
         StreamSupport.stream(list.iterateAll().spliterator(), false)

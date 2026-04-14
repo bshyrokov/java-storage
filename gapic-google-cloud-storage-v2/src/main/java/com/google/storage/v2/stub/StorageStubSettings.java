@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,26 +17,22 @@
 package com.google.storage.v2.stub;
 
 import static com.google.storage.v2.StorageClient.ListBucketsPagedResponse;
-import static com.google.storage.v2.StorageClient.ListHmacKeysPagedResponse;
-import static com.google.storage.v2.StorageClient.ListNotificationsPagedResponse;
 import static com.google.storage.v2.StorageClient.ListObjectsPagedResponse;
 
 import com.google.api.core.ApiFunction;
 import com.google.api.core.ApiFuture;
-import com.google.api.core.BetaApi;
+import com.google.api.core.ObsoleteApi;
 import com.google.api.gax.core.GaxProperties;
 import com.google.api.gax.core.GoogleCredentialsProvider;
 import com.google.api.gax.core.InstantiatingExecutorProvider;
 import com.google.api.gax.grpc.GaxGrpcProperties;
 import com.google.api.gax.grpc.GrpcTransportChannel;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
-import com.google.api.gax.httpjson.GaxHttpJsonProperties;
-import com.google.api.gax.httpjson.HttpJsonTransportChannel;
-import com.google.api.gax.httpjson.InstantiatingHttpJsonChannelProvider;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.api.gax.rpc.ApiCallContext;
 import com.google.api.gax.rpc.ApiClientHeaderProvider;
 import com.google.api.gax.rpc.ClientContext;
+import com.google.api.gax.rpc.LibraryMetadata;
 import com.google.api.gax.rpc.PageContext;
 import com.google.api.gax.rpc.PagedCallSettings;
 import com.google.api.gax.rpc.PagedListDescriptor;
@@ -58,53 +54,43 @@ import com.google.iam.v1.SetIamPolicyRequest;
 import com.google.iam.v1.TestIamPermissionsRequest;
 import com.google.iam.v1.TestIamPermissionsResponse;
 import com.google.protobuf.Empty;
+import com.google.storage.v2.BidiReadObjectRequest;
+import com.google.storage.v2.BidiReadObjectResponse;
+import com.google.storage.v2.BidiWriteObjectRequest;
+import com.google.storage.v2.BidiWriteObjectResponse;
 import com.google.storage.v2.Bucket;
 import com.google.storage.v2.CancelResumableWriteRequest;
 import com.google.storage.v2.CancelResumableWriteResponse;
 import com.google.storage.v2.ComposeObjectRequest;
 import com.google.storage.v2.CreateBucketRequest;
-import com.google.storage.v2.CreateHmacKeyRequest;
-import com.google.storage.v2.CreateHmacKeyResponse;
-import com.google.storage.v2.CreateNotificationRequest;
 import com.google.storage.v2.DeleteBucketRequest;
-import com.google.storage.v2.DeleteHmacKeyRequest;
-import com.google.storage.v2.DeleteNotificationRequest;
 import com.google.storage.v2.DeleteObjectRequest;
 import com.google.storage.v2.GetBucketRequest;
-import com.google.storage.v2.GetHmacKeyRequest;
-import com.google.storage.v2.GetNotificationRequest;
 import com.google.storage.v2.GetObjectRequest;
-import com.google.storage.v2.GetServiceAccountRequest;
-import com.google.storage.v2.HmacKeyMetadata;
 import com.google.storage.v2.ListBucketsRequest;
 import com.google.storage.v2.ListBucketsResponse;
-import com.google.storage.v2.ListHmacKeysRequest;
-import com.google.storage.v2.ListHmacKeysResponse;
-import com.google.storage.v2.ListNotificationsRequest;
-import com.google.storage.v2.ListNotificationsResponse;
 import com.google.storage.v2.ListObjectsRequest;
 import com.google.storage.v2.ListObjectsResponse;
 import com.google.storage.v2.LockBucketRetentionPolicyRequest;
-import com.google.storage.v2.Notification;
+import com.google.storage.v2.MoveObjectRequest;
 import com.google.storage.v2.Object;
 import com.google.storage.v2.QueryWriteStatusRequest;
 import com.google.storage.v2.QueryWriteStatusResponse;
 import com.google.storage.v2.ReadObjectRequest;
 import com.google.storage.v2.ReadObjectResponse;
+import com.google.storage.v2.RestoreObjectRequest;
 import com.google.storage.v2.RewriteObjectRequest;
 import com.google.storage.v2.RewriteResponse;
-import com.google.storage.v2.ServiceAccount;
 import com.google.storage.v2.StartResumableWriteRequest;
 import com.google.storage.v2.StartResumableWriteResponse;
 import com.google.storage.v2.UpdateBucketRequest;
-import com.google.storage.v2.UpdateHmacKeyRequest;
 import com.google.storage.v2.UpdateObjectRequest;
 import com.google.storage.v2.WriteObjectRequest;
 import com.google.storage.v2.WriteObjectResponse;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import javax.annotation.Generated;
-import org.threeten.bp.Duration;
 
 // AUTO-GENERATED DOCUMENTATION AND CLASS.
 /**
@@ -121,7 +107,9 @@ import org.threeten.bp.Duration;
  * <p>The builder of this class is recursive, so contained classes are themselves builders. When
  * build() is called, the tree of builders is called to create the complete settings object.
  *
- * <p>For example, to set the total timeout of deleteBucket to 30 seconds:
+ * <p>For example, to set the
+ * [RetrySettings](https://cloud.google.com/java/docs/reference/gax/latest/com.google.api.gax.retrying.RetrySettings)
+ * of deleteBucket:
  *
  * <pre>{@code
  * // This snippet has been automatically generated and should be regarded as a code template only.
@@ -133,13 +121,28 @@ import org.threeten.bp.Duration;
  * storageSettingsBuilder
  *     .deleteBucketSettings()
  *     .setRetrySettings(
- *         storageSettingsBuilder.deleteBucketSettings().getRetrySettings().toBuilder()
- *             .setTotalTimeout(Duration.ofSeconds(30))
+ *         storageSettingsBuilder
+ *             .deleteBucketSettings()
+ *             .getRetrySettings()
+ *             .toBuilder()
+ *             .setInitialRetryDelayDuration(Duration.ofSeconds(1))
+ *             .setInitialRpcTimeoutDuration(Duration.ofSeconds(5))
+ *             .setMaxAttempts(5)
+ *             .setMaxRetryDelayDuration(Duration.ofSeconds(30))
+ *             .setMaxRpcTimeoutDuration(Duration.ofSeconds(60))
+ *             .setRetryDelayMultiplier(1.3)
+ *             .setRpcTimeoutMultiplier(1.5)
+ *             .setTotalTimeoutDuration(Duration.ofSeconds(300))
  *             .build());
  * StorageStubSettings storageSettings = storageSettingsBuilder.build();
  * }</pre>
+ *
+ * Please refer to the [Client Side Retry
+ * Guide](https://docs.cloud.google.com/java/docs/client-retries) for additional support in setting
+ * retries.
  */
 @Generated("by gapic-generator-java")
+@SuppressWarnings("CanonicalDuration")
 public class StorageStubSettings extends StubSettings<StorageStubSettings> {
   /** The default scopes of the service. */
   private static final ImmutableList<String> DEFAULT_SERVICE_SCOPES =
@@ -163,22 +166,20 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
   private final UnaryCallSettings<TestIamPermissionsRequest, TestIamPermissionsResponse>
       testIamPermissionsSettings;
   private final UnaryCallSettings<UpdateBucketRequest, Bucket> updateBucketSettings;
-  private final UnaryCallSettings<DeleteNotificationRequest, Empty> deleteNotificationSettings;
-  private final UnaryCallSettings<GetNotificationRequest, Notification> getNotificationSettings;
-  private final UnaryCallSettings<CreateNotificationRequest, Notification>
-      createNotificationSettings;
-  private final PagedCallSettings<
-          ListNotificationsRequest, ListNotificationsResponse, ListNotificationsPagedResponse>
-      listNotificationsSettings;
   private final UnaryCallSettings<ComposeObjectRequest, Object> composeObjectSettings;
   private final UnaryCallSettings<DeleteObjectRequest, Empty> deleteObjectSettings;
+  private final UnaryCallSettings<RestoreObjectRequest, Object> restoreObjectSettings;
   private final UnaryCallSettings<CancelResumableWriteRequest, CancelResumableWriteResponse>
       cancelResumableWriteSettings;
   private final UnaryCallSettings<GetObjectRequest, Object> getObjectSettings;
   private final ServerStreamingCallSettings<ReadObjectRequest, ReadObjectResponse>
       readObjectSettings;
+  private final StreamingCallSettings<BidiReadObjectRequest, BidiReadObjectResponse>
+      bidiReadObjectSettings;
   private final UnaryCallSettings<UpdateObjectRequest, Object> updateObjectSettings;
   private final StreamingCallSettings<WriteObjectRequest, WriteObjectResponse> writeObjectSettings;
+  private final StreamingCallSettings<BidiWriteObjectRequest, BidiWriteObjectResponse>
+      bidiWriteObjectSettings;
   private final PagedCallSettings<ListObjectsRequest, ListObjectsResponse, ListObjectsPagedResponse>
       listObjectsSettings;
   private final UnaryCallSettings<RewriteObjectRequest, RewriteResponse> rewriteObjectSettings;
@@ -186,16 +187,7 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
       startResumableWriteSettings;
   private final UnaryCallSettings<QueryWriteStatusRequest, QueryWriteStatusResponse>
       queryWriteStatusSettings;
-  private final UnaryCallSettings<GetServiceAccountRequest, ServiceAccount>
-      getServiceAccountSettings;
-  private final UnaryCallSettings<CreateHmacKeyRequest, CreateHmacKeyResponse>
-      createHmacKeySettings;
-  private final UnaryCallSettings<DeleteHmacKeyRequest, Empty> deleteHmacKeySettings;
-  private final UnaryCallSettings<GetHmacKeyRequest, HmacKeyMetadata> getHmacKeySettings;
-  private final PagedCallSettings<
-          ListHmacKeysRequest, ListHmacKeysResponse, ListHmacKeysPagedResponse>
-      listHmacKeysSettings;
-  private final UnaryCallSettings<UpdateHmacKeyRequest, HmacKeyMetadata> updateHmacKeySettings;
+  private final UnaryCallSettings<MoveObjectRequest, Object> moveObjectSettings;
 
   private static final PagedListDescriptor<ListBucketsRequest, ListBucketsResponse, Bucket>
       LIST_BUCKETS_PAGE_STR_DESC =
@@ -227,49 +219,7 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
 
             @Override
             public Iterable<Bucket> extractResources(ListBucketsResponse payload) {
-              return payload.getBucketsList() == null
-                  ? ImmutableList.<Bucket>of()
-                  : payload.getBucketsList();
-            }
-          };
-
-  private static final PagedListDescriptor<
-          ListNotificationsRequest, ListNotificationsResponse, Notification>
-      LIST_NOTIFICATIONS_PAGE_STR_DESC =
-          new PagedListDescriptor<
-              ListNotificationsRequest, ListNotificationsResponse, Notification>() {
-            @Override
-            public String emptyToken() {
-              return "";
-            }
-
-            @Override
-            public ListNotificationsRequest injectToken(
-                ListNotificationsRequest payload, String token) {
-              return ListNotificationsRequest.newBuilder(payload).setPageToken(token).build();
-            }
-
-            @Override
-            public ListNotificationsRequest injectPageSize(
-                ListNotificationsRequest payload, int pageSize) {
-              return ListNotificationsRequest.newBuilder(payload).setPageSize(pageSize).build();
-            }
-
-            @Override
-            public Integer extractPageSize(ListNotificationsRequest payload) {
-              return payload.getPageSize();
-            }
-
-            @Override
-            public String extractNextToken(ListNotificationsResponse payload) {
-              return payload.getNextPageToken();
-            }
-
-            @Override
-            public Iterable<Notification> extractResources(ListNotificationsResponse payload) {
-              return payload.getNotificationsList() == null
-                  ? ImmutableList.<Notification>of()
-                  : payload.getNotificationsList();
+              return payload.getBucketsList();
             }
           };
 
@@ -303,46 +253,7 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
 
             @Override
             public Iterable<Object> extractResources(ListObjectsResponse payload) {
-              return payload.getObjectsList() == null
-                  ? ImmutableList.<Object>of()
-                  : payload.getObjectsList();
-            }
-          };
-
-  private static final PagedListDescriptor<
-          ListHmacKeysRequest, ListHmacKeysResponse, HmacKeyMetadata>
-      LIST_HMAC_KEYS_PAGE_STR_DESC =
-          new PagedListDescriptor<ListHmacKeysRequest, ListHmacKeysResponse, HmacKeyMetadata>() {
-            @Override
-            public String emptyToken() {
-              return "";
-            }
-
-            @Override
-            public ListHmacKeysRequest injectToken(ListHmacKeysRequest payload, String token) {
-              return ListHmacKeysRequest.newBuilder(payload).setPageToken(token).build();
-            }
-
-            @Override
-            public ListHmacKeysRequest injectPageSize(ListHmacKeysRequest payload, int pageSize) {
-              return ListHmacKeysRequest.newBuilder(payload).setPageSize(pageSize).build();
-            }
-
-            @Override
-            public Integer extractPageSize(ListHmacKeysRequest payload) {
-              return payload.getPageSize();
-            }
-
-            @Override
-            public String extractNextToken(ListHmacKeysResponse payload) {
-              return payload.getNextPageToken();
-            }
-
-            @Override
-            public Iterable<HmacKeyMetadata> extractResources(ListHmacKeysResponse payload) {
-              return payload.getHmacKeysList() == null
-                  ? ImmutableList.<HmacKeyMetadata>of()
-                  : payload.getHmacKeysList();
+              return payload.getObjectsList();
             }
           };
 
@@ -364,27 +275,6 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
           };
 
   private static final PagedListResponseFactory<
-          ListNotificationsRequest, ListNotificationsResponse, ListNotificationsPagedResponse>
-      LIST_NOTIFICATIONS_PAGE_STR_FACT =
-          new PagedListResponseFactory<
-              ListNotificationsRequest,
-              ListNotificationsResponse,
-              ListNotificationsPagedResponse>() {
-            @Override
-            public ApiFuture<ListNotificationsPagedResponse> getFuturePagedResponse(
-                UnaryCallable<ListNotificationsRequest, ListNotificationsResponse> callable,
-                ListNotificationsRequest request,
-                ApiCallContext context,
-                ApiFuture<ListNotificationsResponse> futureResponse) {
-              PageContext<ListNotificationsRequest, ListNotificationsResponse, Notification>
-                  pageContext =
-                      PageContext.create(
-                          callable, LIST_NOTIFICATIONS_PAGE_STR_DESC, request, context);
-              return ListNotificationsPagedResponse.createAsync(pageContext, futureResponse);
-            }
-          };
-
-  private static final PagedListResponseFactory<
           ListObjectsRequest, ListObjectsResponse, ListObjectsPagedResponse>
       LIST_OBJECTS_PAGE_STR_FACT =
           new PagedListResponseFactory<
@@ -398,23 +288,6 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
               PageContext<ListObjectsRequest, ListObjectsResponse, Object> pageContext =
                   PageContext.create(callable, LIST_OBJECTS_PAGE_STR_DESC, request, context);
               return ListObjectsPagedResponse.createAsync(pageContext, futureResponse);
-            }
-          };
-
-  private static final PagedListResponseFactory<
-          ListHmacKeysRequest, ListHmacKeysResponse, ListHmacKeysPagedResponse>
-      LIST_HMAC_KEYS_PAGE_STR_FACT =
-          new PagedListResponseFactory<
-              ListHmacKeysRequest, ListHmacKeysResponse, ListHmacKeysPagedResponse>() {
-            @Override
-            public ApiFuture<ListHmacKeysPagedResponse> getFuturePagedResponse(
-                UnaryCallable<ListHmacKeysRequest, ListHmacKeysResponse> callable,
-                ListHmacKeysRequest request,
-                ApiCallContext context,
-                ApiFuture<ListHmacKeysResponse> futureResponse) {
-              PageContext<ListHmacKeysRequest, ListHmacKeysResponse, HmacKeyMetadata> pageContext =
-                  PageContext.create(callable, LIST_HMAC_KEYS_PAGE_STR_DESC, request, context);
-              return ListHmacKeysPagedResponse.createAsync(pageContext, futureResponse);
             }
           };
 
@@ -466,28 +339,6 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
     return updateBucketSettings;
   }
 
-  /** Returns the object with the settings used for calls to deleteNotification. */
-  public UnaryCallSettings<DeleteNotificationRequest, Empty> deleteNotificationSettings() {
-    return deleteNotificationSettings;
-  }
-
-  /** Returns the object with the settings used for calls to getNotification. */
-  public UnaryCallSettings<GetNotificationRequest, Notification> getNotificationSettings() {
-    return getNotificationSettings;
-  }
-
-  /** Returns the object with the settings used for calls to createNotification. */
-  public UnaryCallSettings<CreateNotificationRequest, Notification> createNotificationSettings() {
-    return createNotificationSettings;
-  }
-
-  /** Returns the object with the settings used for calls to listNotifications. */
-  public PagedCallSettings<
-          ListNotificationsRequest, ListNotificationsResponse, ListNotificationsPagedResponse>
-      listNotificationsSettings() {
-    return listNotificationsSettings;
-  }
-
   /** Returns the object with the settings used for calls to composeObject. */
   public UnaryCallSettings<ComposeObjectRequest, Object> composeObjectSettings() {
     return composeObjectSettings;
@@ -496,6 +347,11 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
   /** Returns the object with the settings used for calls to deleteObject. */
   public UnaryCallSettings<DeleteObjectRequest, Empty> deleteObjectSettings() {
     return deleteObjectSettings;
+  }
+
+  /** Returns the object with the settings used for calls to restoreObject. */
+  public UnaryCallSettings<RestoreObjectRequest, Object> restoreObjectSettings() {
+    return restoreObjectSettings;
   }
 
   /** Returns the object with the settings used for calls to cancelResumableWrite. */
@@ -514,6 +370,12 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
     return readObjectSettings;
   }
 
+  /** Returns the object with the settings used for calls to bidiReadObject. */
+  public StreamingCallSettings<BidiReadObjectRequest, BidiReadObjectResponse>
+      bidiReadObjectSettings() {
+    return bidiReadObjectSettings;
+  }
+
   /** Returns the object with the settings used for calls to updateObject. */
   public UnaryCallSettings<UpdateObjectRequest, Object> updateObjectSettings() {
     return updateObjectSettings;
@@ -522,6 +384,12 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
   /** Returns the object with the settings used for calls to writeObject. */
   public StreamingCallSettings<WriteObjectRequest, WriteObjectResponse> writeObjectSettings() {
     return writeObjectSettings;
+  }
+
+  /** Returns the object with the settings used for calls to bidiWriteObject. */
+  public StreamingCallSettings<BidiWriteObjectRequest, BidiWriteObjectResponse>
+      bidiWriteObjectSettings() {
+    return bidiWriteObjectSettings;
   }
 
   /** Returns the object with the settings used for calls to listObjects. */
@@ -547,35 +415,9 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
     return queryWriteStatusSettings;
   }
 
-  /** Returns the object with the settings used for calls to getServiceAccount. */
-  public UnaryCallSettings<GetServiceAccountRequest, ServiceAccount> getServiceAccountSettings() {
-    return getServiceAccountSettings;
-  }
-
-  /** Returns the object with the settings used for calls to createHmacKey. */
-  public UnaryCallSettings<CreateHmacKeyRequest, CreateHmacKeyResponse> createHmacKeySettings() {
-    return createHmacKeySettings;
-  }
-
-  /** Returns the object with the settings used for calls to deleteHmacKey. */
-  public UnaryCallSettings<DeleteHmacKeyRequest, Empty> deleteHmacKeySettings() {
-    return deleteHmacKeySettings;
-  }
-
-  /** Returns the object with the settings used for calls to getHmacKey. */
-  public UnaryCallSettings<GetHmacKeyRequest, HmacKeyMetadata> getHmacKeySettings() {
-    return getHmacKeySettings;
-  }
-
-  /** Returns the object with the settings used for calls to listHmacKeys. */
-  public PagedCallSettings<ListHmacKeysRequest, ListHmacKeysResponse, ListHmacKeysPagedResponse>
-      listHmacKeysSettings() {
-    return listHmacKeysSettings;
-  }
-
-  /** Returns the object with the settings used for calls to updateHmacKey. */
-  public UnaryCallSettings<UpdateHmacKeyRequest, HmacKeyMetadata> updateHmacKeySettings() {
-    return updateHmacKeySettings;
+  /** Returns the object with the settings used for calls to moveObject. */
+  public UnaryCallSettings<MoveObjectRequest, Object> moveObjectSettings() {
+    return moveObjectSettings;
   }
 
   public StorageStub createStub() throws IOException {
@@ -584,14 +426,15 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
         .equals(GrpcTransportChannel.getGrpcTransportName())) {
       return GrpcStorageStub.create(this);
     }
-    if (getTransportChannelProvider()
-        .getTransportName()
-        .equals(HttpJsonTransportChannel.getHttpJsonTransportName())) {
-      return HttpJsonStorageStub.create(this);
-    }
     throw new UnsupportedOperationException(
         String.format(
             "Transport not supported: %s", getTransportChannelProvider().getTransportName()));
+  }
+
+  /** Returns the default service name. */
+  @Override
+  public String getServiceName() {
+    return "storage";
   }
 
   /** Returns a builder for the default ExecutorProvider for this service. */
@@ -600,6 +443,7 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
   }
 
   /** Returns the default service endpoint. */
+  @ObsoleteApi("Use getEndpoint() instead")
   public static String getDefaultEndpoint() {
     return "storage.googleapis.com:443";
   }
@@ -621,52 +465,26 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
         .setUseJwtAccessWithScope(true);
   }
 
-  /** Returns a builder for the default gRPC ChannelProvider for this service. */
+  /** Returns a builder for the default ChannelProvider for this service. */
   public static InstantiatingGrpcChannelProvider.Builder defaultGrpcTransportProviderBuilder() {
     return InstantiatingGrpcChannelProvider.newBuilder()
         .setMaxInboundMessageSize(Integer.MAX_VALUE);
-  }
-
-  /** Returns a builder for the default REST ChannelProvider for this service. */
-  @BetaApi
-  public static InstantiatingHttpJsonChannelProvider.Builder
-      defaultHttpJsonTransportProviderBuilder() {
-    return InstantiatingHttpJsonChannelProvider.newBuilder();
   }
 
   public static TransportChannelProvider defaultTransportChannelProvider() {
     return defaultGrpcTransportProviderBuilder().build();
   }
 
-  @BetaApi("The surface for customizing headers is not stable yet and may change in the future.")
-  public static ApiClientHeaderProvider.Builder defaultGrpcApiClientHeaderProviderBuilder() {
+  public static ApiClientHeaderProvider.Builder defaultApiClientHeaderProviderBuilder() {
     return ApiClientHeaderProvider.newBuilder()
         .setGeneratedLibToken("gapic", GaxProperties.getLibraryVersion(StorageStubSettings.class))
         .setTransportToken(
             GaxGrpcProperties.getGrpcTokenName(), GaxGrpcProperties.getGrpcVersion());
   }
 
-  @BetaApi("The surface for customizing headers is not stable yet and may change in the future.")
-  public static ApiClientHeaderProvider.Builder defaultHttpJsonApiClientHeaderProviderBuilder() {
-    return ApiClientHeaderProvider.newBuilder()
-        .setGeneratedLibToken("gapic", GaxProperties.getLibraryVersion(StorageStubSettings.class))
-        .setTransportToken(
-            GaxHttpJsonProperties.getHttpJsonTokenName(),
-            GaxHttpJsonProperties.getHttpJsonVersion());
-  }
-
-  public static ApiClientHeaderProvider.Builder defaultApiClientHeaderProviderBuilder() {
-    return StorageStubSettings.defaultGrpcApiClientHeaderProviderBuilder();
-  }
-
-  /** Returns a new gRPC builder for this class. */
+  /** Returns a new builder for this class. */
   public static Builder newBuilder() {
     return Builder.createDefault();
-  }
-
-  /** Returns a new REST builder for this class. */
-  public static Builder newHttpJsonBuilder() {
-    return Builder.createHttpJsonDefault();
   }
 
   /** Returns a new builder for this class. */
@@ -691,27 +509,29 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
     setIamPolicySettings = settingsBuilder.setIamPolicySettings().build();
     testIamPermissionsSettings = settingsBuilder.testIamPermissionsSettings().build();
     updateBucketSettings = settingsBuilder.updateBucketSettings().build();
-    deleteNotificationSettings = settingsBuilder.deleteNotificationSettings().build();
-    getNotificationSettings = settingsBuilder.getNotificationSettings().build();
-    createNotificationSettings = settingsBuilder.createNotificationSettings().build();
-    listNotificationsSettings = settingsBuilder.listNotificationsSettings().build();
     composeObjectSettings = settingsBuilder.composeObjectSettings().build();
     deleteObjectSettings = settingsBuilder.deleteObjectSettings().build();
+    restoreObjectSettings = settingsBuilder.restoreObjectSettings().build();
     cancelResumableWriteSettings = settingsBuilder.cancelResumableWriteSettings().build();
     getObjectSettings = settingsBuilder.getObjectSettings().build();
     readObjectSettings = settingsBuilder.readObjectSettings().build();
+    bidiReadObjectSettings = settingsBuilder.bidiReadObjectSettings().build();
     updateObjectSettings = settingsBuilder.updateObjectSettings().build();
     writeObjectSettings = settingsBuilder.writeObjectSettings().build();
+    bidiWriteObjectSettings = settingsBuilder.bidiWriteObjectSettings().build();
     listObjectsSettings = settingsBuilder.listObjectsSettings().build();
     rewriteObjectSettings = settingsBuilder.rewriteObjectSettings().build();
     startResumableWriteSettings = settingsBuilder.startResumableWriteSettings().build();
     queryWriteStatusSettings = settingsBuilder.queryWriteStatusSettings().build();
-    getServiceAccountSettings = settingsBuilder.getServiceAccountSettings().build();
-    createHmacKeySettings = settingsBuilder.createHmacKeySettings().build();
-    deleteHmacKeySettings = settingsBuilder.deleteHmacKeySettings().build();
-    getHmacKeySettings = settingsBuilder.getHmacKeySettings().build();
-    listHmacKeysSettings = settingsBuilder.listHmacKeysSettings().build();
-    updateHmacKeySettings = settingsBuilder.updateHmacKeySettings().build();
+    moveObjectSettings = settingsBuilder.moveObjectSettings().build();
+  }
+
+  @Override
+  protected LibraryMetadata getLibraryMetadata() {
+    return LibraryMetadata.newBuilder()
+        .setArtifactName("com.google.cloud:google-cloud-storage")
+        .setRepository("googleapis/java-storage")
+        .build();
   }
 
   /** Builder for StorageStubSettings. */
@@ -730,26 +550,22 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
     private final UnaryCallSettings.Builder<TestIamPermissionsRequest, TestIamPermissionsResponse>
         testIamPermissionsSettings;
     private final UnaryCallSettings.Builder<UpdateBucketRequest, Bucket> updateBucketSettings;
-    private final UnaryCallSettings.Builder<DeleteNotificationRequest, Empty>
-        deleteNotificationSettings;
-    private final UnaryCallSettings.Builder<GetNotificationRequest, Notification>
-        getNotificationSettings;
-    private final UnaryCallSettings.Builder<CreateNotificationRequest, Notification>
-        createNotificationSettings;
-    private final PagedCallSettings.Builder<
-            ListNotificationsRequest, ListNotificationsResponse, ListNotificationsPagedResponse>
-        listNotificationsSettings;
     private final UnaryCallSettings.Builder<ComposeObjectRequest, Object> composeObjectSettings;
     private final UnaryCallSettings.Builder<DeleteObjectRequest, Empty> deleteObjectSettings;
+    private final UnaryCallSettings.Builder<RestoreObjectRequest, Object> restoreObjectSettings;
     private final UnaryCallSettings.Builder<
             CancelResumableWriteRequest, CancelResumableWriteResponse>
         cancelResumableWriteSettings;
     private final UnaryCallSettings.Builder<GetObjectRequest, Object> getObjectSettings;
     private final ServerStreamingCallSettings.Builder<ReadObjectRequest, ReadObjectResponse>
         readObjectSettings;
+    private final StreamingCallSettings.Builder<BidiReadObjectRequest, BidiReadObjectResponse>
+        bidiReadObjectSettings;
     private final UnaryCallSettings.Builder<UpdateObjectRequest, Object> updateObjectSettings;
     private final StreamingCallSettings.Builder<WriteObjectRequest, WriteObjectResponse>
         writeObjectSettings;
+    private final StreamingCallSettings.Builder<BidiWriteObjectRequest, BidiWriteObjectResponse>
+        bidiWriteObjectSettings;
     private final PagedCallSettings.Builder<
             ListObjectsRequest, ListObjectsResponse, ListObjectsPagedResponse>
         listObjectsSettings;
@@ -759,17 +575,7 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
         startResumableWriteSettings;
     private final UnaryCallSettings.Builder<QueryWriteStatusRequest, QueryWriteStatusResponse>
         queryWriteStatusSettings;
-    private final UnaryCallSettings.Builder<GetServiceAccountRequest, ServiceAccount>
-        getServiceAccountSettings;
-    private final UnaryCallSettings.Builder<CreateHmacKeyRequest, CreateHmacKeyResponse>
-        createHmacKeySettings;
-    private final UnaryCallSettings.Builder<DeleteHmacKeyRequest, Empty> deleteHmacKeySettings;
-    private final UnaryCallSettings.Builder<GetHmacKeyRequest, HmacKeyMetadata> getHmacKeySettings;
-    private final PagedCallSettings.Builder<
-            ListHmacKeysRequest, ListHmacKeysResponse, ListHmacKeysPagedResponse>
-        listHmacKeysSettings;
-    private final UnaryCallSettings.Builder<UpdateHmacKeyRequest, HmacKeyMetadata>
-        updateHmacKeySettings;
+    private final UnaryCallSettings.Builder<MoveObjectRequest, Object> moveObjectSettings;
     private static final ImmutableMap<String, ImmutableSet<StatusCode.Code>>
         RETRYABLE_CODE_DEFINITIONS;
 
@@ -791,13 +597,13 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
       RetrySettings settings = null;
       settings =
           RetrySettings.newBuilder()
-              .setInitialRetryDelay(Duration.ofMillis(1000L))
+              .setInitialRetryDelayDuration(Duration.ofMillis(1000L))
               .setRetryDelayMultiplier(2.0)
-              .setMaxRetryDelay(Duration.ofMillis(60000L))
-              .setInitialRpcTimeout(Duration.ofMillis(60000L))
+              .setMaxRetryDelayDuration(Duration.ofMillis(60000L))
+              .setInitialRpcTimeoutDuration(Duration.ofMillis(60000L))
               .setRpcTimeoutMultiplier(1.0)
-              .setMaxRpcTimeout(Duration.ofMillis(60000L))
-              .setTotalTimeout(Duration.ofMillis(60000L))
+              .setMaxRpcTimeoutDuration(Duration.ofMillis(60000L))
+              .setTotalTimeoutDuration(Duration.ofMillis(60000L))
               .build();
       definitions.put("retry_policy_0_params", settings);
       RETRY_PARAM_DEFINITIONS = definitions.build();
@@ -819,27 +625,21 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
       setIamPolicySettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       testIamPermissionsSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       updateBucketSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      deleteNotificationSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      getNotificationSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      createNotificationSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      listNotificationsSettings = PagedCallSettings.newBuilder(LIST_NOTIFICATIONS_PAGE_STR_FACT);
       composeObjectSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       deleteObjectSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
+      restoreObjectSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       cancelResumableWriteSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       getObjectSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       readObjectSettings = ServerStreamingCallSettings.newBuilder();
+      bidiReadObjectSettings = StreamingCallSettings.newBuilder();
       updateObjectSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       writeObjectSettings = StreamingCallSettings.newBuilder();
+      bidiWriteObjectSettings = StreamingCallSettings.newBuilder();
       listObjectsSettings = PagedCallSettings.newBuilder(LIST_OBJECTS_PAGE_STR_FACT);
       rewriteObjectSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       startResumableWriteSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
       queryWriteStatusSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      getServiceAccountSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      createHmacKeySettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      deleteHmacKeySettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      getHmacKeySettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
-      listHmacKeysSettings = PagedCallSettings.newBuilder(LIST_HMAC_KEYS_PAGE_STR_FACT);
-      updateHmacKeySettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
+      moveObjectSettings = UnaryCallSettings.newUnaryCallSettingsBuilder();
 
       unaryMethodSettingsBuilders =
           ImmutableList.<UnaryCallSettings.Builder<?, ?>>of(
@@ -852,12 +652,9 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
               setIamPolicySettings,
               testIamPermissionsSettings,
               updateBucketSettings,
-              deleteNotificationSettings,
-              getNotificationSettings,
-              createNotificationSettings,
-              listNotificationsSettings,
               composeObjectSettings,
               deleteObjectSettings,
+              restoreObjectSettings,
               cancelResumableWriteSettings,
               getObjectSettings,
               updateObjectSettings,
@@ -865,12 +662,7 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
               rewriteObjectSettings,
               startResumableWriteSettings,
               queryWriteStatusSettings,
-              getServiceAccountSettings,
-              createHmacKeySettings,
-              deleteHmacKeySettings,
-              getHmacKeySettings,
-              listHmacKeysSettings,
-              updateHmacKeySettings);
+              moveObjectSettings);
       initDefaults(this);
     }
 
@@ -886,27 +678,21 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
       setIamPolicySettings = settings.setIamPolicySettings.toBuilder();
       testIamPermissionsSettings = settings.testIamPermissionsSettings.toBuilder();
       updateBucketSettings = settings.updateBucketSettings.toBuilder();
-      deleteNotificationSettings = settings.deleteNotificationSettings.toBuilder();
-      getNotificationSettings = settings.getNotificationSettings.toBuilder();
-      createNotificationSettings = settings.createNotificationSettings.toBuilder();
-      listNotificationsSettings = settings.listNotificationsSettings.toBuilder();
       composeObjectSettings = settings.composeObjectSettings.toBuilder();
       deleteObjectSettings = settings.deleteObjectSettings.toBuilder();
+      restoreObjectSettings = settings.restoreObjectSettings.toBuilder();
       cancelResumableWriteSettings = settings.cancelResumableWriteSettings.toBuilder();
       getObjectSettings = settings.getObjectSettings.toBuilder();
       readObjectSettings = settings.readObjectSettings.toBuilder();
+      bidiReadObjectSettings = settings.bidiReadObjectSettings.toBuilder();
       updateObjectSettings = settings.updateObjectSettings.toBuilder();
       writeObjectSettings = settings.writeObjectSettings.toBuilder();
+      bidiWriteObjectSettings = settings.bidiWriteObjectSettings.toBuilder();
       listObjectsSettings = settings.listObjectsSettings.toBuilder();
       rewriteObjectSettings = settings.rewriteObjectSettings.toBuilder();
       startResumableWriteSettings = settings.startResumableWriteSettings.toBuilder();
       queryWriteStatusSettings = settings.queryWriteStatusSettings.toBuilder();
-      getServiceAccountSettings = settings.getServiceAccountSettings.toBuilder();
-      createHmacKeySettings = settings.createHmacKeySettings.toBuilder();
-      deleteHmacKeySettings = settings.deleteHmacKeySettings.toBuilder();
-      getHmacKeySettings = settings.getHmacKeySettings.toBuilder();
-      listHmacKeysSettings = settings.listHmacKeysSettings.toBuilder();
-      updateHmacKeySettings = settings.updateHmacKeySettings.toBuilder();
+      moveObjectSettings = settings.moveObjectSettings.toBuilder();
 
       unaryMethodSettingsBuilders =
           ImmutableList.<UnaryCallSettings.Builder<?, ?>>of(
@@ -919,12 +705,9 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
               setIamPolicySettings,
               testIamPermissionsSettings,
               updateBucketSettings,
-              deleteNotificationSettings,
-              getNotificationSettings,
-              createNotificationSettings,
-              listNotificationsSettings,
               composeObjectSettings,
               deleteObjectSettings,
+              restoreObjectSettings,
               cancelResumableWriteSettings,
               getObjectSettings,
               updateObjectSettings,
@@ -932,12 +715,7 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
               rewriteObjectSettings,
               startResumableWriteSettings,
               queryWriteStatusSettings,
-              getServiceAccountSettings,
-              createHmacKeySettings,
-              deleteHmacKeySettings,
-              getHmacKeySettings,
-              listHmacKeysSettings,
-              updateHmacKeySettings);
+              moveObjectSettings);
     }
 
     private static Builder createDefault() {
@@ -946,20 +724,6 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
       builder.setTransportChannelProvider(defaultTransportChannelProvider());
       builder.setCredentialsProvider(defaultCredentialsProviderBuilder().build());
       builder.setInternalHeaderProvider(defaultApiClientHeaderProviderBuilder().build());
-      builder.setEndpoint(getDefaultEndpoint());
-      builder.setMtlsEndpoint(getDefaultMtlsEndpoint());
-      builder.setSwitchToMtlsEndpointAllowed(true);
-
-      return initDefaults(builder);
-    }
-
-    private static Builder createHttpJsonDefault() {
-      Builder builder = new Builder(((ClientContext) null));
-
-      builder.setTransportChannelProvider(defaultHttpJsonTransportProviderBuilder().build());
-      builder.setCredentialsProvider(defaultCredentialsProviderBuilder().build());
-      builder.setInternalHeaderProvider(defaultHttpJsonApiClientHeaderProviderBuilder().build());
-      builder.setEndpoint(getDefaultEndpoint());
       builder.setMtlsEndpoint(getDefaultMtlsEndpoint());
       builder.setSwitchToMtlsEndpointAllowed(true);
 
@@ -1013,32 +777,17 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
           .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
 
       builder
-          .deleteNotificationSettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
-          .getNotificationSettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
-          .createNotificationSettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
-          .listNotificationsSettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
           .composeObjectSettings()
           .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
           .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
 
       builder
           .deleteObjectSettings()
+          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
+          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
+
+      builder
+          .restoreObjectSettings()
           .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
           .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
 
@@ -1083,32 +832,7 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
           .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
 
       builder
-          .getServiceAccountSettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
-          .createHmacKeySettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
-          .deleteHmacKeySettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
-          .getHmacKeySettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
-          .listHmacKeysSettings()
-          .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
-          .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
-
-      builder
-          .updateHmacKeySettings()
+          .moveObjectSettings()
           .setRetryableCodes(RETRYABLE_CODE_DEFINITIONS.get("retry_policy_0_codes"))
           .setRetrySettings(RETRY_PARAM_DEFINITIONS.get("retry_policy_0_params"));
 
@@ -1179,31 +903,6 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
       return updateBucketSettings;
     }
 
-    /** Returns the builder for the settings used for calls to deleteNotification. */
-    public UnaryCallSettings.Builder<DeleteNotificationRequest, Empty>
-        deleteNotificationSettings() {
-      return deleteNotificationSettings;
-    }
-
-    /** Returns the builder for the settings used for calls to getNotification. */
-    public UnaryCallSettings.Builder<GetNotificationRequest, Notification>
-        getNotificationSettings() {
-      return getNotificationSettings;
-    }
-
-    /** Returns the builder for the settings used for calls to createNotification. */
-    public UnaryCallSettings.Builder<CreateNotificationRequest, Notification>
-        createNotificationSettings() {
-      return createNotificationSettings;
-    }
-
-    /** Returns the builder for the settings used for calls to listNotifications. */
-    public PagedCallSettings.Builder<
-            ListNotificationsRequest, ListNotificationsResponse, ListNotificationsPagedResponse>
-        listNotificationsSettings() {
-      return listNotificationsSettings;
-    }
-
     /** Returns the builder for the settings used for calls to composeObject. */
     public UnaryCallSettings.Builder<ComposeObjectRequest, Object> composeObjectSettings() {
       return composeObjectSettings;
@@ -1212,6 +911,11 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
     /** Returns the builder for the settings used for calls to deleteObject. */
     public UnaryCallSettings.Builder<DeleteObjectRequest, Empty> deleteObjectSettings() {
       return deleteObjectSettings;
+    }
+
+    /** Returns the builder for the settings used for calls to restoreObject. */
+    public UnaryCallSettings.Builder<RestoreObjectRequest, Object> restoreObjectSettings() {
+      return restoreObjectSettings;
     }
 
     /** Returns the builder for the settings used for calls to cancelResumableWrite. */
@@ -1231,6 +935,12 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
       return readObjectSettings;
     }
 
+    /** Returns the builder for the settings used for calls to bidiReadObject. */
+    public StreamingCallSettings.Builder<BidiReadObjectRequest, BidiReadObjectResponse>
+        bidiReadObjectSettings() {
+      return bidiReadObjectSettings;
+    }
+
     /** Returns the builder for the settings used for calls to updateObject. */
     public UnaryCallSettings.Builder<UpdateObjectRequest, Object> updateObjectSettings() {
       return updateObjectSettings;
@@ -1240,6 +950,12 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
     public StreamingCallSettings.Builder<WriteObjectRequest, WriteObjectResponse>
         writeObjectSettings() {
       return writeObjectSettings;
+    }
+
+    /** Returns the builder for the settings used for calls to bidiWriteObject. */
+    public StreamingCallSettings.Builder<BidiWriteObjectRequest, BidiWriteObjectResponse>
+        bidiWriteObjectSettings() {
+      return bidiWriteObjectSettings;
     }
 
     /** Returns the builder for the settings used for calls to listObjects. */
@@ -1267,39 +983,9 @@ public class StorageStubSettings extends StubSettings<StorageStubSettings> {
       return queryWriteStatusSettings;
     }
 
-    /** Returns the builder for the settings used for calls to getServiceAccount. */
-    public UnaryCallSettings.Builder<GetServiceAccountRequest, ServiceAccount>
-        getServiceAccountSettings() {
-      return getServiceAccountSettings;
-    }
-
-    /** Returns the builder for the settings used for calls to createHmacKey. */
-    public UnaryCallSettings.Builder<CreateHmacKeyRequest, CreateHmacKeyResponse>
-        createHmacKeySettings() {
-      return createHmacKeySettings;
-    }
-
-    /** Returns the builder for the settings used for calls to deleteHmacKey. */
-    public UnaryCallSettings.Builder<DeleteHmacKeyRequest, Empty> deleteHmacKeySettings() {
-      return deleteHmacKeySettings;
-    }
-
-    /** Returns the builder for the settings used for calls to getHmacKey. */
-    public UnaryCallSettings.Builder<GetHmacKeyRequest, HmacKeyMetadata> getHmacKeySettings() {
-      return getHmacKeySettings;
-    }
-
-    /** Returns the builder for the settings used for calls to listHmacKeys. */
-    public PagedCallSettings.Builder<
-            ListHmacKeysRequest, ListHmacKeysResponse, ListHmacKeysPagedResponse>
-        listHmacKeysSettings() {
-      return listHmacKeysSettings;
-    }
-
-    /** Returns the builder for the settings used for calls to updateHmacKey. */
-    public UnaryCallSettings.Builder<UpdateHmacKeyRequest, HmacKeyMetadata>
-        updateHmacKeySettings() {
-      return updateHmacKeySettings;
+    /** Returns the builder for the settings used for calls to moveObject. */
+    public UnaryCallSettings.Builder<MoveObjectRequest, Object> moveObjectSettings() {
+      return moveObjectSettings;
     }
 
     @Override

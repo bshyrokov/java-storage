@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,16 @@
 
 package com.google.cloud.storage;
 
-import static org.easymock.EasyMock.capture;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createStrictMock;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.api.core.ApiClock;
 import com.google.api.gax.retrying.RetrySettings;
@@ -38,21 +35,26 @@ import com.google.cloud.storage.Acl.Project.ProjectRole;
 import com.google.cloud.storage.Acl.Role;
 import com.google.cloud.storage.Acl.User;
 import com.google.cloud.storage.Blob.BlobSourceOption;
-import com.google.cloud.storage.Storage.BlobWriteOption;
+import com.google.cloud.storage.BlobInfo.BuilderImpl;
+import com.google.cloud.storage.BlobInfo.ObjectContexts;
+import com.google.cloud.storage.BlobInfo.ObjectCustomContextPayload;
 import com.google.cloud.storage.Storage.CopyRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
+import java.io.File;
 import java.net.URL;
+import java.nio.file.Path;
 import java.security.Key;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.spec.SecretKeySpec;
-import org.easymock.Capture;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 public class BlobTest {
 
@@ -93,6 +95,12 @@ public class BlobTest {
   private static final Boolean EVENT_BASED_HOLD = true;
   private static final Boolean TEMPORARY_HOLD = true;
   private static final Long RETENTION_EXPIRATION_TIME = 10L;
+  private static final ObjectCustomContextPayload payload =
+      ObjectCustomContextPayload.newBuilder().setValue("contextValue").build();
+  private static final Map<String, ObjectCustomContextPayload> customContexts =
+      Collections.singletonMap("contextKey", payload);
+  private static final ObjectContexts OBJECT_CONTEXTS =
+      ObjectContexts.newBuilder().setCustom(customContexts).build();
   private static final BlobInfo FULL_BLOB_INFO =
       BlobInfo.newBuilder("b", "n", GENERATION)
           .setAcl(ACLS)
@@ -123,6 +131,7 @@ public class BlobTest {
           .setEventBasedHold(EVENT_BASED_HOLD)
           .setTemporaryHold(TEMPORARY_HOLD)
           .setRetentionExpirationTime(RETENTION_EXPIRATION_TIME)
+          .setContexts(OBJECT_CONTEXTS)
           .build();
   private static final BlobInfo BLOB_INFO =
       BlobInfo.newBuilder("b", "n", 12345678L).setMetageneration(42L).build();
@@ -157,26 +166,19 @@ public class BlobTest {
   private Storage storage;
   private Blob blob;
   private Blob expectedBlob;
-  private Storage serviceMockReturnsOptions = createMock(Storage.class);
-  private StorageOptions mockOptions = createMock(StorageOptions.class);
-  private final RetryAlgorithmManager retryAlgorithmManager =
-      StorageOptions.getDefaultInstance().getRetryAlgorithmManager();
+  private Storage serviceMockReturnsOptions = Mockito.mock(Storage.class);
+  private HttpStorageOptions mockOptions = Mockito.mock(HttpStorageOptions.class);
+  private final HttpRetryAlgorithmManager retryAlgorithmManager =
+      HttpStorageOptions.getDefaultInstance().getRetryAlgorithmManager();
 
   @Before
   public void setUp() {
-    storage = createStrictMock(Storage.class);
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    verify(storage);
+    storage = Mockito.mock(Storage.class);
   }
 
   private void initializeExpectedBlob() {
-    expect(serviceMockReturnsOptions.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(mockOptions.getRetryAlgorithmManager()).andReturn(retryAlgorithmManager).anyTimes();
-    replay(mockOptions);
-    replay(serviceMockReturnsOptions);
+    when(serviceMockReturnsOptions.getOptions()).thenReturn(mockOptions);
+    when(mockOptions.getRetryAlgorithmManager()).thenReturn(retryAlgorithmManager);
     expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(BLOB_INFO));
   }
 
@@ -188,73 +190,84 @@ public class BlobTest {
   public void testExists_True() throws Exception {
     initializeExpectedBlob();
     Storage.BlobGetOption[] expectedOptions = {Storage.BlobGetOption.fields()};
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.get(expectedBlob.getBlobId(), expectedOptions)).andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(expectedBlob.getBlobId(), expectedOptions)).thenReturn(expectedBlob);
     initializeBlob();
     assertTrue(blob.exists());
+
+    verify(storage).getOptions();
+    verify(storage).get(expectedBlob.getBlobId(), expectedOptions);
   }
 
   @Test
   public void testExists_False() throws Exception {
     Storage.BlobGetOption[] expectedOptions = {Storage.BlobGetOption.fields()};
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.get(BLOB_INFO.getBlobId(), expectedOptions)).andReturn(null);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(BLOB_INFO.getBlobId(), expectedOptions)).thenReturn(null);
     initializeBlob();
     assertFalse(blob.exists());
+
+    verify(storage).getOptions();
+    verify(storage).get(BLOB_INFO.getBlobId(), expectedOptions);
   }
 
   @Test
   public void testContent() throws Exception {
     initializeExpectedBlob();
     byte[] content = {1, 2};
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.readAllBytes(BLOB_INFO.getBlobId())).andReturn(content);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.readAllBytes(BLOB_INFO.getBlobId())).thenReturn(content);
     initializeBlob();
     assertArrayEquals(content, blob.getContent());
+
+    verify(storage).getOptions();
+    verify(storage).readAllBytes(BLOB_INFO.getBlobId());
   }
 
   @Test
   public void testContentWithDecryptionKey() throws Exception {
     initializeExpectedBlob();
     byte[] content = {1, 2};
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(
-            storage.readAllBytes(
-                BLOB_INFO.getBlobId(), Storage.BlobSourceOption.decryptionKey(BASE64_KEY)))
-        .andReturn(content)
-        .times(2);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.readAllBytes(
+            BLOB_INFO.getBlobId(), Storage.BlobSourceOption.decryptionKey(BASE64_KEY)))
+        .thenReturn(content);
     initializeBlob();
     assertArrayEquals(content, blob.getContent(BlobSourceOption.decryptionKey(BASE64_KEY)));
     assertArrayEquals(content, blob.getContent(BlobSourceOption.decryptionKey(KEY)));
+
+    verify(storage).getOptions();
+    verify(storage, times(2))
+        .readAllBytes(BLOB_INFO.getBlobId(), Storage.BlobSourceOption.decryptionKey(BASE64_KEY));
   }
 
   @Test
   public void testReload() throws Exception {
     initializeExpectedBlob();
     Blob expectedReloadedBlob = expectedBlob.toBuilder().setCacheControl("c").build();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.get(BLOB_INFO_NO_GENERATION.getBlobId(), new Storage.BlobGetOption[0]))
-        .andReturn(expectedReloadedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(BLOB_INFO_NO_GENERATION.getBlobId(), new Storage.BlobGetOption[0]))
+        .thenReturn(expectedReloadedBlob);
     initializeBlob();
     Blob updatedBlob = blob.reload();
     assertEquals(expectedReloadedBlob, updatedBlob);
+
+    verify(storage).getOptions();
+    verify(storage).get(BLOB_INFO_NO_GENERATION.getBlobId(), new Storage.BlobGetOption[0]);
   }
 
   @Test
   public void testReloadNull() throws Exception {
     initializeExpectedBlob();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.get(BLOB_INFO_NO_GENERATION.getBlobId(), new Storage.BlobGetOption[0]))
-        .andReturn(null);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(BLOB_INFO_NO_GENERATION.getBlobId(), new Storage.BlobGetOption[0]))
+        .thenReturn(null);
     initializeBlob();
     Blob reloadedBlob = blob.reload();
     assertNull(reloadedBlob);
+
+    verify(storage).getOptions();
+    verify(storage).get(BLOB_INFO_NO_GENERATION.getBlobId(), new Storage.BlobGetOption[0]);
   }
 
   @Test
@@ -262,48 +275,53 @@ public class BlobTest {
     initializeExpectedBlob();
     Blob expectedReloadedBlob = expectedBlob.toBuilder().setCacheControl("c").build();
     Storage.BlobGetOption[] options = {Storage.BlobGetOption.metagenerationMatch(42L)};
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.get(BLOB_INFO_NO_GENERATION.getBlobId(), options))
-        .andReturn(expectedReloadedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(BLOB_INFO_NO_GENERATION.getBlobId(), options))
+        .thenReturn(expectedReloadedBlob);
     initializeBlob();
     Blob updatedBlob = blob.reload(BlobSourceOption.metagenerationMatch());
     assertEquals(expectedReloadedBlob, updatedBlob);
+
+    verify(storage).getOptions();
+    verify(storage).get(BLOB_INFO_NO_GENERATION.getBlobId(), options);
   }
 
   @Test
   public void testUpdate() throws Exception {
     initializeExpectedBlob();
     Blob expectedUpdatedBlob = expectedBlob.toBuilder().setCacheControl("c").build();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.update(eq(expectedUpdatedBlob), new Storage.BlobTargetOption[0]))
-        .andReturn(expectedUpdatedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.update(eq(expectedUpdatedBlob), new Storage.BlobTargetOption[0]))
+        .thenReturn(expectedUpdatedBlob);
     initializeBlob();
     Blob updatedBlob = new Blob(storage, new BlobInfo.BuilderImpl(expectedUpdatedBlob));
     Blob actualUpdatedBlob = updatedBlob.update();
     assertEquals(expectedUpdatedBlob, actualUpdatedBlob);
+
+    verify(storage, times(2)).getOptions();
+    verify(storage).update(eq(expectedUpdatedBlob), new Storage.BlobTargetOption[0]);
   }
 
   @Test
   public void testDelete() throws Exception {
     initializeExpectedBlob();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.delete(BLOB_INFO.getBlobId(), new Storage.BlobSourceOption[0])).andReturn(true);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.delete(BLOB_INFO.getBlobId(), new Storage.BlobSourceOption[0])).thenReturn(true);
     initializeBlob();
     assertTrue(blob.delete());
+
+    verify(storage).getOptions();
+    verify(storage).delete(BLOB_INFO.getBlobId(), new Storage.BlobSourceOption[0]);
   }
 
   @Test
   public void testCopyToBucket() throws Exception {
     initializeExpectedBlob();
     BlobInfo target = BlobInfo.newBuilder(BlobId.of("bt", "n")).build();
-    CopyWriter copyWriter = createMock(CopyWriter.class);
-    Capture<CopyRequest> capturedCopyRequest = Capture.newInstance();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.copy(capture(capturedCopyRequest))).andReturn(copyWriter);
-    replay(storage);
+    CopyWriter copyWriter = Mockito.mock(CopyWriter.class);
+    ArgumentCaptor<CopyRequest> capturedCopyRequest = ArgumentCaptor.forClass(CopyRequest.class);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.copy(capturedCopyRequest.capture())).thenReturn(copyWriter);
     initializeBlob();
     CopyWriter returnedCopyWriter = blob.copyTo("bt");
     assertEquals(copyWriter, returnedCopyWriter);
@@ -312,17 +330,19 @@ public class BlobTest {
     assertFalse(capturedCopyRequest.getValue().overrideInfo());
     assertTrue(capturedCopyRequest.getValue().getSourceOptions().isEmpty());
     assertTrue(capturedCopyRequest.getValue().getTargetOptions().isEmpty());
+
+    verify(storage).getOptions();
+    verify(storage).copy(capturedCopyRequest.capture());
   }
 
   @Test
   public void testCopyTo() throws Exception {
     initializeExpectedBlob();
     BlobInfo target = BlobInfo.newBuilder(BlobId.of("bt", "nt")).build();
-    CopyWriter copyWriter = createMock(CopyWriter.class);
-    Capture<CopyRequest> capturedCopyRequest = Capture.newInstance();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.copy(capture(capturedCopyRequest))).andReturn(copyWriter);
-    replay(storage);
+    CopyWriter copyWriter = Mockito.mock(CopyWriter.class);
+    ArgumentCaptor<CopyRequest> capturedCopyRequest = ArgumentCaptor.forClass(CopyRequest.class);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.copy(capturedCopyRequest.capture())).thenReturn(copyWriter);
     initializeBlob();
     CopyWriter returnedCopyWriter = blob.copyTo("bt", "nt");
     assertEquals(copyWriter, returnedCopyWriter);
@@ -331,6 +351,9 @@ public class BlobTest {
     assertFalse(capturedCopyRequest.getValue().overrideInfo());
     assertTrue(capturedCopyRequest.getValue().getSourceOptions().isEmpty());
     assertTrue(capturedCopyRequest.getValue().getTargetOptions().isEmpty());
+
+    verify(storage).getOptions();
+    verify(storage).copy(capturedCopyRequest.capture());
   }
 
   @Test
@@ -338,11 +361,10 @@ public class BlobTest {
     initializeExpectedBlob();
     BlobInfo target = BlobInfo.newBuilder(BlobId.of("bt", "nt")).build();
     BlobId targetId = BlobId.of("bt", "nt");
-    CopyWriter copyWriter = createMock(CopyWriter.class);
-    Capture<CopyRequest> capturedCopyRequest = Capture.newInstance();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.copy(capture(capturedCopyRequest))).andReturn(copyWriter);
-    replay(storage);
+    CopyWriter copyWriter = Mockito.mock(CopyWriter.class);
+    ArgumentCaptor<CopyRequest> capturedCopyRequest = ArgumentCaptor.forClass(CopyRequest.class);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.copy(capturedCopyRequest.capture())).thenReturn(copyWriter);
     initializeBlob();
     CopyWriter returnedCopyWriter = blob.copyTo(targetId);
     assertEquals(copyWriter, returnedCopyWriter);
@@ -351,142 +373,118 @@ public class BlobTest {
     assertFalse(capturedCopyRequest.getValue().overrideInfo());
     assertTrue(capturedCopyRequest.getValue().getSourceOptions().isEmpty());
     assertTrue(capturedCopyRequest.getValue().getTargetOptions().isEmpty());
+
+    verify(storage).getOptions();
+    verify(storage).copy(capturedCopyRequest.capture());
   }
 
   @Test
   public void testReader() throws Exception {
     initializeExpectedBlob();
-    ReadChannel channel = createMock(ReadChannel.class);
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.reader(BLOB_INFO.getBlobId())).andReturn(channel);
-    replay(storage);
+    ReadChannel channel = Mockito.mock(ReadChannel.class);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.reader(BLOB_INFO.getBlobId())).thenReturn(channel);
     initializeBlob();
     assertSame(channel, blob.reader());
+
+    verify(storage).getOptions();
+    verify(storage).reader(BLOB_INFO.getBlobId());
   }
 
   @Test
   public void testReaderWithDecryptionKey() throws Exception {
     initializeExpectedBlob();
-    ReadChannel channel = createMock(ReadChannel.class);
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(
-            storage.reader(
-                BLOB_INFO.getBlobId(), Storage.BlobSourceOption.decryptionKey(BASE64_KEY)))
-        .andReturn(channel)
-        .times(2);
-    replay(storage);
+    ReadChannel channel = Mockito.mock(ReadChannel.class);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.reader(BLOB_INFO.getBlobId(), Storage.BlobSourceOption.decryptionKey(BASE64_KEY)))
+        .thenReturn(channel);
     initializeBlob();
     assertSame(channel, blob.reader(BlobSourceOption.decryptionKey(BASE64_KEY)));
     assertSame(channel, blob.reader(BlobSourceOption.decryptionKey(KEY)));
-  }
 
-  @Test
-  public void testWriter() throws Exception {
-    initializeExpectedBlob();
-    BlobWriteChannel channel = createMock(BlobWriteChannel.class);
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.writer(eq(expectedBlob))).andReturn(channel);
-    replay(storage);
-    initializeBlob();
-    assertSame(channel, blob.writer());
-  }
-
-  @Test
-  public void testWriterWithEncryptionKey() throws Exception {
-    initializeExpectedBlob();
-    BlobWriteChannel channel = createMock(BlobWriteChannel.class);
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.writer(eq(expectedBlob), eq(BlobWriteOption.encryptionKey(BASE64_KEY))))
-        .andReturn(channel)
-        .times(2);
-    replay(storage);
-    initializeBlob();
-    assertSame(channel, blob.writer(BlobWriteOption.encryptionKey(BASE64_KEY)));
-    assertSame(channel, blob.writer(BlobWriteOption.encryptionKey(KEY)));
-  }
-
-  @Test
-  public void testWriterWithKmsKeyName() throws Exception {
-    initializeExpectedBlob();
-    BlobWriteChannel channel = createMock(BlobWriteChannel.class);
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.writer(eq(expectedBlob), eq(BlobWriteOption.kmsKeyName(KMS_KEY_NAME))))
-        .andReturn(channel);
-    replay(storage);
-    initializeBlob();
-    assertSame(channel, blob.writer(BlobWriteOption.kmsKeyName(KMS_KEY_NAME)));
+    verify(storage).getOptions();
+    verify(storage, times(2))
+        .reader(BLOB_INFO.getBlobId(), Storage.BlobSourceOption.decryptionKey(BASE64_KEY));
   }
 
   @Test
   public void testSignUrl() throws Exception {
     initializeExpectedBlob();
     URL url = new URL("http://localhost:123/bla");
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.signUrl(expectedBlob, 100, TimeUnit.SECONDS)).andReturn(url);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.signUrl(expectedBlob, 100, TimeUnit.SECONDS)).thenReturn(url);
     initializeBlob();
     assertEquals(url, blob.signUrl(100, TimeUnit.SECONDS));
+
+    verify(storage).getOptions();
+    verify(storage).signUrl(expectedBlob, 100, TimeUnit.SECONDS);
   }
 
   @Test
   public void testGetAcl() throws Exception {
     initializeExpectedBlob();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.getAcl(BLOB_INFO.getBlobId(), User.ofAllAuthenticatedUsers())).andReturn(ACL);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.getAcl(BLOB_INFO.getBlobId(), User.ofAllAuthenticatedUsers())).thenReturn(ACL);
     initializeBlob();
     assertEquals(ACL, blob.getAcl(User.ofAllAuthenticatedUsers()));
+
+    verify(storage).getOptions();
+    verify(storage).getAcl(BLOB_INFO.getBlobId(), User.ofAllAuthenticatedUsers());
   }
 
   @Test
   public void testDeleteAcl() throws Exception {
     initializeExpectedBlob();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.deleteAcl(BLOB_INFO.getBlobId(), User.ofAllAuthenticatedUsers()))
-        .andReturn(true);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.deleteAcl(BLOB_INFO.getBlobId(), User.ofAllAuthenticatedUsers())).thenReturn(true);
     initializeBlob();
     assertTrue(blob.deleteAcl(User.ofAllAuthenticatedUsers()));
+
+    verify(storage).getOptions();
+    verify(storage).deleteAcl(BLOB_INFO.getBlobId(), User.ofAllAuthenticatedUsers());
   }
 
   @Test
   public void testCreateAcl() throws Exception {
     initializeExpectedBlob();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
+    when(storage.getOptions()).thenReturn(mockOptions);
     Acl returnedAcl = ACL.toBuilder().setEtag("ETAG").setId("ID").build();
-    expect(storage.createAcl(BLOB_INFO.getBlobId(), ACL)).andReturn(returnedAcl);
-    replay(storage);
+    when(storage.createAcl(BLOB_INFO.getBlobId(), ACL)).thenReturn(returnedAcl);
     initializeBlob();
     assertEquals(returnedAcl, blob.createAcl(ACL));
+
+    verify(storage).getOptions();
+    verify(storage).createAcl(BLOB_INFO.getBlobId(), ACL);
   }
 
   @Test
   public void testUpdateAcl() throws Exception {
     initializeExpectedBlob();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
+    when(storage.getOptions()).thenReturn(mockOptions);
     Acl returnedAcl = ACL.toBuilder().setEtag("ETAG").setId("ID").build();
-    expect(storage.updateAcl(BLOB_INFO.getBlobId(), ACL)).andReturn(returnedAcl);
-    replay(storage);
+    when(storage.updateAcl(BLOB_INFO.getBlobId(), ACL)).thenReturn(returnedAcl);
     initializeBlob();
     assertEquals(returnedAcl, blob.updateAcl(ACL));
+
+    verify(storage).getOptions();
+    verify(storage).updateAcl(BLOB_INFO.getBlobId(), ACL);
   }
 
   @Test
   public void testListAcls() throws Exception {
     initializeExpectedBlob();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(storage.listAcls(BLOB_INFO.getBlobId())).andReturn(ACLS);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.listAcls(BLOB_INFO.getBlobId())).thenReturn(ACLS);
     initializeBlob();
     assertEquals(ACLS, blob.listAcls());
+
+    verify(storage).getOptions();
+    verify(storage).listAcls(BLOB_INFO.getBlobId());
   }
 
   @Test
   public void testToBuilder() {
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    expect(mockOptions.getRetryAlgorithmManager()).andReturn(retryAlgorithmManager).anyTimes();
-    replay(storage);
-    replay(mockOptions);
+    when(storage.getOptions()).thenReturn(mockOptions);
     Blob fullBlob = new Blob(storage, new BlobInfo.BuilderImpl(FULL_BLOB_INFO));
     assertEquals(fullBlob, fullBlob.toBuilder().build());
     Blob simpleBlob = new Blob(storage, new BlobInfo.BuilderImpl(BLOB_INFO));
@@ -498,8 +496,7 @@ public class BlobTest {
   @Test
   public void testBuilder() {
     initializeExpectedBlob();
-    expect(storage.getOptions()).andReturn(mockOptions).anyTimes();
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
     Blob.Builder builder = new Blob.Builder(new Blob(storage, new BlobInfo.BuilderImpl(BLOB_INFO)));
     Blob blob =
         builder
@@ -601,5 +598,17 @@ public class BlobTest {
     assertNull(blob.getUpdateTime());
     assertNull(blob.getCustomTime());
     assertTrue(blob.isDirectory());
+  }
+
+  @Test
+  public void testDownloadTo() throws Exception {
+    File file = File.createTempFile("blob", ".tmp");
+    Path path = file.toPath();
+
+    Storage s = Mockito.mock(Storage.class);
+    Blob blob = new Blob(s, new BuilderImpl(BlobInfo.newBuilder("buck", "obj").build()));
+
+    Mockito.doNothing().when(s).downloadTo(blob.getBlobId(), path);
+    blob.downloadTo(path);
   }
 }

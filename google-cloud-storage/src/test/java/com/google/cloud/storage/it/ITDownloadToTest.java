@@ -23,44 +23,49 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
-import com.google.cloud.storage.testing.RemoteStorageHelper;
-import java.io.ByteArrayOutputStream;
+import com.google.cloud.storage.TestUtils;
+import com.google.cloud.storage.TransportCompatibility.Transport;
+import com.google.cloud.storage.it.runner.StorageITRunner;
+import com.google.cloud.storage.it.runner.annotations.Backend;
+import com.google.cloud.storage.it.runner.annotations.CrossRun;
+import com.google.cloud.storage.it.runner.annotations.Inject;
+import com.google.cloud.storage.it.runner.registry.Generator;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.zip.GZIPOutputStream;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(StorageITRunner.class)
+@CrossRun(
+    transports = {Transport.HTTP, Transport.GRPC},
+    backends = {Backend.PROD})
 public final class ITDownloadToTest {
 
-  private static final String BUCKET = RemoteStorageHelper.generateBucketName();
   private static final byte[] helloWorldTextBytes = "hello world".getBytes();
-  private static final byte[] helloWorldGzipBytes = gzipBytes(helloWorldTextBytes);
+  private static final byte[] helloWorldGzipBytes = TestUtils.gzipBytes(helloWorldTextBytes);
 
-  private static Storage storage;
-  private static BlobId blobId;
+  @Inject public Storage storage;
+  @Inject public BucketInfo bucket;
+  @Inject public Generator generator;
 
-  @BeforeClass
-  public static void beforeClass() {
-    BucketInfo bucketInfo = BucketInfo.of(BUCKET);
-    blobId = BlobId.of(BUCKET, "zipped_blob");
+  private BlobId blobId;
 
+  @Before
+  public void before() {
+    String objectString = generator.randomObjectName();
+    blobId = BlobId.of(bucket.getName(), objectString);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(blobId).setContentEncoding("gzip").setContentType("text/plain").build();
-
-    storage = StorageOptions.newBuilder().build().getService();
-    storage.create(bucketInfo);
     storage.create(blobInfo, helloWorldGzipBytes);
   }
 
   @Test
   public void downloadTo_returnRawInputStream_yes() throws IOException {
-    Path helloWorldTxtGz = File.createTempFile("helloWorld", ".txt.gz").toPath();
+    Path helloWorldTxtGz = File.createTempFile(blobId.getName(), ".txt.gz").toPath();
     storage.downloadTo(
         blobId, helloWorldTxtGz, Storage.BlobSourceOption.shouldReturnRawInputStream(true));
 
@@ -73,20 +78,10 @@ public final class ITDownloadToTest {
 
   @Test
   public void downloadTo_returnRawInputStream_no() throws IOException {
-    Path helloWorldTxt = File.createTempFile("helloWorld", ".txt").toPath();
+    Path helloWorldTxt = File.createTempFile(blobId.getName(), ".txt").toPath();
     storage.downloadTo(
         blobId, helloWorldTxt, Storage.BlobSourceOption.shouldReturnRawInputStream(false));
     byte[] actualTxtBytes = Files.readAllBytes(helloWorldTxt);
     assertThat(actualTxtBytes).isEqualTo(helloWorldTextBytes);
-  }
-
-  private static byte[] gzipBytes(byte[] bytes) {
-    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    try (OutputStream out = new GZIPOutputStream(byteArrayOutputStream)) {
-      out.write(bytes);
-    } catch (IOException ignore) {
-    }
-
-    return byteArrayOutputStream.toByteArray();
   }
 }

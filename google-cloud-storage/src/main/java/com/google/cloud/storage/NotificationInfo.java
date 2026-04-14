@@ -19,11 +19,9 @@ package com.google.cloud.storage;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.api.pathtemplate.PathTemplate;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -32,26 +30,9 @@ import java.util.Objects;
 /** The class representing Pub/Sub Notification metadata for the Storage. */
 public class NotificationInfo implements Serializable {
 
-  private static final long serialVersionUID = 5725883368559753810L;
+  private static final long serialVersionUID = -996243512290027661L;
   private static final PathTemplate PATH_TEMPLATE =
       PathTemplate.createWithoutUrlEncoding("projects/{project}/topics/{topic}");
-  static final Function<com.google.api.services.storage.model.Notification, NotificationInfo>
-      FROM_PB_FUNCTION =
-          new Function<com.google.api.services.storage.model.Notification, NotificationInfo>() {
-            @Override
-            public NotificationInfo apply(com.google.api.services.storage.model.Notification pb) {
-              return NotificationInfo.fromPb(pb);
-            }
-          };
-  static final Function<NotificationInfo, com.google.api.services.storage.model.Notification>
-      TO_PB_FUNCTION =
-          new Function<NotificationInfo, com.google.api.services.storage.model.Notification>() {
-            @Override
-            public com.google.api.services.storage.model.Notification apply(
-                NotificationInfo NotificationInfo) {
-              return NotificationInfo.toPb();
-            }
-          };
 
   public enum PayloadFormat {
     JSON_API_V1,
@@ -246,51 +227,39 @@ public class NotificationInfo implements Serializable {
 
   @Override
   public int hashCode() {
-    return toPb().hashCode();
+    return Objects.hash(
+        notificationId,
+        topic,
+        eventTypes,
+        customAttributes,
+        payloadFormat,
+        objectNamePrefix,
+        etag,
+        selfLink);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return obj == this
-        || obj != null
-            && obj.getClass().equals(NotificationInfo.class)
-            && Objects.equals(toPb(), ((NotificationInfo) obj).toPb());
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof NotificationInfo)) {
+      return false;
+    }
+    NotificationInfo that = (NotificationInfo) o;
+    return Objects.equals(notificationId, that.notificationId)
+        && Objects.equals(topic, that.topic)
+        && Objects.equals(eventTypes, that.eventTypes)
+        && Objects.equals(customAttributes, that.customAttributes)
+        && payloadFormat == that.payloadFormat
+        && Objects.equals(objectNamePrefix, that.objectNamePrefix)
+        && Objects.equals(etag, that.etag)
+        && Objects.equals(selfLink, that.selfLink);
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("topic", topic).toString();
-  }
-
-  com.google.api.services.storage.model.Notification toPb() {
-    com.google.api.services.storage.model.Notification notificationPb =
-        new com.google.api.services.storage.model.Notification();
-    if (notificationId != null) {
-      notificationPb.setId(notificationId);
-    }
-    notificationPb.setEtag(etag);
-    if (customAttributes != null) {
-      notificationPb.setCustomAttributes(customAttributes);
-    }
-    if (eventTypes != null && eventTypes.size() > 0) {
-      List<String> eventTypesPb = new ArrayList<>();
-      for (EventType eventType : eventTypes) {
-        eventTypesPb.add(eventType.toString());
-      }
-      notificationPb.setEventTypes(eventTypesPb);
-    }
-    if (objectNamePrefix != null) {
-      notificationPb.setObjectNamePrefix(objectNamePrefix);
-    }
-    if (payloadFormat != null) {
-      notificationPb.setPayloadFormat(payloadFormat.toString());
-    } else {
-      notificationPb.setPayloadFormat(PayloadFormat.NONE.toString());
-    }
-    notificationPb.setSelfLink(selfLink);
-    notificationPb.setTopic(topic);
-
-    return notificationPb;
   }
 
   /**
@@ -309,6 +278,7 @@ public class NotificationInfo implements Serializable {
     checkTopicFormat(topic);
     return newBuilder(topic).build();
   }
+
   /**
    * Creates a {@code NotificationInfo} object for the provided topic.
    *
@@ -324,39 +294,11 @@ public class NotificationInfo implements Serializable {
     return new BuilderImpl(this);
   }
 
-  static NotificationInfo fromPb(
-      com.google.api.services.storage.model.Notification notificationPb) {
-    NotificationInfo.Builder builder = new NotificationInfo.BuilderImpl(notificationPb.getTopic());
-    if (notificationPb.getId() != null) {
-      builder.setNotificationId(notificationPb.getId());
-    }
-    if (notificationPb.getEtag() != null) {
-      builder.setEtag(notificationPb.getEtag());
-    }
-    if (notificationPb.getCustomAttributes() != null) {
-      builder.setCustomAttributes(notificationPb.getCustomAttributes());
-    }
-    if (notificationPb.getSelfLink() != null) {
-      builder.setSelfLink(notificationPb.getSelfLink());
-    }
-    if (notificationPb.getObjectNamePrefix() != null) {
-      builder.setObjectNamePrefix(notificationPb.getObjectNamePrefix());
-    }
-    if (notificationPb.getEventTypes() != null) {
-      List<String> eventTypesPb = notificationPb.getEventTypes();
-      EventType[] eventTypes = new EventType[eventTypesPb.size()];
-      for (int index = 0; index < eventTypesPb.size(); index++) {
-        eventTypes[index] = EventType.valueOf(eventTypesPb.get(index));
-      }
-      builder.setEventTypes(eventTypes);
-    }
-    if (notificationPb.getPayloadFormat() != null) {
-      builder.setPayloadFormat(PayloadFormat.valueOf(notificationPb.getPayloadFormat()));
-    }
-    return builder.build();
+  Notification asNotification(Storage storage) {
+    return new Notification(storage, new BuilderImpl(this));
   }
 
-  private static void checkTopicFormat(String topic) {
+  private static void checkTopicFormat(String topic) { // todo: why does this exist?
     PATH_TEMPLATE.validatedMatch(topic, "topic name must be in valid format");
   }
 }

@@ -27,6 +27,7 @@ import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.gax.retrying.ResultRetryAlgorithm;
+import com.google.auth.Retryable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -34,10 +35,12 @@ import com.google.gson.stream.MalformedJsonException;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
@@ -62,7 +65,7 @@ public final class DefaultRetryHandlingBehaviorTest {
   @SuppressWarnings("deprecation")
   public DefaultRetryHandlingBehaviorTest(Case c) {
     this.c = c;
-    defaultStrategy = new DefaultStorageRetryStrategy();
+    defaultStrategy = DefaultStorageRetryStrategy.INSTANCE;
     legacyStrategy = StorageRetryStrategy.getLegacyStorageRetryStrategy();
   }
 
@@ -166,8 +169,10 @@ public final class DefaultRetryHandlingBehaviorTest {
    */
   private static String token(ThrowableCategory t, HandlerCategory h) {
     return String.format(
+        Locale.US,
         "new Case(ThrowableCategory.%s, HandlerCategory.%s, /*TODO*/ null, /*TODO*/ null)",
-        t.name(), h.name());
+        t.name(),
+        h.name());
   }
 
   /**
@@ -268,6 +273,7 @@ public final class DefaultRetryHandlingBehaviorTest {
     SOCKET_EXCEPTION(C.SOCKET_EXCEPTION),
     SSL_EXCEPTION(C.SSL_EXCEPTION),
     SSL_EXCEPTION_CONNECTION_SHUTDOWN(C.SSL_EXCEPTION_CONNECTION_SHUTDOWN),
+    SSL_EXCEPTION_CONNECTION_RESET(C.SSL_EXCEPTION_CONNECTION_RESET),
     SSL_HANDSHAKE_EXCEPTION(C.SSL_HANDSHAKE_EXCEPTION),
     SSL_HANDSHAKE_EXCEPTION_CAUSED_BY_CERTIFICATE_EXCEPTION(
         C.SSL_HANDSHAKE_EXCEPTION_CERTIFICATE_EXCEPTION),
@@ -305,6 +311,8 @@ public final class DefaultRetryHandlingBehaviorTest {
     STORAGE_EXCEPTION_SSL_EXCEPTION(new StorageException(C.SSL_EXCEPTION)),
     STORAGE_EXCEPTION_SSL_EXCEPTION_CONNECTION_SHUTDOWN(
         new StorageException(C.SSL_EXCEPTION_CONNECTION_SHUTDOWN)),
+    STORAGE_EXCEPTION_SSL_EXCEPTION_CONNECTION_RESET(
+        new StorageException(C.SSL_EXCEPTION_CONNECTION_RESET)),
     STORAGE_EXCEPTION_SSL_HANDSHAKE_EXCEPTION(new StorageException(C.SSL_HANDSHAKE_EXCEPTION)),
     STORAGE_EXCEPTION_SSL_HANDSHAKE_EXCEPTION_CAUSED_BY_CERTIFICATE_EXCEPTION(
         new StorageException(C.SSL_HANDSHAKE_EXCEPTION_CERTIFICATE_EXCEPTION)),
@@ -336,6 +344,9 @@ public final class DefaultRetryHandlingBehaviorTest {
     STORAGE_EXCEPTION_0_GSON_MALFORMED_EXCEPTION(
         new StorageException(0, "parse error", C.GSON_MALFORMED_EXCEPTION)),
     IO_EXCEPTION(new IOException("no retry")),
+    AUTH_RETRYABLE_TRUE(new RetryableException(true)),
+    AUTH_RETRYABLE_FALSE(new RetryableException(false)),
+    UNKNOWN_HOST_EXCEPTION(C.UNKNOWN_HOST_EXCEPTION),
     ;
 
     private final Throwable throwable;
@@ -361,6 +372,8 @@ public final class DefaultRetryHandlingBehaviorTest {
       private static final SSLException SSL_EXCEPTION = new SSLException("unknown");
       private static final SSLException SSL_EXCEPTION_CONNECTION_SHUTDOWN =
           new SSLException("Connection has been shutdown: asdf");
+      private static final SSLException SSL_EXCEPTION_CONNECTION_RESET =
+          new SSLException("Connection reset", new SocketException("Connection reset"));
       private static final SSLHandshakeException SSL_HANDSHAKE_EXCEPTION =
           newSslHandshakeExceptionWithCause(new SSLProtocolException(DEFAULT_MESSAGE));
       private static final SSLHandshakeException SSL_HANDSHAKE_EXCEPTION_CERTIFICATE_EXCEPTION =
@@ -407,6 +420,8 @@ public final class DefaultRetryHandlingBehaviorTest {
       private static final MalformedJsonException GSON_MALFORMED_EXCEPTION =
           new MalformedJsonException("parse-exception");
       private static final IOException IO_PREMATURE_EOF = new IOException("Premature EOF");
+      private static final UnknownHostException UNKNOWN_HOST_EXCEPTION =
+          new UnknownHostException("fake.fake");
 
       private static HttpResponseException newHttpResponseException(
           int httpStatusCode, String name) {
@@ -615,6 +630,16 @@ public final class DefaultRetryHandlingBehaviorTest {
                 ExpectRetry.NO,
                 Behavior.SAME),
             new Case(
+                ThrowableCategory.SSL_EXCEPTION_CONNECTION_RESET,
+                HandlerCategory.IDEMPOTENT,
+                ExpectRetry.YES,
+                Behavior.DEFAULT_MORE_PERMISSIBLE),
+            new Case(
+                ThrowableCategory.SSL_EXCEPTION_CONNECTION_RESET,
+                HandlerCategory.NONIDEMPOTENT,
+                ExpectRetry.NO,
+                Behavior.SAME),
+            new Case(
                 ThrowableCategory.SSL_HANDSHAKE_EXCEPTION,
                 HandlerCategory.IDEMPOTENT,
                 ExpectRetry.YES,
@@ -885,6 +910,16 @@ public final class DefaultRetryHandlingBehaviorTest {
                 ExpectRetry.NO,
                 Behavior.DEFAULT_MORE_STRICT),
             new Case(
+                ThrowableCategory.STORAGE_EXCEPTION_SSL_EXCEPTION_CONNECTION_RESET,
+                HandlerCategory.IDEMPOTENT,
+                ExpectRetry.YES,
+                Behavior.DEFAULT_MORE_PERMISSIBLE),
+            new Case(
+                ThrowableCategory.STORAGE_EXCEPTION_SSL_EXCEPTION_CONNECTION_RESET,
+                HandlerCategory.NONIDEMPOTENT,
+                ExpectRetry.NO,
+                Behavior.SAME),
+            new Case(
                 ThrowableCategory.STORAGE_EXCEPTION_SSL_HANDSHAKE_EXCEPTION,
                 HandlerCategory.IDEMPOTENT,
                 ExpectRetry.YES,
@@ -1015,9 +1050,64 @@ public final class DefaultRetryHandlingBehaviorTest {
                 Behavior.DEFAULT_MORE_PERMISSIBLE),
             new Case(
                 ThrowableCategory.STORAGE_EXCEPTION_0_GSON_MALFORMED_EXCEPTION,
+                HandlerCategory.NONIDEMPOTENT,
+                ExpectRetry.NO,
+                Behavior.SAME),
+            new Case(
+                ThrowableCategory.AUTH_RETRYABLE_TRUE,
+                HandlerCategory.IDEMPOTENT,
+                ExpectRetry.YES,
+                Behavior.DEFAULT_MORE_PERMISSIBLE),
+            new Case(
+                ThrowableCategory.AUTH_RETRYABLE_TRUE,
+                HandlerCategory.NONIDEMPOTENT,
+                ExpectRetry.NO,
+                Behavior.SAME),
+            new Case(
+                ThrowableCategory.AUTH_RETRYABLE_FALSE,
+                HandlerCategory.IDEMPOTENT,
+                ExpectRetry.NO,
+                Behavior.SAME),
+            new Case(
+                ThrowableCategory.AUTH_RETRYABLE_FALSE,
+                HandlerCategory.NONIDEMPOTENT,
+                ExpectRetry.NO,
+                Behavior.SAME),
+            new Case(
+                ThrowableCategory.UNKNOWN_HOST_EXCEPTION,
+                HandlerCategory.IDEMPOTENT,
+                ExpectRetry.YES,
+                Behavior.DEFAULT_MORE_PERMISSIBLE),
+            new Case(
+                ThrowableCategory.UNKNOWN_HOST_EXCEPTION,
                 HandlerCategory.NONIDEMPOTENT,
                 ExpectRetry.NO,
                 Behavior.SAME))
         .build();
+  }
+
+  /**
+   * The auth library provides the interface {@link Retryable} to annotate an exception as
+   * retryable. Add a definition here. Explicitly extend IOException to ensure our handling of this
+   * type is sooner than IOExceptions
+   */
+  private static final class RetryableException extends IOException implements Retryable {
+
+    private final boolean isRetryable;
+
+    private RetryableException(boolean isRetryable) {
+      super(String.format(Locale.US, "RetryableException{isRetryable=%s}", isRetryable));
+      this.isRetryable = isRetryable;
+    }
+
+    @Override
+    public boolean isRetryable() {
+      return isRetryable;
+    }
+
+    @Override
+    public int getRetryCount() {
+      return 0;
+    }
   }
 }

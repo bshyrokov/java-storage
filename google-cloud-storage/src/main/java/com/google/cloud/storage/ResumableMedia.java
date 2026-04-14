@@ -16,39 +16,45 @@
 
 package com.google.cloud.storage;
 
-import com.google.api.gax.retrying.ResultRetryAlgorithm;
+import com.google.cloud.storage.Conversions.Decoder;
+import com.google.cloud.storage.Retrying.RetrierWithAlg;
 import com.google.cloud.storage.spi.v1.StorageRpc;
 import java.net.URL;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 final class ResumableMedia {
 
   static Supplier<String> startUploadForBlobInfo(
-      final StorageOptions storageOptions,
+      final HttpStorageOptions storageOptions,
       final BlobInfo blob,
       final Map<StorageRpc.Option, ?> optionsMap,
-      ResultRetryAlgorithm<?> algorithm) {
+      final RetrierWithAlg retrier) {
     return () ->
-        Retrying.run(
-            storageOptions,
-            algorithm,
-            () -> storageOptions.getStorageRpcV1().open(blob.toPb(), optionsMap),
-            Function.identity());
+        retrier.run(
+            () ->
+                storageOptions
+                    .getStorageRpcV1()
+                    .open(Conversions.json().blobInfo().encode(blob), optionsMap),
+            Decoder.identity());
   }
 
   static Supplier<String> startUploadForSignedUrl(
-      final StorageOptions storageOptions, final URL signedURL, ResultRetryAlgorithm<?> algorithm) {
+      final HttpStorageOptions storageOptions, final URL signedURL, final RetrierWithAlg retrier) {
     if (!isValidSignedURL(signedURL.getQuery())) {
       throw new StorageException(2, "invalid signedURL");
     }
     return () ->
-        Retrying.run(
-            storageOptions,
-            algorithm,
-            () -> storageOptions.getStorageRpcV1().open(signedURL.toString()),
-            Function.identity());
+        retrier.run(
+            () -> storageOptions.getStorageRpcV1().open(signedURL.toString()), Decoder.identity());
+  }
+
+  static GapicMediaSession gapic() {
+    return GapicMediaSession.INSTANCE;
+  }
+
+  static HttpMediaSession http() {
+    return HttpMediaSession.INSTANCE;
   }
 
   private static boolean isValidSignedURL(String signedURLQuery) {
@@ -69,5 +75,33 @@ final class ResumableMedia {
       isValid = false;
     }
     return isValid;
+  }
+
+  static final class GapicMediaSession {
+    private static final GapicMediaSession INSTANCE = new GapicMediaSession();
+
+    private GapicMediaSession() {}
+
+    GapicUploadSessionBuilder write() {
+      return GapicUploadSessionBuilder.create();
+    }
+
+    GapicDownloadSessionBuilder read() {
+      return GapicDownloadSessionBuilder.create();
+    }
+  }
+
+  static final class HttpMediaSession {
+    private static final HttpMediaSession INSTANCE = new HttpMediaSession();
+
+    private HttpMediaSession() {}
+
+    HttpUploadSessionBuilder write() {
+      return HttpUploadSessionBuilder.create();
+    }
+
+    HttpDownloadSessionBuilder read() {
+      return HttpDownloadSessionBuilder.create();
+    }
   }
 }

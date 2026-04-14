@@ -17,6 +17,7 @@
 package com.google.cloud.storage.spi.v1;
 
 import com.google.api.core.InternalApi;
+import com.google.api.services.storage.Storage;
 import com.google.api.services.storage.model.Bucket;
 import com.google.api.services.storage.model.BucketAccessControl;
 import com.google.api.services.storage.model.HmacKey;
@@ -57,9 +58,11 @@ public interface StorageRpc extends ServiceRpc {
     PROJECTION("projection"),
     MAX_RESULTS("maxResults"),
     PAGE_TOKEN("pageToken"),
+    RETURN_PARTIAL_SUCCESS("returnPartialSuccess"),
     DELIMITER("delimiter"),
     START_OFF_SET("startOffset"),
     END_OFF_SET("endOffset"),
+    MATCH_GLOB("matchGlob"),
     VERSIONS("versions"),
     FIELDS("fields"),
     CUSTOMER_SUPPLIED_KEY("customerSuppliedKey"),
@@ -69,7 +72,21 @@ public interface StorageRpc extends ServiceRpc {
     SHOW_DELETED_KEYS("showDeletedKeys"),
     REQUESTED_POLICY_VERSION("optionsRequestedPolicyVersion"),
     DETECT_CONTENT_TYPE("detectContentType"),
-    RETURN_RAW_INPUT_STREAM("returnRawInputStream");
+    ENABLE_OBJECT_RETENTION("enableObjectRetention"),
+    RETURN_RAW_INPUT_STREAM("returnRawInputStream"),
+    OVERRIDE_UNLOCKED_RETENTION("overrideUnlockedRetention"),
+    SOFT_DELETED("softDeleted"),
+    COPY_SOURCE_ACL("copySourceAcl"),
+    GENERATION("generation"),
+    INCLUDE_FOLDERS_AS_PREFIXES("includeFoldersAsPrefixes"),
+    INCLUDE_TRAILING_DELIMITER("includeTrailingDelimiter"),
+    X_UPLOAD_CONTENT_LENGTH("x-upload-content-length"),
+    OBJECT_FILTER("objectFilter"),
+    /**
+     * An {@link com.google.common.collect.ImmutableMap ImmutableMap&lt;String, String>} of values
+     * which will be set as additional headers on the request.
+     */
+    EXTRA_HEADERS("extra_headers");
 
     private final String value;
 
@@ -238,6 +255,13 @@ public interface StorageRpc extends ServiceRpc {
   StorageObject get(StorageObject object, Map<Option, ?> options);
 
   /**
+   * If an object has been soft-deleted, restores it and returns the restored object.j
+   *
+   * @throws StorageException upon failure
+   */
+  StorageObject restore(StorageObject object, Map<Option, ?> options);
+
+  /**
    * Updates bucket information.
    *
    * @throws StorageException upon failure
@@ -376,6 +400,13 @@ public interface StorageRpc extends ServiceRpc {
       long destOffset,
       int length,
       boolean last);
+
+  StorageObject moveObject(
+      String bucket,
+      String sourceObject,
+      String destinationObject,
+      Map<Option, ?> sourceOptions,
+      Map<Option, ?> targetOptions);
 
   /**
    * Sends a rewrite request to open a rewrite channel.
@@ -607,4 +638,7 @@ public interface StorageRpc extends ServiceRpc {
    * @throws StorageException upon failure
    */
   ServiceAccount getServiceAccount(String projectId);
+
+  @InternalApi
+  Storage getStorage();
 }

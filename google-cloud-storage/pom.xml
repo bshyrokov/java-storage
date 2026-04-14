@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <artifactId>google-cloud-storage</artifactId>
-  <version>2.13.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage:current} -->
+  <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage:current} -->
   <packaging>jar</packaging>
   <name>Google Cloud Storage</name>
   <url>https://github.com/googleapis/java-storage</url>
@@ -12,13 +12,29 @@
   <parent>
     <groupId>com.google.cloud</groupId>
     <artifactId>google-cloud-storage-parent</artifactId>
-    <version>2.13.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage:current} -->
+    <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage:current} -->
   </parent>
   <properties>
     <site.installationModule>google-cloud-storage</site.installationModule>
-    <kms.version>0.98.0</kms.version>
+    <pubsub-proto.version>1.132.0</pubsub-proto.version>
   </properties>
   <dependencies>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-xml</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
@@ -30,6 +46,10 @@
     <dependency>
       <groupId>com.google.http-client</groupId>
       <artifactId>google-http-client-jackson2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.http-client</groupId>
+      <artifactId>google-http-client-gson</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.api-client</groupId>
@@ -52,8 +72,16 @@
       <artifactId>google-cloud-core-http</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-core-grpc</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.api</groupId>
       <artifactId>gax</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api</groupId>
+      <artifactId>gax-grpc</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.auth</groupId>
@@ -72,6 +100,10 @@
       <artifactId>opencensus-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-context</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.api.grpc</groupId>
       <artifactId>proto-google-iam-v1</artifactId>
     </dependency>
@@ -84,9 +116,95 @@
       <artifactId>protobuf-java-util</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-protobuf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-common-protos</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.threeten</groupId>
       <artifactId>threetenbp</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-storage-v2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>grpc-google-cloud-storage-v2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>gapic-google-cloud-storage-v2</artifactId>
+    </dependency>
+    <!-- Open Telemetry dependencies -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-opentelemetry</artifactId>
+        <exclusions>
+            <exclusion>
+                <!-- grpc depends on opentelemetry 1.52.0 but the version in shared config
+                is 1.51.0 -->
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-api</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-metrics</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-common</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-extension-autoconfigure-spi</artifactId>
+    </dependency>
+
+    <dependency>
+    <groupId>io.opentelemetry.semconv</groupId>
+    <artifactId>opentelemetry-semconv</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.cloud.opentelemetry</groupId>
+      <artifactId>exporter-metrics</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud.opentelemetry</groupId>
+      <artifactId>exporter-trace</artifactId>
+      <version>0.36.0</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.opentelemetry.contrib</groupId>
+      <artifactId>opentelemetry-gcp-resources</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.checkerframework</groupId>
+      <artifactId>checker-qual</artifactId>
+    </dependency>
+
     <!-- Access to exception for retry handling -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -106,39 +224,60 @@
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-api</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty-shaded</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-auth</artifactId>
-      <scope>test</scope>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.google.api.grpc</groupId>
-      <artifactId>grpc-google-cloud-kms-v1</artifactId>
-      <version>${kms.version}</version>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-googleapis</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-trace</artifactId>
       <scope>test</scope>
+    </dependency>
+
+    <!--
+    We're not using this directly, however there appears to be some resolution
+    issues when we don't list this dependency. Specifically, the check to ensure the flattened
+    contains all dependencies fails because it has this subtree included.
+    -->
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-xds</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-rls</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>com.google.api.grpc</groupId>
       <artifactId>proto-google-cloud-kms-v1</artifactId>
-      <version>${kms.version}</version>
+      <version>0.182.0</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-kms</artifactId>
+      <version>2.91.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.google.api.grpc</groupId>
-      <artifactId>grpc-google-iam-v1</artifactId>
+      <artifactId>proto-google-cloud-pubsub-v1</artifactId>
       <scope>test</scope>
+      <version>${pubsub-proto.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
@@ -163,8 +302,13 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.easymock</groupId>
-      <artifactId>easymock</artifactId>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-storage-control-v2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-storage-control</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -197,6 +341,35 @@
       <artifactId>error_prone_annotations</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.jqwik</groupId>
+      <artifactId>jqwik</artifactId>
+      <version>1.9.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.github.classgraph</groupId>
+      <artifactId>classgraph</artifactId>
+      <version>4.8.184</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>2.0.17</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.3.16</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -206,11 +379,66 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-dependency-plugin</artifactId>
           <configuration>
-            <!--
-              grpc-netty-shaded is needed for integration tests
-              hamcrest-core is used for test mocks
+            <ignoredDependencies>
+              <!--
+                grpc-netty-shaded is a runtime dep, we pull it up to our level to raise its transitive dependencies priority
+                that overlap with our pubsub test deps.
+                -->
+              <dependency>io.grpc:grpc-netty-shaded</dependency>
+              <!--
+              defining a runtime dependency on this so it is on the default classpath for customers wanting
+              to use Direct Google Access
               -->
-            <usedDependencies>io.grpc:grpc-netty-shaded</usedDependencies>
+              <dependency>io.grpc:grpc-googleapis</dependency>
+              <dependency>io.grpc:grpc-xds</dependency>
+              <dependency>io.grpc:grpc-rls</dependency>
+              <!--
+              We depend on `net.jqwik:jqwik` which itself has no classes, but depends on each of the other jars.
+              In order to not churn on which of the sub apis we happen to be using at this time, we're flagging
+              each of them as ignored for dependency checking.
+
+              This is safe for our downstream customers, as these are only ever used in test scope, and ultimately
+              stripped from the pom on release.
+              -->
+              <dependency>net.jqwik:jqwik</dependency>
+              <dependency>net.jqwik:jqwik-api</dependency>
+              <dependency>net.jqwik:jqwik-engine</dependency>
+              <dependency>net.jqwik:jqwik-time</dependency>
+              <dependency>net.jqwik:jqwik-web</dependency>
+              <!--
+              We're only using google-http-client-gson in our tests, however if we scope it to test that will
+              break flatten plugins resolution where google-http-client-gson is needed in order for
+              google-api-client to be able to bootstrap.
+              -->
+              <dependency>com.google.http-client:google-http-client-gson</dependency>
+              <!--
+              Our test suite is primarily JUnit4, but also includes JQwik tests which require JUnit 5,
+              Add in vintage engine so that both JUnit4 and JUnit5 tests are run by the JUnit5 runner.
+              -->
+              <dependency>org.junit.vintage:junit-vintage-engine</dependency>
+
+              <!--
+              These are needed at runtime, but it causes unused declared dependency errors
+              -->
+              <dependency>io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi</dependency>
+              <dependency>io.opentelemetry.semconv:opentelemetry-semconv</dependency>
+              <!--
+              com.google.cloud.opentelemetry:exporter-metrics depends on slf4j
+              We are also using slf4j and logback in our test scope
+              list things out here to appease the dependency checker that gets confused like the following
+
+              [ERROR] Used undeclared dependencies found:
+              [ERROR]    org.slf4j:slf4j-api:jar:2.0.16:compile
+              [ERROR] Unused declared dependencies found:
+              [ERROR]    org.slf4j:jul-to-slf4j:jar:2.0.16:test
+              [ERROR]    ch.qos.logback:logback-classic:jar:1.3.15:test
+              [ERROR] Non-test scoped test only dependencies found:
+              [ERROR]    org.slf4j:slf4j-api:jar:2.0.16:compile
+              -->
+              <dependency>org.slf4j:slf4j-api</dependency>
+              <dependency>org.slf4j:jul-to-slf4j</dependency>
+              <dependency>ch.qos.logback:logback-classic</dependency>
+            </ignoredDependencies>
           </configuration>
         </plugin>
       </plugins>
@@ -220,6 +448,90 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>flatten-maven-plugin</artifactId>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.version}</version>
+        <configuration>
+          <!-- Excludes integration tests and smoke tests when unit tests are run -->
+          <excludes>
+            <exclude>**/*SmokeTest.java</exclude>
+            <exclude>**/IT*.java</exclude>
+          </excludes>
+          <reportNameSuffix>sponge_log</reportNameSuffix>
+        </configuration>
+        <dependencies>
+          <!-- add junit-platform to support jqwik tests for mvn test -->
+          <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-junit-platform</artifactId>
+            <version>${surefire.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>idea-jqwik</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.junit.vintage</groupId>
+          <artifactId>junit-vintage-engine</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.junit.jupiter</groupId>
+          <artifactId>junit-jupiter-engine</artifactId>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>native</id>
+      <properties>
+        <!--
+        Override the default match pattern for native image tests since we have a custom
+        test specifically for native image validation.
+        -->
+        <test>com.google.cloud.storage.it.StorageNativeCanary</test>
+      </properties>
+    </profile>
+    <profile>
+      <id>regen-grpc-graalvm-reflect-config</id>
+      <!--
+      to run this, execute the following commands from the base of the repo:
+
+      mvn -Dmaven.test.skip.exec=true clean install && cd google-cloud-storage && mvn -Pregen-grpc-graalvm-reflect-config exec:exec
+
+      -->
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.6.3</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <classpathScope>test</classpathScope>
+              <addOutputToClasspath>true</addOutputToClasspath>
+              <executable>java</executable>
+              <arguments>
+                <argument>-classpath</argument>
+                <classpath/>
+                <argument>com.google.cloud.storage.GenerateGrpcProtobufReflectConfig</argument>
+              </arguments>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

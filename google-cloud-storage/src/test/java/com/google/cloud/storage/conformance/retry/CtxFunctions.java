@@ -31,13 +31,19 @@ import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.HmacKey;
 import com.google.cloud.storage.HmacKey.HmacKeyMetadata;
 import com.google.cloud.storage.HmacKey.HmacKeyState;
+import com.google.cloud.storage.NotificationInfo;
+import com.google.cloud.storage.NotificationInfo.PayloadFormat;
 import com.google.cloud.storage.ServiceAccount;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobTargetOption;
 import com.google.cloud.storage.Storage.ComposeRequest;
 import com.google.cloud.storage.conformance.retry.Functions.CtxFunction;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
+import com.google.pubsub.v1.TopicName;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Define a set of {@link CtxFunction} which are used in mappings as well as general setup/tear down
@@ -71,6 +77,7 @@ final class CtxFunctions {
      */
     static final CtxFunction bucketInfo =
         (ctx, c) -> ctx.map(s -> s.with(BucketInfo.of(c.getBucketName())));
+
     /**
      * Populate a compose request for the state present in the ctx.
      *
@@ -108,6 +115,7 @@ final class CtxFunctions {
         (ctx, c) -> ctx.map(s -> s.with(BlobId.of(c.getBucketName(), c.getObjectName())));
     private static final CtxFunction blobIdWithGenerationZero =
         (ctx, c) -> ctx.map(s -> s.with(BlobId.of(c.getBucketName(), c.getObjectName(), 0L)));
+
     /**
      * Populate a blobId and blob info for the state present in the ctx which specifies a null
      * generation. Use when a generation value shouldn't be part of a request or other evaluation.
@@ -117,6 +125,7 @@ final class CtxFunctions {
      */
     static final CtxFunction blobInfoWithoutGeneration =
         blobIdWithoutGeneration.andThen(blobIdAndBlobInfo);
+
     /**
      * Populate a blobId and blob info for the state present in the ctx which specifies a generation
      * of 0 (zero).
@@ -131,6 +140,10 @@ final class CtxFunctions {
   static final class Rpc {
     static final CtxFunction createEmptyBlob =
         (ctx, c) -> ctx.map(state -> state.with(ctx.getStorage().create(state.getBlobInfo())));
+    static final CtxFunction bucketIamPolicy =
+        (ctx, c) ->
+            ctx.map(
+                state -> state.with(ctx.getStorage().getIamPolicy(state.getBucket().getName())));
   }
 
   static final class ResourceSetup {
@@ -140,6 +153,7 @@ final class CtxFunctions {
           Bucket resolvedBucket = ctx.getStorage().create(bucketInfo);
           return ctx.map(s -> s.with(resolvedBucket));
         };
+
     /**
      * Create a new object in the {@link State#getBucket()} and populate a blobId, blob info and
      * blob for the state present in the ctx.
@@ -173,6 +187,28 @@ final class CtxFunctions {
                   return s.withHmacKey(hmacKey1).with(hmacKey1.getMetadata());
                 });
 
+    static final CtxFunction pubsubTopic =
+        (ctx, c) -> {
+          String projectId = c.getProjectId();
+          TopicName name = TopicName.of(projectId, c.getTopicName());
+          return ctx.map(s -> s.with(name));
+        };
+
+    static final CtxFunction notification =
+        (ctx, c) ->
+            ctx.map(
+                state -> {
+                  PayloadFormat format = PayloadFormat.JSON_API_V1;
+                  Map<String, String> attributes = ImmutableMap.of("label1", "value1");
+                  NotificationInfo notificationInfo =
+                      NotificationInfo.newBuilder(state.getTopicName().toString())
+                          .setCustomAttributes(attributes)
+                          .setPayloadFormat(format)
+                          .build();
+                  return state.with(
+                      ctx.getStorage().createNotification(c.getBucketName(), notificationInfo));
+                });
+
     private static final CtxFunction processResources =
         (ctx, c) -> {
           HashSet<Resource> resources = newHashSet(c.getMethod().getResourcesList());
@@ -192,9 +228,15 @@ final class CtxFunctions {
             resources.remove(Resource.HMAC_KEY);
           }
 
+          if (resources.contains(Resource.NOTIFICATION)) {
+            f = f.andThen(pubsubTopic).andThen(notification);
+            resources.remove(Resource.NOTIFICATION);
+          }
+
           if (!resources.isEmpty()) {
             throw new IllegalStateException(
-                String.format("Unhandled Method Resource [%s]", Joiner.on(", ").join(resources)));
+                String.format(
+                    Locale.US, "Unhandled Method Resource [%s]", Joiner.on(", ").join(resources)));
           }
 
           return f.apply(ctx, c);
@@ -204,6 +246,10 @@ final class CtxFunctions {
         (ctx, c) -> ctx.map(s -> s.with(Acl.of(User.ofAllUsers(), Role.READER)));
 
     static final CtxFunction defaultSetup = processResources.andThen(allUsersReaderAcl);
+
+    static final CtxFunction pubsubTopicSetup = defaultSetup.andThen(pubsubTopic);
+
+    static final CtxFunction notificationSetup = pubsubTopicSetup.andThen(notification);
   }
 
   static final class ResourceTeardown {

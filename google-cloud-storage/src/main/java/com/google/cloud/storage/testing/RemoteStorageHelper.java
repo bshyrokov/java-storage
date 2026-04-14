@@ -16,6 +16,7 @@
 
 package com.google.cloud.storage.testing;
 
+import com.google.api.core.ObsoleteApi;
 import com.google.api.gax.paging.Page;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -24,13 +25,16 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.HttpStorageOptions;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobListOption;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Strings;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -39,11 +43,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.threeten.bp.Duration;
 
 /**
  * Utility to create a remote storage configuration for testing. Storage options can be obtained via
@@ -98,7 +102,7 @@ public class RemoteStorageHelper {
                   }
                   forceDelete(storage, bucket.getName());
                 } catch (Exception e) {
-                  // Ignore the exception, maybe the bucket is being deleted by someone else.
+                  log.info("Failed to clean buckets " + e.getMessage());
                 }
               }
             }
@@ -152,11 +156,14 @@ public class RemoteStorageHelper {
   public static Boolean forceDelete(
       Storage storage, String bucket, long timeout, TimeUnit unit, String userProject)
       throws InterruptedException, ExecutionException {
-    ExecutorService executor = Executors.newSingleThreadExecutor();
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder().setDaemon(true).setNameFormat("forceDelete-%s").build();
+    ExecutorService executor = Executors.newSingleThreadExecutor(threadFactory);
     Future<Boolean> future = executor.submit(new DeleteBucketTask(storage, bucket, userProject));
     try {
       return future.get(timeout, unit);
     } catch (TimeoutException ex) {
+      future.cancel(true);
       return false;
     } finally {
       executor.shutdown();
@@ -180,7 +187,27 @@ public class RemoteStorageHelper {
   }
 
   /**
-   * Creates a {@code RemoteStorageHelper} object for the given project id and JSON key input
+   * This method is obsolete because of a potential security risk. Use the {@link #create(String,
+   * GoogleCredentials)} method instead.
+   *
+   * <p>If you know that you will be loading credential configurations of a specific type, it is
+   * recommended to use a credential-type-specific `fromStream()` method. This will ensure that an
+   * unexpected credential type with potential for malicious intent is not loaded unintentionally.
+   * You might still have to do validation for certain credential types. Please follow the
+   * recommendation for that method.
+   *
+   * <p>If you are loading your credential configuration from an untrusted source and have not
+   * mitigated the risks (e.g. by validating the configuration yourself), make these changes as soon
+   * as possible to prevent security risks to your environment.
+   *
+   * <p>Regardless of the method used, it is always your responsibility to validate configurations
+   * received from external sources.
+   *
+   * <p>See the {@see <a
+   * href="https://cloud.google.com/docs/authentication/external/externally-sourced-credentials">documentation</a>}
+   * for more details.
+   *
+   * <p>Creates a {@code RemoteStorageHelper} object for the given project id and JSON key input
    * stream.
    *
    * @param projectId id of the project to be used for running the tests
@@ -189,20 +216,13 @@ public class RemoteStorageHelper {
    * @throws com.google.cloud.storage.testing.RemoteStorageHelper.StorageHelperException if {@code
    *     keyStream} is not a valid JSON key stream
    */
+  @ObsoleteApi(
+      "This method is obsolete because of a potential security risk. Use the create() variant with"
+          + " Credential parameter instead")
   public static RemoteStorageHelper create(String projectId, InputStream keyStream)
       throws StorageHelperException {
     try {
-      HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
-      transportOptions =
-          transportOptions.toBuilder().setConnectTimeout(60000).setReadTimeout(60000).build();
-      StorageOptions storageOptions =
-          StorageOptions.newBuilder()
-              .setCredentials(GoogleCredentials.fromStream(keyStream))
-              .setProjectId(projectId)
-              .setRetrySettings(retrySettings())
-              .setTransportOptions(transportOptions)
-              .build();
-      return new RemoteStorageHelper(storageOptions);
+      return create(projectId, GoogleCredentials.fromStream(keyStream));
     } catch (IOException ex) {
       if (log.isLoggable(Level.WARNING)) {
         log.log(Level.WARNING, ex.getMessage());
@@ -212,15 +232,38 @@ public class RemoteStorageHelper {
   }
 
   /**
+   * Creates a {@code RemoteStorageHelper} object for the given project id and Credential.
+   *
+   * @param projectId id of the project to be used for running the tests
+   * @param credentials GoogleCredential to set to StorageOptions
+   * @return A {@code RemoteStorageHelper} object for the provided options
+   */
+  public static RemoteStorageHelper create(String projectId, GoogleCredentials credentials) {
+    HttpTransportOptions transportOptions =
+        HttpStorageOptions.defaults().getDefaultTransportOptions();
+    transportOptions =
+        transportOptions.toBuilder().setConnectTimeout(60000).setReadTimeout(60000).build();
+    StorageOptions storageOptions =
+        StorageOptions.http()
+            .setCredentials(credentials)
+            .setProjectId(projectId)
+            .setRetrySettings(retrySettings())
+            .setTransportOptions(transportOptions)
+            .build();
+    return new RemoteStorageHelper(storageOptions);
+  }
+
+  /**
    * Creates a {@code RemoteStorageHelper} object using default project id and authentication
    * credentials.
    */
   public static RemoteStorageHelper create() throws StorageHelperException {
-    HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
+    HttpTransportOptions transportOptions =
+        HttpStorageOptions.defaults().getDefaultTransportOptions();
     transportOptions =
         transportOptions.toBuilder().setConnectTimeout(60000).setReadTimeout(60000).build();
     StorageOptions storageOptions =
-        StorageOptions.newBuilder()
+        StorageOptions.http()
             .setRetrySettings(retrySettings())
             .setTransportOptions(transportOptions)
             .build();
@@ -230,13 +273,13 @@ public class RemoteStorageHelper {
   private static RetrySettings retrySettings() {
     return RetrySettings.newBuilder()
         .setMaxAttempts(10)
-        .setMaxRetryDelay(Duration.ofMillis(30000L))
-        .setTotalTimeout(Duration.ofMillis(120000L))
-        .setInitialRetryDelay(Duration.ofMillis(250L))
+        .setMaxRetryDelayDuration(Duration.ofMillis(30000L))
+        .setTotalTimeoutDuration(Duration.ofMillis(120000L))
+        .setInitialRetryDelayDuration(Duration.ofMillis(250L))
         .setRetryDelayMultiplier(1.0)
-        .setInitialRpcTimeout(Duration.ofMillis(120000L))
+        .setInitialRpcTimeoutDuration(Duration.ofMillis(120000L))
         .setRpcTimeoutMultiplier(1.0)
-        .setMaxRpcTimeout(Duration.ofMillis(120000L))
+        .setMaxRpcTimeoutDuration(Duration.ofMillis(120000L))
         .build();
   }
 
@@ -295,6 +338,7 @@ public class RemoteStorageHelper {
           }
           return true;
         } catch (StorageException e) {
+          log.warning("Caught exception in Delete Bucket Task" + e.getMessage());
           if (e.getCode() == 409) {
             try {
               Thread.sleep(500);

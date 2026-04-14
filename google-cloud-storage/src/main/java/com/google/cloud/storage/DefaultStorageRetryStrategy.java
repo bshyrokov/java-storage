@@ -18,17 +18,23 @@ package com.google.cloud.storage;
 
 import com.fasterxml.jackson.core.io.JsonEOFException;
 import com.google.api.client.http.HttpResponseException;
+import com.google.auth.Retryable;
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.ExceptionHandler;
 import com.google.cloud.ExceptionHandler.Interceptor;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.stream.MalformedJsonException;
 import java.io.IOException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Set;
+import javax.net.ssl.SSLException;
 
 final class DefaultStorageRetryStrategy implements StorageRetryStrategy {
 
-  private static final long serialVersionUID = -6145057244885961913L;
+  static final DefaultStorageRetryStrategy INSTANCE = new DefaultStorageRetryStrategy();
+
+  private static final long serialVersionUID = 7928177703325504905L;
 
   private static final Interceptor INTERCEPTOR_IDEMPOTENT =
       new InterceptorImpl(true, StorageException.RETRYABLE_ERRORS);
@@ -39,6 +45,8 @@ final class DefaultStorageRetryStrategy implements StorageRetryStrategy {
       newHandler(new EmptyJsonParsingExceptionInterceptor(), INTERCEPTOR_IDEMPOTENT);
   private static final ExceptionHandler NON_IDEMPOTENT_HANDLER =
       newHandler(INTERCEPTOR_NON_IDEMPOTENT);
+
+  private DefaultStorageRetryStrategy() {}
 
   @Override
   public ExceptionHandler getIdempotentHandler() {
@@ -54,9 +62,14 @@ final class DefaultStorageRetryStrategy implements StorageRetryStrategy {
     return ExceptionHandler.newBuilder().addInterceptors(interceptors).build();
   }
 
+  /** prevent java serialization from using a new instance */
+  private Object readResolve() {
+    return INSTANCE;
+  }
+
   private static class InterceptorImpl implements BaseInterceptor {
 
-    private static final long serialVersionUID = -5153236691367895096L;
+    private static final long serialVersionUID = 5283634944744417128L;
     private final boolean idempotent;
     private final ImmutableSet<BaseServiceException.Error> retryableErrors;
 
@@ -73,6 +86,9 @@ final class DefaultStorageRetryStrategy implements StorageRetryStrategy {
       } else if (exception instanceof HttpResponseException) {
         int code = ((HttpResponseException) exception).getStatusCode();
         return shouldRetryCodeReason(code, null);
+      } else if (exception instanceof Retryable) {
+        Retryable retryable = (Retryable) exception;
+        return (idempotent && retryable.isRetryable()) ? RetryResult.RETRY : RetryResult.NO_RETRY;
       } else if (exception instanceof IOException) {
         IOException ioException = (IOException) exception;
         return shouldRetryIOException(ioException);
@@ -93,7 +109,16 @@ final class DefaultStorageRetryStrategy implements StorageRetryStrategy {
         return RetryResult.RETRY;
       } else if (ioException instanceof MalformedJsonException && idempotent) { // Gson
         return RetryResult.RETRY;
-      } else if (BaseServiceException.isRetryable(idempotent, ioException)) {
+      } else if (ioException instanceof SSLException && idempotent) {
+        Throwable cause = ioException.getCause();
+        if (cause instanceof SocketException) {
+          SocketException se = (SocketException) cause;
+          return shouldRetryIOException(se);
+        }
+      } else if (ioException instanceof UnknownHostException && idempotent) {
+        return RetryResult.RETRY;
+      }
+      if (BaseServiceException.isRetryable(idempotent, ioException)) {
         return RetryResult.RETRY;
       } else {
         return RetryResult.NO_RETRY;
@@ -117,13 +142,13 @@ final class DefaultStorageRetryStrategy implements StorageRetryStrategy {
   }
 
   private static final class EmptyJsonParsingExceptionInterceptor implements BaseInterceptor {
-    private static final long serialVersionUID = -3320984020388043628L;
+    private static final long serialVersionUID = -3466977370399704805L;
 
     @Override
     public RetryResult beforeEval(Exception exception) {
       if (exception instanceof IllegalArgumentException) {
         IllegalArgumentException illegalArgumentException = (IllegalArgumentException) exception;
-        if (illegalArgumentException.getMessage().equals("no JSON input found")) {
+        if ("no JSON input found".equals(illegalArgumentException.getMessage())) {
           return RetryResult.RETRY;
         }
       }

@@ -4,7 +4,7 @@
   <groupId>com.google.cloud</groupId>
   <artifactId>google-cloud-storage-parent</artifactId>
   <packaging>pom</packaging>
-  <version>2.13.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage:current} -->
+  <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage:current} -->
   <name>Storage Parent</name>
   <url>https://github.com/googleapis/java-storage</url>
   <description>
@@ -13,8 +13,8 @@
 
   <parent>
     <groupId>com.google.cloud</groupId>
-    <artifactId>google-cloud-shared-config</artifactId>
-    <version>1.5.4</version>
+    <artifactId>sdk-platform-java-config</artifactId>
+    <version>3.58.0</version>
   </parent>
 
   <developers>
@@ -54,7 +54,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <github.global.server>github</github.global.server>
     <site.installationModule>google-cloud-storage-parent</site.installationModule>
-    <google.cloud.shared-dependencies.version>3.0.5</google.cloud.shared-dependencies.version>
+    <google.cloud.shared-dependencies.version>3.31.0</google.cloud.shared-dependencies.version>
   </properties>
 
   <dependencyManagement>
@@ -62,71 +62,79 @@
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>google-cloud-shared-dependencies</artifactId>
-        <version>${google.cloud.shared-dependencies.version}</version>
+        <version>${google-cloud-shared-dependencies.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.14.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry.contrib</groupId>
+        <artifactId>opentelemetry-gcp-resources</artifactId>
+        <version>1.37.0-alpha</version>
       </dependency>
 
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>google-cloud-storage</artifactId>
-        <version>2.13.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage:current} -->
+        <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage:current} -->
       </dependency>
       <dependency>
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-storage</artifactId>
-        <version>v1-rev20220705-2.0.0</version>
+        <version>v1-rev20260204-2.0.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>google-cloud-pubsub</artifactId>
-        <version>1.120.22</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.easymock</groupId>
-        <artifactId>easymock</artifactId>
-        <version>4.3</version>
+        <version>1.150.0</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>4.8.1</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <!-- explicitly defined below -->
-            <groupId>org.objenesis</groupId>
-            <artifactId>objenesis</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.objenesis</groupId>
-        <artifactId>objenesis</artifactId>
-        <version>3.3</version>
+        <version>4.11.0</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.google.api.grpc</groupId>
         <artifactId>proto-google-cloud-storage-v2</artifactId>
-        <version>2.13.2-alpha-SNAPSHOT</version><!-- {x-version-update:proto-google-cloud-storage-v2:current} -->
+        <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:proto-google-cloud-storage-v2:current} -->
       </dependency>
       <dependency>
         <groupId>com.google.api.grpc</groupId>
         <artifactId>grpc-google-cloud-storage-v2</artifactId>
-        <version>2.13.2-alpha-SNAPSHOT</version><!-- {x-version-update:grpc-google-cloud-storage-v2:current} -->
+        <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:grpc-google-cloud-storage-v2:current} -->
       </dependency>
       <dependency>
         <groupId>com.google.api.grpc</groupId>
         <artifactId>gapic-google-cloud-storage-v2</artifactId>
-        <version>2.13.2-alpha-SNAPSHOT</version><!-- {x-version-update:grpc-google-cloud-storage-v2:current} -->
+        <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:grpc-google-cloud-storage-v2:current} -->
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-storage-control-v2</artifactId>
+        <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:grpc-google-cloud-storage-control-v2:current} -->
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>proto-google-cloud-storage-control-v2</artifactId>
+        <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:proto-google-cloud-storage-control-v2:current} -->
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>google-cloud-storage-control</artifactId>
+        <version>2.64.2-SNAPSHOT</version><!-- {x-version-update:google-cloud-storage-control:current} -->
       </dependency>
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>google-cloud-conformance-tests</artifactId>
-        <version>0.3.4</version>
+        <version>0.3.7</version>
         <scope>test</scope>
         <exclusions>
           <exclusion>
@@ -138,19 +146,19 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.5.13</version>
+        <version>4.5.14</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
-        <version>4.5.13</version>
+        <version>4.5.14</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore</artifactId>
-        <version>4.4.15</version>
+        <version>4.4.16</version>
         <scope>test</scope>
       </dependency>
 
@@ -164,7 +172,7 @@
       <dependency>
         <groupId>com.google.truth</groupId>
         <artifactId>truth</artifactId>
-        <version>1.1.3</version>
+        <version>1.4.5</version>
         <scope>test</scope>
         <exclusions>
           <exclusion>
@@ -190,8 +198,12 @@
   <modules>
     <module>google-cloud-storage</module>
     <module>grpc-google-cloud-storage-v2</module>
+    <module>grpc-google-cloud-storage-control-v2</module>
     <module>proto-google-cloud-storage-v2</module>
+    <module>proto-google-cloud-storage-control-v2</module>
+    <module>google-cloud-storage-control</module>
     <module>gapic-google-cloud-storage-v2</module>
+    <module>google-cloud-storage-bom</module>
   </modules>
 
   <profiles>
@@ -199,6 +211,12 @@
       <id>include-samples</id>
       <modules>
         <module>samples</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>include-storage-shared-benchmarking</id>
+      <modules>
+        <module>storage-shared-benchmarking</module>
       </modules>
     </profile>
   </profiles>

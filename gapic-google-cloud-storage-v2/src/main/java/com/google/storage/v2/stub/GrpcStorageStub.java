@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,13 @@
 package com.google.storage.v2.stub;
 
 import static com.google.storage.v2.StorageClient.ListBucketsPagedResponse;
-import static com.google.storage.v2.StorageClient.ListHmacKeysPagedResponse;
-import static com.google.storage.v2.StorageClient.ListNotificationsPagedResponse;
 import static com.google.storage.v2.StorageClient.ListObjectsPagedResponse;
 
 import com.google.api.gax.core.BackgroundResource;
 import com.google.api.gax.core.BackgroundResourceAggregation;
 import com.google.api.gax.grpc.GrpcCallSettings;
 import com.google.api.gax.grpc.GrpcStubCallableFactory;
+import com.google.api.gax.rpc.BidiStreamingCallable;
 import com.google.api.gax.rpc.ClientContext;
 import com.google.api.gax.rpc.ClientStreamingCallable;
 import com.google.api.gax.rpc.RequestParamsBuilder;
@@ -38,46 +37,36 @@ import com.google.iam.v1.TestIamPermissionsRequest;
 import com.google.iam.v1.TestIamPermissionsResponse;
 import com.google.longrunning.stub.GrpcOperationsStub;
 import com.google.protobuf.Empty;
+import com.google.storage.v2.BidiReadObjectRequest;
+import com.google.storage.v2.BidiReadObjectResponse;
+import com.google.storage.v2.BidiWriteObjectRequest;
+import com.google.storage.v2.BidiWriteObjectResponse;
 import com.google.storage.v2.Bucket;
 import com.google.storage.v2.CancelResumableWriteRequest;
 import com.google.storage.v2.CancelResumableWriteResponse;
 import com.google.storage.v2.ComposeObjectRequest;
 import com.google.storage.v2.CreateBucketRequest;
-import com.google.storage.v2.CreateHmacKeyRequest;
-import com.google.storage.v2.CreateHmacKeyResponse;
-import com.google.storage.v2.CreateNotificationRequest;
 import com.google.storage.v2.DeleteBucketRequest;
-import com.google.storage.v2.DeleteHmacKeyRequest;
-import com.google.storage.v2.DeleteNotificationRequest;
 import com.google.storage.v2.DeleteObjectRequest;
 import com.google.storage.v2.GetBucketRequest;
-import com.google.storage.v2.GetHmacKeyRequest;
-import com.google.storage.v2.GetNotificationRequest;
 import com.google.storage.v2.GetObjectRequest;
-import com.google.storage.v2.GetServiceAccountRequest;
-import com.google.storage.v2.HmacKeyMetadata;
 import com.google.storage.v2.ListBucketsRequest;
 import com.google.storage.v2.ListBucketsResponse;
-import com.google.storage.v2.ListHmacKeysRequest;
-import com.google.storage.v2.ListHmacKeysResponse;
-import com.google.storage.v2.ListNotificationsRequest;
-import com.google.storage.v2.ListNotificationsResponse;
 import com.google.storage.v2.ListObjectsRequest;
 import com.google.storage.v2.ListObjectsResponse;
 import com.google.storage.v2.LockBucketRetentionPolicyRequest;
-import com.google.storage.v2.Notification;
+import com.google.storage.v2.MoveObjectRequest;
 import com.google.storage.v2.Object;
 import com.google.storage.v2.QueryWriteStatusRequest;
 import com.google.storage.v2.QueryWriteStatusResponse;
 import com.google.storage.v2.ReadObjectRequest;
 import com.google.storage.v2.ReadObjectResponse;
+import com.google.storage.v2.RestoreObjectRequest;
 import com.google.storage.v2.RewriteObjectRequest;
 import com.google.storage.v2.RewriteResponse;
-import com.google.storage.v2.ServiceAccount;
 import com.google.storage.v2.StartResumableWriteRequest;
 import com.google.storage.v2.StartResumableWriteResponse;
 import com.google.storage.v2.UpdateBucketRequest;
-import com.google.storage.v2.UpdateHmacKeyRequest;
 import com.google.storage.v2.UpdateObjectRequest;
 import com.google.storage.v2.WriteObjectRequest;
 import com.google.storage.v2.WriteObjectResponse;
@@ -101,6 +90,7 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/DeleteBucket")
           .setRequestMarshaller(ProtoUtils.marshaller(DeleteBucketRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Empty.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
 
   private static final MethodDescriptor<GetBucketRequest, Bucket> getBucketMethodDescriptor =
@@ -109,6 +99,7 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/GetBucket")
           .setRequestMarshaller(ProtoUtils.marshaller(GetBucketRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Bucket.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
 
   private static final MethodDescriptor<CreateBucketRequest, Bucket> createBucketMethodDescriptor =
@@ -117,6 +108,7 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/CreateBucket")
           .setRequestMarshaller(ProtoUtils.marshaller(CreateBucketRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Bucket.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
 
   private static final MethodDescriptor<ListBucketsRequest, ListBucketsResponse>
@@ -127,6 +119,7 @@ public class GrpcStorageStub extends StorageStub {
               .setRequestMarshaller(ProtoUtils.marshaller(ListBucketsRequest.getDefaultInstance()))
               .setResponseMarshaller(
                   ProtoUtils.marshaller(ListBucketsResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<LockBucketRetentionPolicyRequest, Bucket>
@@ -137,6 +130,7 @@ public class GrpcStorageStub extends StorageStub {
               .setRequestMarshaller(
                   ProtoUtils.marshaller(LockBucketRetentionPolicyRequest.getDefaultInstance()))
               .setResponseMarshaller(ProtoUtils.marshaller(Bucket.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<GetIamPolicyRequest, Policy> getIamPolicyMethodDescriptor =
@@ -145,6 +139,7 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/GetIamPolicy")
           .setRequestMarshaller(ProtoUtils.marshaller(GetIamPolicyRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Policy.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
 
   private static final MethodDescriptor<SetIamPolicyRequest, Policy> setIamPolicyMethodDescriptor =
@@ -153,6 +148,7 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/SetIamPolicy")
           .setRequestMarshaller(ProtoUtils.marshaller(SetIamPolicyRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Policy.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
 
   private static final MethodDescriptor<TestIamPermissionsRequest, TestIamPermissionsResponse>
@@ -164,6 +160,7 @@ public class GrpcStorageStub extends StorageStub {
                   ProtoUtils.marshaller(TestIamPermissionsRequest.getDefaultInstance()))
               .setResponseMarshaller(
                   ProtoUtils.marshaller(TestIamPermissionsResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<UpdateBucketRequest, Bucket> updateBucketMethodDescriptor =
@@ -172,48 +169,8 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/UpdateBucket")
           .setRequestMarshaller(ProtoUtils.marshaller(UpdateBucketRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Bucket.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
-
-  private static final MethodDescriptor<DeleteNotificationRequest, Empty>
-      deleteNotificationMethodDescriptor =
-          MethodDescriptor.<DeleteNotificationRequest, Empty>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/DeleteNotification")
-              .setRequestMarshaller(
-                  ProtoUtils.marshaller(DeleteNotificationRequest.getDefaultInstance()))
-              .setResponseMarshaller(ProtoUtils.marshaller(Empty.getDefaultInstance()))
-              .build();
-
-  private static final MethodDescriptor<GetNotificationRequest, Notification>
-      getNotificationMethodDescriptor =
-          MethodDescriptor.<GetNotificationRequest, Notification>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/GetNotification")
-              .setRequestMarshaller(
-                  ProtoUtils.marshaller(GetNotificationRequest.getDefaultInstance()))
-              .setResponseMarshaller(ProtoUtils.marshaller(Notification.getDefaultInstance()))
-              .build();
-
-  private static final MethodDescriptor<CreateNotificationRequest, Notification>
-      createNotificationMethodDescriptor =
-          MethodDescriptor.<CreateNotificationRequest, Notification>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/CreateNotification")
-              .setRequestMarshaller(
-                  ProtoUtils.marshaller(CreateNotificationRequest.getDefaultInstance()))
-              .setResponseMarshaller(ProtoUtils.marshaller(Notification.getDefaultInstance()))
-              .build();
-
-  private static final MethodDescriptor<ListNotificationsRequest, ListNotificationsResponse>
-      listNotificationsMethodDescriptor =
-          MethodDescriptor.<ListNotificationsRequest, ListNotificationsResponse>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/ListNotifications")
-              .setRequestMarshaller(
-                  ProtoUtils.marshaller(ListNotificationsRequest.getDefaultInstance()))
-              .setResponseMarshaller(
-                  ProtoUtils.marshaller(ListNotificationsResponse.getDefaultInstance()))
-              .build();
 
   private static final MethodDescriptor<ComposeObjectRequest, Object>
       composeObjectMethodDescriptor =
@@ -223,6 +180,7 @@ public class GrpcStorageStub extends StorageStub {
               .setRequestMarshaller(
                   ProtoUtils.marshaller(ComposeObjectRequest.getDefaultInstance()))
               .setResponseMarshaller(ProtoUtils.marshaller(Object.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<DeleteObjectRequest, Empty> deleteObjectMethodDescriptor =
@@ -231,7 +189,19 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/DeleteObject")
           .setRequestMarshaller(ProtoUtils.marshaller(DeleteObjectRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Empty.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
+
+  private static final MethodDescriptor<RestoreObjectRequest, Object>
+      restoreObjectMethodDescriptor =
+          MethodDescriptor.<RestoreObjectRequest, Object>newBuilder()
+              .setType(MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName("google.storage.v2.Storage/RestoreObject")
+              .setRequestMarshaller(
+                  ProtoUtils.marshaller(RestoreObjectRequest.getDefaultInstance()))
+              .setResponseMarshaller(ProtoUtils.marshaller(Object.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
+              .build();
 
   private static final MethodDescriptor<CancelResumableWriteRequest, CancelResumableWriteResponse>
       cancelResumableWriteMethodDescriptor =
@@ -242,6 +212,7 @@ public class GrpcStorageStub extends StorageStub {
                   ProtoUtils.marshaller(CancelResumableWriteRequest.getDefaultInstance()))
               .setResponseMarshaller(
                   ProtoUtils.marshaller(CancelResumableWriteResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<GetObjectRequest, Object> getObjectMethodDescriptor =
@@ -250,6 +221,7 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/GetObject")
           .setRequestMarshaller(ProtoUtils.marshaller(GetObjectRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Object.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
 
   private static final MethodDescriptor<ReadObjectRequest, ReadObjectResponse>
@@ -259,6 +231,19 @@ public class GrpcStorageStub extends StorageStub {
               .setFullMethodName("google.storage.v2.Storage/ReadObject")
               .setRequestMarshaller(ProtoUtils.marshaller(ReadObjectRequest.getDefaultInstance()))
               .setResponseMarshaller(ProtoUtils.marshaller(ReadObjectResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
+              .build();
+
+  private static final MethodDescriptor<BidiReadObjectRequest, BidiReadObjectResponse>
+      bidiReadObjectMethodDescriptor =
+          MethodDescriptor.<BidiReadObjectRequest, BidiReadObjectResponse>newBuilder()
+              .setType(MethodDescriptor.MethodType.BIDI_STREAMING)
+              .setFullMethodName("google.storage.v2.Storage/BidiReadObject")
+              .setRequestMarshaller(
+                  ProtoUtils.marshaller(BidiReadObjectRequest.getDefaultInstance()))
+              .setResponseMarshaller(
+                  ProtoUtils.marshaller(BidiReadObjectResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<UpdateObjectRequest, Object> updateObjectMethodDescriptor =
@@ -267,6 +252,7 @@ public class GrpcStorageStub extends StorageStub {
           .setFullMethodName("google.storage.v2.Storage/UpdateObject")
           .setRequestMarshaller(ProtoUtils.marshaller(UpdateObjectRequest.getDefaultInstance()))
           .setResponseMarshaller(ProtoUtils.marshaller(Object.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
 
   private static final MethodDescriptor<WriteObjectRequest, WriteObjectResponse>
@@ -277,6 +263,19 @@ public class GrpcStorageStub extends StorageStub {
               .setRequestMarshaller(ProtoUtils.marshaller(WriteObjectRequest.getDefaultInstance()))
               .setResponseMarshaller(
                   ProtoUtils.marshaller(WriteObjectResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
+              .build();
+
+  private static final MethodDescriptor<BidiWriteObjectRequest, BidiWriteObjectResponse>
+      bidiWriteObjectMethodDescriptor =
+          MethodDescriptor.<BidiWriteObjectRequest, BidiWriteObjectResponse>newBuilder()
+              .setType(MethodDescriptor.MethodType.BIDI_STREAMING)
+              .setFullMethodName("google.storage.v2.Storage/BidiWriteObject")
+              .setRequestMarshaller(
+                  ProtoUtils.marshaller(BidiWriteObjectRequest.getDefaultInstance()))
+              .setResponseMarshaller(
+                  ProtoUtils.marshaller(BidiWriteObjectResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<ListObjectsRequest, ListObjectsResponse>
@@ -287,6 +286,7 @@ public class GrpcStorageStub extends StorageStub {
               .setRequestMarshaller(ProtoUtils.marshaller(ListObjectsRequest.getDefaultInstance()))
               .setResponseMarshaller(
                   ProtoUtils.marshaller(ListObjectsResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<RewriteObjectRequest, RewriteResponse>
@@ -297,6 +297,7 @@ public class GrpcStorageStub extends StorageStub {
               .setRequestMarshaller(
                   ProtoUtils.marshaller(RewriteObjectRequest.getDefaultInstance()))
               .setResponseMarshaller(ProtoUtils.marshaller(RewriteResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<StartResumableWriteRequest, StartResumableWriteResponse>
@@ -308,6 +309,7 @@ public class GrpcStorageStub extends StorageStub {
                   ProtoUtils.marshaller(StartResumableWriteRequest.getDefaultInstance()))
               .setResponseMarshaller(
                   ProtoUtils.marshaller(StartResumableWriteResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
   private static final MethodDescriptor<QueryWriteStatusRequest, QueryWriteStatusResponse>
@@ -319,65 +321,17 @@ public class GrpcStorageStub extends StorageStub {
                   ProtoUtils.marshaller(QueryWriteStatusRequest.getDefaultInstance()))
               .setResponseMarshaller(
                   ProtoUtils.marshaller(QueryWriteStatusResponse.getDefaultInstance()))
+              .setSampledToLocalTracing(true)
               .build();
 
-  private static final MethodDescriptor<GetServiceAccountRequest, ServiceAccount>
-      getServiceAccountMethodDescriptor =
-          MethodDescriptor.<GetServiceAccountRequest, ServiceAccount>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/GetServiceAccount")
-              .setRequestMarshaller(
-                  ProtoUtils.marshaller(GetServiceAccountRequest.getDefaultInstance()))
-              .setResponseMarshaller(ProtoUtils.marshaller(ServiceAccount.getDefaultInstance()))
-              .build();
-
-  private static final MethodDescriptor<CreateHmacKeyRequest, CreateHmacKeyResponse>
-      createHmacKeyMethodDescriptor =
-          MethodDescriptor.<CreateHmacKeyRequest, CreateHmacKeyResponse>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/CreateHmacKey")
-              .setRequestMarshaller(
-                  ProtoUtils.marshaller(CreateHmacKeyRequest.getDefaultInstance()))
-              .setResponseMarshaller(
-                  ProtoUtils.marshaller(CreateHmacKeyResponse.getDefaultInstance()))
-              .build();
-
-  private static final MethodDescriptor<DeleteHmacKeyRequest, Empty> deleteHmacKeyMethodDescriptor =
-      MethodDescriptor.<DeleteHmacKeyRequest, Empty>newBuilder()
+  private static final MethodDescriptor<MoveObjectRequest, Object> moveObjectMethodDescriptor =
+      MethodDescriptor.<MoveObjectRequest, Object>newBuilder()
           .setType(MethodDescriptor.MethodType.UNARY)
-          .setFullMethodName("google.storage.v2.Storage/DeleteHmacKey")
-          .setRequestMarshaller(ProtoUtils.marshaller(DeleteHmacKeyRequest.getDefaultInstance()))
-          .setResponseMarshaller(ProtoUtils.marshaller(Empty.getDefaultInstance()))
+          .setFullMethodName("google.storage.v2.Storage/MoveObject")
+          .setRequestMarshaller(ProtoUtils.marshaller(MoveObjectRequest.getDefaultInstance()))
+          .setResponseMarshaller(ProtoUtils.marshaller(Object.getDefaultInstance()))
+          .setSampledToLocalTracing(true)
           .build();
-
-  private static final MethodDescriptor<GetHmacKeyRequest, HmacKeyMetadata>
-      getHmacKeyMethodDescriptor =
-          MethodDescriptor.<GetHmacKeyRequest, HmacKeyMetadata>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/GetHmacKey")
-              .setRequestMarshaller(ProtoUtils.marshaller(GetHmacKeyRequest.getDefaultInstance()))
-              .setResponseMarshaller(ProtoUtils.marshaller(HmacKeyMetadata.getDefaultInstance()))
-              .build();
-
-  private static final MethodDescriptor<ListHmacKeysRequest, ListHmacKeysResponse>
-      listHmacKeysMethodDescriptor =
-          MethodDescriptor.<ListHmacKeysRequest, ListHmacKeysResponse>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/ListHmacKeys")
-              .setRequestMarshaller(ProtoUtils.marshaller(ListHmacKeysRequest.getDefaultInstance()))
-              .setResponseMarshaller(
-                  ProtoUtils.marshaller(ListHmacKeysResponse.getDefaultInstance()))
-              .build();
-
-  private static final MethodDescriptor<UpdateHmacKeyRequest, HmacKeyMetadata>
-      updateHmacKeyMethodDescriptor =
-          MethodDescriptor.<UpdateHmacKeyRequest, HmacKeyMetadata>newBuilder()
-              .setType(MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName("google.storage.v2.Storage/UpdateHmacKey")
-              .setRequestMarshaller(
-                  ProtoUtils.marshaller(UpdateHmacKeyRequest.getDefaultInstance()))
-              .setResponseMarshaller(ProtoUtils.marshaller(HmacKeyMetadata.getDefaultInstance()))
-              .build();
 
   private final UnaryCallable<DeleteBucketRequest, Empty> deleteBucketCallable;
   private final UnaryCallable<GetBucketRequest, Bucket> getBucketCallable;
@@ -392,22 +346,20 @@ public class GrpcStorageStub extends StorageStub {
   private final UnaryCallable<TestIamPermissionsRequest, TestIamPermissionsResponse>
       testIamPermissionsCallable;
   private final UnaryCallable<UpdateBucketRequest, Bucket> updateBucketCallable;
-  private final UnaryCallable<DeleteNotificationRequest, Empty> deleteNotificationCallable;
-  private final UnaryCallable<GetNotificationRequest, Notification> getNotificationCallable;
-  private final UnaryCallable<CreateNotificationRequest, Notification> createNotificationCallable;
-  private final UnaryCallable<ListNotificationsRequest, ListNotificationsResponse>
-      listNotificationsCallable;
-  private final UnaryCallable<ListNotificationsRequest, ListNotificationsPagedResponse>
-      listNotificationsPagedCallable;
   private final UnaryCallable<ComposeObjectRequest, Object> composeObjectCallable;
   private final UnaryCallable<DeleteObjectRequest, Empty> deleteObjectCallable;
+  private final UnaryCallable<RestoreObjectRequest, Object> restoreObjectCallable;
   private final UnaryCallable<CancelResumableWriteRequest, CancelResumableWriteResponse>
       cancelResumableWriteCallable;
   private final UnaryCallable<GetObjectRequest, Object> getObjectCallable;
   private final ServerStreamingCallable<ReadObjectRequest, ReadObjectResponse> readObjectCallable;
+  private final BidiStreamingCallable<BidiReadObjectRequest, BidiReadObjectResponse>
+      bidiReadObjectCallable;
   private final UnaryCallable<UpdateObjectRequest, Object> updateObjectCallable;
   private final ClientStreamingCallable<WriteObjectRequest, WriteObjectResponse>
       writeObjectCallable;
+  private final BidiStreamingCallable<BidiWriteObjectRequest, BidiWriteObjectResponse>
+      bidiWriteObjectCallable;
   private final UnaryCallable<ListObjectsRequest, ListObjectsResponse> listObjectsCallable;
   private final UnaryCallable<ListObjectsRequest, ListObjectsPagedResponse>
       listObjectsPagedCallable;
@@ -416,14 +368,7 @@ public class GrpcStorageStub extends StorageStub {
       startResumableWriteCallable;
   private final UnaryCallable<QueryWriteStatusRequest, QueryWriteStatusResponse>
       queryWriteStatusCallable;
-  private final UnaryCallable<GetServiceAccountRequest, ServiceAccount> getServiceAccountCallable;
-  private final UnaryCallable<CreateHmacKeyRequest, CreateHmacKeyResponse> createHmacKeyCallable;
-  private final UnaryCallable<DeleteHmacKeyRequest, Empty> deleteHmacKeyCallable;
-  private final UnaryCallable<GetHmacKeyRequest, HmacKeyMetadata> getHmacKeyCallable;
-  private final UnaryCallable<ListHmacKeysRequest, ListHmacKeysResponse> listHmacKeysCallable;
-  private final UnaryCallable<ListHmacKeysRequest, ListHmacKeysPagedResponse>
-      listHmacKeysPagedCallable;
-  private final UnaryCallable<UpdateHmacKeyRequest, HmacKeyMetadata> updateHmacKeyCallable;
+  private final UnaryCallable<MoveObjectRequest, Object> moveObjectCallable;
 
   private final BackgroundResource backgroundResources;
   private final GrpcOperationsStub operationsStub;
@@ -434,6 +379,8 @@ public class GrpcStorageStub extends StorageStub {
   private static final PathTemplate GET_BUCKET_0_PATH_TEMPLATE = PathTemplate.create("{bucket=**}");
   private static final PathTemplate CREATE_BUCKET_0_PATH_TEMPLATE =
       PathTemplate.create("{project=**}");
+  private static final PathTemplate CREATE_BUCKET_1_PATH_TEMPLATE =
+      PathTemplate.create("{project=**}");
   private static final PathTemplate LIST_BUCKETS_0_PATH_TEMPLATE =
       PathTemplate.create("{project=**}");
   private static final PathTemplate LOCK_BUCKET_RETENTION_POLICY_0_PATH_TEMPLATE =
@@ -441,40 +388,34 @@ public class GrpcStorageStub extends StorageStub {
   private static final PathTemplate GET_IAM_POLICY_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
   private static final PathTemplate GET_IAM_POLICY_1_PATH_TEMPLATE =
-      PathTemplate.create("{bucket=projects/*/buckets/*}/objects/**");
+      PathTemplate.create("{bucket=projects/*/buckets/*}/**");
   private static final PathTemplate SET_IAM_POLICY_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
   private static final PathTemplate SET_IAM_POLICY_1_PATH_TEMPLATE =
-      PathTemplate.create("{bucket=projects/*/buckets/*}/objects/**");
+      PathTemplate.create("{bucket=projects/*/buckets/*}/**");
   private static final PathTemplate TEST_IAM_PERMISSIONS_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
   private static final PathTemplate TEST_IAM_PERMISSIONS_1_PATH_TEMPLATE =
       PathTemplate.create("{bucket=projects/*/buckets/*}/objects/**");
+  private static final PathTemplate TEST_IAM_PERMISSIONS_2_PATH_TEMPLATE =
+      PathTemplate.create("{bucket=projects/*/buckets/*}/managedFolders/**");
   private static final PathTemplate UPDATE_BUCKET_0_PATH_TEMPLATE =
-      PathTemplate.create("{bucket=**}");
-  private static final PathTemplate DELETE_NOTIFICATION_0_PATH_TEMPLATE =
-      PathTemplate.create("{bucket=projects/*/buckets/*}/**");
-  private static final PathTemplate GET_NOTIFICATION_0_PATH_TEMPLATE =
-      PathTemplate.create("{bucket=projects/*/buckets/*}/**");
-  private static final PathTemplate CREATE_NOTIFICATION_0_PATH_TEMPLATE =
-      PathTemplate.create("{bucket=**}");
-  private static final PathTemplate LIST_NOTIFICATIONS_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
   private static final PathTemplate COMPOSE_OBJECT_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
   private static final PathTemplate DELETE_OBJECT_0_PATH_TEMPLATE =
+      PathTemplate.create("{bucket=**}");
+  private static final PathTemplate RESTORE_OBJECT_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
   private static final PathTemplate CANCEL_RESUMABLE_WRITE_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=projects/*/buckets/*}/**");
   private static final PathTemplate GET_OBJECT_0_PATH_TEMPLATE = PathTemplate.create("{bucket=**}");
   private static final PathTemplate READ_OBJECT_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
+  private static final PathTemplate BIDI_READ_OBJECT_0_PATH_TEMPLATE =
+      PathTemplate.create("{bucket=**}");
   private static final PathTemplate UPDATE_OBJECT_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
-  private static final PathTemplate WRITE_OBJECT_0_PATH_TEMPLATE =
-      PathTemplate.create("{bucket=**}");
-  private static final PathTemplate WRITE_OBJECT_1_PATH_TEMPLATE =
-      PathTemplate.create("{bucket=projects/*/buckets/*}/**");
   private static final PathTemplate LIST_OBJECTS_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=**}");
   private static final PathTemplate REWRITE_OBJECT_0_PATH_TEMPLATE =
@@ -485,18 +426,8 @@ public class GrpcStorageStub extends StorageStub {
       PathTemplate.create("{bucket=**}");
   private static final PathTemplate QUERY_WRITE_STATUS_0_PATH_TEMPLATE =
       PathTemplate.create("{bucket=projects/*/buckets/*}/**");
-  private static final PathTemplate GET_SERVICE_ACCOUNT_0_PATH_TEMPLATE =
-      PathTemplate.create("{project=**}");
-  private static final PathTemplate CREATE_HMAC_KEY_0_PATH_TEMPLATE =
-      PathTemplate.create("{project=**}");
-  private static final PathTemplate DELETE_HMAC_KEY_0_PATH_TEMPLATE =
-      PathTemplate.create("{project=**}");
-  private static final PathTemplate GET_HMAC_KEY_0_PATH_TEMPLATE =
-      PathTemplate.create("{project=**}");
-  private static final PathTemplate LIST_HMAC_KEYS_0_PATH_TEMPLATE =
-      PathTemplate.create("{project=**}");
-  private static final PathTemplate UPDATE_HMAC_KEY_0_PATH_TEMPLATE =
-      PathTemplate.create("{project=**}");
+  private static final PathTemplate MOVE_OBJECT_0_PATH_TEMPLATE =
+      PathTemplate.create("{bucket=**}");
 
   public static final GrpcStorageStub create(StorageStubSettings settings) throws IOException {
     return new GrpcStorageStub(settings, ClientContext.create(settings));
@@ -560,6 +491,10 @@ public class GrpcStorageStub extends StorageStub {
                 request -> {
                   RequestParamsBuilder builder = RequestParamsBuilder.create();
                   builder.add(request.getParent(), "project", CREATE_BUCKET_0_PATH_TEMPLATE);
+                  if (request.getBucket() != null) {
+                    builder.add(
+                        request.getBucket().getProject(), "project", CREATE_BUCKET_1_PATH_TEMPLATE);
+                  }
                   return builder.build();
                 })
             .build();
@@ -620,6 +555,8 @@ public class GrpcStorageStub extends StorageStub {
                           request.getResource(), "bucket", TEST_IAM_PERMISSIONS_0_PATH_TEMPLATE);
                       builder.add(
                           request.getResource(), "bucket", TEST_IAM_PERMISSIONS_1_PATH_TEMPLATE);
+                      builder.add(
+                          request.getResource(), "bucket", TEST_IAM_PERMISSIONS_2_PATH_TEMPLATE);
                       return builder.build();
                     })
                 .build();
@@ -636,48 +573,6 @@ public class GrpcStorageStub extends StorageStub {
                   return builder.build();
                 })
             .build();
-    GrpcCallSettings<DeleteNotificationRequest, Empty> deleteNotificationTransportSettings =
-        GrpcCallSettings.<DeleteNotificationRequest, Empty>newBuilder()
-            .setMethodDescriptor(deleteNotificationMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  builder.add(request.getName(), "bucket", DELETE_NOTIFICATION_0_PATH_TEMPLATE);
-                  return builder.build();
-                })
-            .build();
-    GrpcCallSettings<GetNotificationRequest, Notification> getNotificationTransportSettings =
-        GrpcCallSettings.<GetNotificationRequest, Notification>newBuilder()
-            .setMethodDescriptor(getNotificationMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  builder.add(request.getName(), "bucket", GET_NOTIFICATION_0_PATH_TEMPLATE);
-                  return builder.build();
-                })
-            .build();
-    GrpcCallSettings<CreateNotificationRequest, Notification> createNotificationTransportSettings =
-        GrpcCallSettings.<CreateNotificationRequest, Notification>newBuilder()
-            .setMethodDescriptor(createNotificationMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  builder.add(request.getParent(), "bucket", CREATE_NOTIFICATION_0_PATH_TEMPLATE);
-                  return builder.build();
-                })
-            .build();
-    GrpcCallSettings<ListNotificationsRequest, ListNotificationsResponse>
-        listNotificationsTransportSettings =
-            GrpcCallSettings.<ListNotificationsRequest, ListNotificationsResponse>newBuilder()
-                .setMethodDescriptor(listNotificationsMethodDescriptor)
-                .setParamsExtractor(
-                    request -> {
-                      RequestParamsBuilder builder = RequestParamsBuilder.create();
-                      builder.add(
-                          request.getParent(), "bucket", LIST_NOTIFICATIONS_0_PATH_TEMPLATE);
-                      return builder.build();
-                    })
-                .build();
     GrpcCallSettings<ComposeObjectRequest, Object> composeObjectTransportSettings =
         GrpcCallSettings.<ComposeObjectRequest, Object>newBuilder()
             .setMethodDescriptor(composeObjectMethodDescriptor)
@@ -700,6 +595,16 @@ public class GrpcStorageStub extends StorageStub {
                 request -> {
                   RequestParamsBuilder builder = RequestParamsBuilder.create();
                   builder.add(request.getBucket(), "bucket", DELETE_OBJECT_0_PATH_TEMPLATE);
+                  return builder.build();
+                })
+            .build();
+    GrpcCallSettings<RestoreObjectRequest, Object> restoreObjectTransportSettings =
+        GrpcCallSettings.<RestoreObjectRequest, Object>newBuilder()
+            .setMethodDescriptor(restoreObjectMethodDescriptor)
+            .setParamsExtractor(
+                request -> {
+                  RequestParamsBuilder builder = RequestParamsBuilder.create();
+                  builder.add(request.getBucket(), "bucket", RESTORE_OBJECT_0_PATH_TEMPLATE);
                   return builder.build();
                 })
             .build();
@@ -735,6 +640,22 @@ public class GrpcStorageStub extends StorageStub {
                   return builder.build();
                 })
             .build();
+    GrpcCallSettings<BidiReadObjectRequest, BidiReadObjectResponse>
+        bidiReadObjectTransportSettings =
+            GrpcCallSettings.<BidiReadObjectRequest, BidiReadObjectResponse>newBuilder()
+                .setMethodDescriptor(bidiReadObjectMethodDescriptor)
+                .setParamsExtractor(
+                    request -> {
+                      RequestParamsBuilder builder = RequestParamsBuilder.create();
+                      if (request.getReadObjectSpec() != null) {
+                        builder.add(
+                            request.getReadObjectSpec().getBucket(),
+                            "bucket",
+                            BIDI_READ_OBJECT_0_PATH_TEMPLATE);
+                      }
+                      return builder.build();
+                    })
+                .build();
     GrpcCallSettings<UpdateObjectRequest, Object> updateObjectTransportSettings =
         GrpcCallSettings.<UpdateObjectRequest, Object>newBuilder()
             .setMethodDescriptor(updateObjectMethodDescriptor)
@@ -751,20 +672,12 @@ public class GrpcStorageStub extends StorageStub {
     GrpcCallSettings<WriteObjectRequest, WriteObjectResponse> writeObjectTransportSettings =
         GrpcCallSettings.<WriteObjectRequest, WriteObjectResponse>newBuilder()
             .setMethodDescriptor(writeObjectMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  if (request.getWriteObjectSpec() != null
-                      && request.getWriteObjectSpec().getResource() != null) {
-                    builder.add(
-                        request.getWriteObjectSpec().getResource().getBucket(),
-                        "bucket",
-                        WRITE_OBJECT_0_PATH_TEMPLATE);
-                  }
-                  builder.add(request.getUploadId(), "bucket", WRITE_OBJECT_1_PATH_TEMPLATE);
-                  return builder.build();
-                })
             .build();
+    GrpcCallSettings<BidiWriteObjectRequest, BidiWriteObjectResponse>
+        bidiWriteObjectTransportSettings =
+            GrpcCallSettings.<BidiWriteObjectRequest, BidiWriteObjectResponse>newBuilder()
+                .setMethodDescriptor(bidiWriteObjectMethodDescriptor)
+                .build();
     GrpcCallSettings<ListObjectsRequest, ListObjectsResponse> listObjectsTransportSettings =
         GrpcCallSettings.<ListObjectsRequest, ListObjectsResponse>newBuilder()
             .setMethodDescriptor(listObjectsMethodDescriptor)
@@ -817,68 +730,13 @@ public class GrpcStorageStub extends StorageStub {
                       return builder.build();
                     })
                 .build();
-    GrpcCallSettings<GetServiceAccountRequest, ServiceAccount> getServiceAccountTransportSettings =
-        GrpcCallSettings.<GetServiceAccountRequest, ServiceAccount>newBuilder()
-            .setMethodDescriptor(getServiceAccountMethodDescriptor)
+    GrpcCallSettings<MoveObjectRequest, Object> moveObjectTransportSettings =
+        GrpcCallSettings.<MoveObjectRequest, Object>newBuilder()
+            .setMethodDescriptor(moveObjectMethodDescriptor)
             .setParamsExtractor(
                 request -> {
                   RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  builder.add(request.getProject(), "project", GET_SERVICE_ACCOUNT_0_PATH_TEMPLATE);
-                  return builder.build();
-                })
-            .build();
-    GrpcCallSettings<CreateHmacKeyRequest, CreateHmacKeyResponse> createHmacKeyTransportSettings =
-        GrpcCallSettings.<CreateHmacKeyRequest, CreateHmacKeyResponse>newBuilder()
-            .setMethodDescriptor(createHmacKeyMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  builder.add(request.getProject(), "project", CREATE_HMAC_KEY_0_PATH_TEMPLATE);
-                  return builder.build();
-                })
-            .build();
-    GrpcCallSettings<DeleteHmacKeyRequest, Empty> deleteHmacKeyTransportSettings =
-        GrpcCallSettings.<DeleteHmacKeyRequest, Empty>newBuilder()
-            .setMethodDescriptor(deleteHmacKeyMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  builder.add(request.getProject(), "project", DELETE_HMAC_KEY_0_PATH_TEMPLATE);
-                  return builder.build();
-                })
-            .build();
-    GrpcCallSettings<GetHmacKeyRequest, HmacKeyMetadata> getHmacKeyTransportSettings =
-        GrpcCallSettings.<GetHmacKeyRequest, HmacKeyMetadata>newBuilder()
-            .setMethodDescriptor(getHmacKeyMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  builder.add(request.getProject(), "project", GET_HMAC_KEY_0_PATH_TEMPLATE);
-                  return builder.build();
-                })
-            .build();
-    GrpcCallSettings<ListHmacKeysRequest, ListHmacKeysResponse> listHmacKeysTransportSettings =
-        GrpcCallSettings.<ListHmacKeysRequest, ListHmacKeysResponse>newBuilder()
-            .setMethodDescriptor(listHmacKeysMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  builder.add(request.getProject(), "project", LIST_HMAC_KEYS_0_PATH_TEMPLATE);
-                  return builder.build();
-                })
-            .build();
-    GrpcCallSettings<UpdateHmacKeyRequest, HmacKeyMetadata> updateHmacKeyTransportSettings =
-        GrpcCallSettings.<UpdateHmacKeyRequest, HmacKeyMetadata>newBuilder()
-            .setMethodDescriptor(updateHmacKeyMethodDescriptor)
-            .setParamsExtractor(
-                request -> {
-                  RequestParamsBuilder builder = RequestParamsBuilder.create();
-                  if (request.getHmacKey() != null) {
-                    builder.add(
-                        request.getHmacKey().getProject(),
-                        "project",
-                        UPDATE_HMAC_KEY_0_PATH_TEMPLATE);
-                  }
+                  builder.add(request.getBucket(), "bucket", MOVE_OBJECT_0_PATH_TEMPLATE);
                   return builder.build();
                 })
             .build();
@@ -917,35 +775,15 @@ public class GrpcStorageStub extends StorageStub {
     this.updateBucketCallable =
         callableFactory.createUnaryCallable(
             updateBucketTransportSettings, settings.updateBucketSettings(), clientContext);
-    this.deleteNotificationCallable =
-        callableFactory.createUnaryCallable(
-            deleteNotificationTransportSettings,
-            settings.deleteNotificationSettings(),
-            clientContext);
-    this.getNotificationCallable =
-        callableFactory.createUnaryCallable(
-            getNotificationTransportSettings, settings.getNotificationSettings(), clientContext);
-    this.createNotificationCallable =
-        callableFactory.createUnaryCallable(
-            createNotificationTransportSettings,
-            settings.createNotificationSettings(),
-            clientContext);
-    this.listNotificationsCallable =
-        callableFactory.createUnaryCallable(
-            listNotificationsTransportSettings,
-            settings.listNotificationsSettings(),
-            clientContext);
-    this.listNotificationsPagedCallable =
-        callableFactory.createPagedCallable(
-            listNotificationsTransportSettings,
-            settings.listNotificationsSettings(),
-            clientContext);
     this.composeObjectCallable =
         callableFactory.createUnaryCallable(
             composeObjectTransportSettings, settings.composeObjectSettings(), clientContext);
     this.deleteObjectCallable =
         callableFactory.createUnaryCallable(
             deleteObjectTransportSettings, settings.deleteObjectSettings(), clientContext);
+    this.restoreObjectCallable =
+        callableFactory.createUnaryCallable(
+            restoreObjectTransportSettings, settings.restoreObjectSettings(), clientContext);
     this.cancelResumableWriteCallable =
         callableFactory.createUnaryCallable(
             cancelResumableWriteTransportSettings,
@@ -957,12 +795,18 @@ public class GrpcStorageStub extends StorageStub {
     this.readObjectCallable =
         callableFactory.createServerStreamingCallable(
             readObjectTransportSettings, settings.readObjectSettings(), clientContext);
+    this.bidiReadObjectCallable =
+        callableFactory.createBidiStreamingCallable(
+            bidiReadObjectTransportSettings, settings.bidiReadObjectSettings(), clientContext);
     this.updateObjectCallable =
         callableFactory.createUnaryCallable(
             updateObjectTransportSettings, settings.updateObjectSettings(), clientContext);
     this.writeObjectCallable =
         callableFactory.createClientStreamingCallable(
             writeObjectTransportSettings, settings.writeObjectSettings(), clientContext);
+    this.bidiWriteObjectCallable =
+        callableFactory.createBidiStreamingCallable(
+            bidiWriteObjectTransportSettings, settings.bidiWriteObjectSettings(), clientContext);
     this.listObjectsCallable =
         callableFactory.createUnaryCallable(
             listObjectsTransportSettings, settings.listObjectsSettings(), clientContext);
@@ -980,29 +824,9 @@ public class GrpcStorageStub extends StorageStub {
     this.queryWriteStatusCallable =
         callableFactory.createUnaryCallable(
             queryWriteStatusTransportSettings, settings.queryWriteStatusSettings(), clientContext);
-    this.getServiceAccountCallable =
+    this.moveObjectCallable =
         callableFactory.createUnaryCallable(
-            getServiceAccountTransportSettings,
-            settings.getServiceAccountSettings(),
-            clientContext);
-    this.createHmacKeyCallable =
-        callableFactory.createUnaryCallable(
-            createHmacKeyTransportSettings, settings.createHmacKeySettings(), clientContext);
-    this.deleteHmacKeyCallable =
-        callableFactory.createUnaryCallable(
-            deleteHmacKeyTransportSettings, settings.deleteHmacKeySettings(), clientContext);
-    this.getHmacKeyCallable =
-        callableFactory.createUnaryCallable(
-            getHmacKeyTransportSettings, settings.getHmacKeySettings(), clientContext);
-    this.listHmacKeysCallable =
-        callableFactory.createUnaryCallable(
-            listHmacKeysTransportSettings, settings.listHmacKeysSettings(), clientContext);
-    this.listHmacKeysPagedCallable =
-        callableFactory.createPagedCallable(
-            listHmacKeysTransportSettings, settings.listHmacKeysSettings(), clientContext);
-    this.updateHmacKeyCallable =
-        callableFactory.createUnaryCallable(
-            updateHmacKeyTransportSettings, settings.updateHmacKeySettings(), clientContext);
+            moveObjectTransportSettings, settings.moveObjectSettings(), clientContext);
 
     this.backgroundResources =
         new BackgroundResourceAggregation(clientContext.getBackgroundResources());
@@ -1065,33 +889,6 @@ public class GrpcStorageStub extends StorageStub {
   }
 
   @Override
-  public UnaryCallable<DeleteNotificationRequest, Empty> deleteNotificationCallable() {
-    return deleteNotificationCallable;
-  }
-
-  @Override
-  public UnaryCallable<GetNotificationRequest, Notification> getNotificationCallable() {
-    return getNotificationCallable;
-  }
-
-  @Override
-  public UnaryCallable<CreateNotificationRequest, Notification> createNotificationCallable() {
-    return createNotificationCallable;
-  }
-
-  @Override
-  public UnaryCallable<ListNotificationsRequest, ListNotificationsResponse>
-      listNotificationsCallable() {
-    return listNotificationsCallable;
-  }
-
-  @Override
-  public UnaryCallable<ListNotificationsRequest, ListNotificationsPagedResponse>
-      listNotificationsPagedCallable() {
-    return listNotificationsPagedCallable;
-  }
-
-  @Override
   public UnaryCallable<ComposeObjectRequest, Object> composeObjectCallable() {
     return composeObjectCallable;
   }
@@ -1099,6 +896,11 @@ public class GrpcStorageStub extends StorageStub {
   @Override
   public UnaryCallable<DeleteObjectRequest, Empty> deleteObjectCallable() {
     return deleteObjectCallable;
+  }
+
+  @Override
+  public UnaryCallable<RestoreObjectRequest, Object> restoreObjectCallable() {
+    return restoreObjectCallable;
   }
 
   @Override
@@ -1118,6 +920,12 @@ public class GrpcStorageStub extends StorageStub {
   }
 
   @Override
+  public BidiStreamingCallable<BidiReadObjectRequest, BidiReadObjectResponse>
+      bidiReadObjectCallable() {
+    return bidiReadObjectCallable;
+  }
+
+  @Override
   public UnaryCallable<UpdateObjectRequest, Object> updateObjectCallable() {
     return updateObjectCallable;
   }
@@ -1125,6 +933,12 @@ public class GrpcStorageStub extends StorageStub {
   @Override
   public ClientStreamingCallable<WriteObjectRequest, WriteObjectResponse> writeObjectCallable() {
     return writeObjectCallable;
+  }
+
+  @Override
+  public BidiStreamingCallable<BidiWriteObjectRequest, BidiWriteObjectResponse>
+      bidiWriteObjectCallable() {
+    return bidiWriteObjectCallable;
   }
 
   @Override
@@ -1155,38 +969,8 @@ public class GrpcStorageStub extends StorageStub {
   }
 
   @Override
-  public UnaryCallable<GetServiceAccountRequest, ServiceAccount> getServiceAccountCallable() {
-    return getServiceAccountCallable;
-  }
-
-  @Override
-  public UnaryCallable<CreateHmacKeyRequest, CreateHmacKeyResponse> createHmacKeyCallable() {
-    return createHmacKeyCallable;
-  }
-
-  @Override
-  public UnaryCallable<DeleteHmacKeyRequest, Empty> deleteHmacKeyCallable() {
-    return deleteHmacKeyCallable;
-  }
-
-  @Override
-  public UnaryCallable<GetHmacKeyRequest, HmacKeyMetadata> getHmacKeyCallable() {
-    return getHmacKeyCallable;
-  }
-
-  @Override
-  public UnaryCallable<ListHmacKeysRequest, ListHmacKeysResponse> listHmacKeysCallable() {
-    return listHmacKeysCallable;
-  }
-
-  @Override
-  public UnaryCallable<ListHmacKeysRequest, ListHmacKeysPagedResponse> listHmacKeysPagedCallable() {
-    return listHmacKeysPagedCallable;
-  }
-
-  @Override
-  public UnaryCallable<UpdateHmacKeyRequest, HmacKeyMetadata> updateHmacKeyCallable() {
-    return updateHmacKeyCallable;
+  public UnaryCallable<MoveObjectRequest, Object> moveObjectCallable() {
+    return moveObjectCallable;
   }
 
   @Override

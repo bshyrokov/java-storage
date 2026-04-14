@@ -17,6 +17,7 @@
 package com.google.cloud.storage.spi.v1;
 
 import io.opencensus.trace.EndSpanOptions;
+import java.util.Locale;
 
 /** Helper class for instrumenting {@link HttpStorageRpc} with Open Census APIs. */
 class HttpStorageRpcSpans {
@@ -30,6 +31,7 @@ class HttpStorageRpcSpans {
   static final String SPAN_NAME_LIST_OBJECTS = getTraceSpanName("list(String,Map)");
   static final String SPAN_NAME_GET_BUCKET = getTraceSpanName("get(Bucket,Map)");
   static final String SPAN_NAME_GET_OBJECT = getTraceSpanName("get(StorageObject,Map)");
+  static final String SPAN_NAME_RESTORE_OBJECT = getTraceSpanName("restore(StorageObject, Map)");
   static final String SPAN_NAME_PATCH_BUCKET = getTraceSpanName("patch(Bucket,Map)");
   static final String SPAN_NAME_PATCH_OBJECT = getTraceSpanName("patch(StorageObject,Map)");
   static final String SPAN_NAME_DELETE_BUCKET = getTraceSpanName("delete(Bucket,Map)");
@@ -101,7 +103,11 @@ class HttpStorageRpcSpans {
 
   static String getTraceSpanName(String methodDescriptor) {
     return String.format(
-        "%s.%s.%s", SPAN_NAME_CLIENT_PREFIX, HttpStorageRpc.class.getName(), methodDescriptor);
+        Locale.US,
+        "%s.%s.%s",
+        SPAN_NAME_CLIENT_PREFIX,
+        HttpStorageRpc.class.getName(),
+        methodDescriptor);
   }
 
   private HttpStorageRpcSpans() {}

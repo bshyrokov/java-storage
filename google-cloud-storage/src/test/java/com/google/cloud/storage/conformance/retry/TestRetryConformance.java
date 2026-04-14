@@ -16,6 +16,7 @@
 
 package com.google.cloud.storage.conformance.retry;
 
+import static com.google.common.truth.Truth.assertThat;
 import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertNotNull;
 
@@ -23,24 +24,28 @@ import com.google.auth.ServiceAccountSigner;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.conformance.storage.v1.InstructionList;
 import com.google.cloud.conformance.storage.v1.Method;
+import com.google.cloud.storage.DataGenerator;
+import com.google.cloud.storage.TransportCompatibility.Transport;
 import com.google.common.base.Joiner;
-import com.google.common.base.Suppliers;
+import com.google.common.io.ByteStreams;
 import com.google.errorprone.annotations.Immutable;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * An individual resolved test case correlating config from {@link
@@ -64,16 +69,17 @@ final class TestRetryConformance {
   private static final int _512KiB = 512 * 1024;
   private static final int _8MiB = 8 * 1024 * 1024;
 
+  private final Transport transport;
   private final String projectId;
   private final String bucketName;
   private final String bucketName2;
   private final String userProject;
   private final String objectName;
+  private final String topicName;
 
   private final Supplier<byte[]> lazyHelloWorldUtf8Bytes;
-  private final Path helloWorldFilePath = resolvePathForResource();
-  private final ServiceAccountCredentials serviceAccountCredentials =
-      resolveServiceAccountCredentials();
+  private final Supplier<Path> helloWorldFilePath;
+  private final ServiceAccountCredentials serviceAccountCredentials;
 
   private final String host;
 
@@ -85,6 +91,7 @@ final class TestRetryConformance {
   private final int mappingId;
 
   TestRetryConformance(
+      Transport transport,
       String projectId,
       String host,
       int scenarioId,
@@ -92,10 +99,20 @@ final class TestRetryConformance {
       InstructionList instruction,
       boolean preconditionsProvided,
       boolean expectSuccess) {
-    this(projectId, host, scenarioId, method, instruction, preconditionsProvided, expectSuccess, 0);
+    this(
+        transport,
+        projectId,
+        host,
+        scenarioId,
+        method,
+        instruction,
+        preconditionsProvided,
+        expectSuccess,
+        0);
   }
 
   TestRetryConformance(
+      Transport transport,
       String projectId,
       String host,
       int scenarioId,
@@ -104,6 +121,7 @@ final class TestRetryConformance {
       boolean preconditionsProvided,
       boolean expectSuccess,
       int mappingId) {
+    this.transport = transport;
     this.projectId = projectId;
     this.host = host;
     this.scenarioId = scenarioId;
@@ -116,49 +134,58 @@ final class TestRetryConformance {
         this.instruction.getInstructionsList().stream()
             .map(s -> s.replace("return-", ""))
             .collect(Collectors.joining("_"));
+    char transportTag = transport.name().toLowerCase().charAt(0);
     this.bucketName =
         String.format(
-            "%s_s%03d-%s-m%03d_bkt1",
-            BASE_ID, scenarioId, instructionsString.toLowerCase(), mappingId);
+            Locale.US,
+            "%s_s%03d-%s-m%03d_bkt1_%s",
+            BASE_ID,
+            scenarioId,
+            instructionsString.toLowerCase(),
+            mappingId,
+            transportTag);
     this.bucketName2 =
         String.format(
-            "%s_s%03d-%s-m%03d_bkt2",
-            BASE_ID, scenarioId, instructionsString.toLowerCase(), mappingId);
+            Locale.US,
+            "%s_s%03d-%s-m%03d_bkt2_%s",
+            BASE_ID,
+            scenarioId,
+            instructionsString.toLowerCase(),
+            mappingId,
+            transportTag);
     this.userProject =
         String.format(
-            "%s_s%03d-%s-m%03d_prj1",
-            BASE_ID, scenarioId, instructionsString.toLowerCase(), mappingId);
+            Locale.US,
+            "%s_s%03d-%s-m%03d_prj1_%s",
+            BASE_ID,
+            scenarioId,
+            instructionsString.toLowerCase(),
+            mappingId,
+            transportTag);
     this.objectName =
         String.format(
-            "%s_s%03d-%s-m%03d_obj1",
-            BASE_ID, scenarioId, instructionsString.toLowerCase(), mappingId);
-    lazyHelloWorldUtf8Bytes =
-        Suppliers.memoize(
-            () -> {
-              // define a lazy supplier for bytes.
-              // Not all tests need data for an object, though some tests - resumable upload - needs
-              // more than 8MiB.
-              // We want to avoid allocating 8.1MiB for each test unnecessarily, especially since we
-              // instantiate all permuted test cases. ~1000 * 8.1MiB ~~ > 8GiB.
-              String helloWorld = "Hello, World!";
-              int baseDataSize;
-              switch (method.getName()) {
-                case "storage.objects.insert":
-                  baseDataSize = _8MiB + 1;
-                  break;
-                case "storage.objects.get":
-                  baseDataSize = _512KiB;
-                  break;
-                default:
-                  baseDataSize = helloWorld.length();
-                  break;
-              }
-              int endInclusive = (baseDataSize / helloWorld.length());
-              return IntStream.rangeClosed(1, endInclusive)
-                  .mapToObj(i -> helloWorld)
-                  .collect(Collectors.joining())
-                  .getBytes(StandardCharsets.UTF_8);
-            });
+            Locale.US,
+            "%s_s%03d-%s-m%03d_obj1_%s",
+            BASE_ID,
+            scenarioId,
+            instructionsString.toLowerCase(),
+            mappingId,
+            transportTag);
+    this.topicName =
+        String.format(
+            Locale.US,
+            "%s_s%03d-%s-m%03d_top1_%s",
+            BASE_ID,
+            scenarioId,
+            instructionsString.toLowerCase(),
+            mappingId,
+            transportTag);
+    // define a lazy supplier for bytes.
+    this.lazyHelloWorldUtf8Bytes =
+        () -> genBytes(this.method, this.instruction.getInstructionsList());
+    this.helloWorldFilePath =
+        resolvePathForResource(objectName, method, this.instruction.getInstructionsList());
+    this.serviceAccountCredentials = resolveServiceAccountCredentials();
   }
 
   public String getProjectId() {
@@ -190,7 +217,7 @@ final class TestRetryConformance {
   }
 
   public Path getHelloWorldFilePath() {
-    return helloWorldFilePath;
+    return helloWorldFilePath.get();
   }
 
   public int getScenarioId() {
@@ -224,8 +251,17 @@ final class TestRetryConformance {
   public String getTestName() {
     String instructionsDesc = Joiner.on("_").join(instruction.getInstructionsList());
     return String.format(
-        "TestRetryConformance/%d-[%s]-%s-%d",
-        scenarioId, instructionsDesc, method.getName(), mappingId);
+        Locale.US,
+        "TestRetryConformance/%s-%d-[%s]-%s-%d",
+        transport.name().toLowerCase(),
+        scenarioId,
+        instructionsDesc,
+        method.getName(),
+        mappingId);
+  }
+
+  public Transport getTransport() {
+    return transport;
   }
 
   @Override
@@ -233,15 +269,29 @@ final class TestRetryConformance {
     return getTestName();
   }
 
-  private static Path resolvePathForResource() {
-    ClassLoader cl = Thread.currentThread().getContextClassLoader();
-    URL url = cl.getResource("com/google/cloud/storage/conformance/retry/hello-world.txt");
-    assertNotNull(url);
-    try {
-      return Paths.get(url.toURI());
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
+  public static Predicate<TestRetryConformance> transportIs(Transport transport) {
+    return trc -> trc.getTransport() == transport;
+  }
+
+  private static Supplier<Path> resolvePathForResource(
+      String objectName, Method method, List<String> instructionList) {
+    return () -> {
+      try {
+        File tempFile = File.createTempFile(objectName, "");
+        tempFile.deleteOnExit();
+
+        byte[] bytes = genBytes(method, instructionList);
+        try (ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+            FileOutputStream out = new FileOutputStream(tempFile)) {
+          long copy = ByteStreams.copy(in, out);
+          assertThat(copy).isEqualTo(bytes.length);
+        }
+
+        return tempFile.toPath();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    };
   }
 
   private static ServiceAccountCredentials resolveServiceAccountCredentials() {
@@ -254,6 +304,30 @@ final class TestRetryConformance {
       return ServiceAccountCredentials.fromStream(inputStream);
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public String getTopicName() {
+    return topicName;
+  }
+
+  private static byte[] genBytes(Method method, List<String> instructionsList) {
+    // Not all tests need data for an object, though some tests - resumable upload - needs
+    // more than 8MiB.
+    // We want to avoid allocating 8.1MiB for each test unnecessarily, especially since we
+    // instantiate all permuted test cases. ~1000 * 8.1MiB ~~ > 8GiB.
+    switch (method.getName()) {
+      case "storage.objects.insert":
+        boolean after8m = instructionsList.stream().anyMatch(s -> s.endsWith("after-8192K"));
+        if (after8m) {
+          return DataGenerator.base64Characters().genBytes(_8MiB * 2 + _512KiB);
+        } else {
+          return DataGenerator.base64Characters().genBytes(_512KiB);
+        }
+      case "storage.objects.get":
+        return DataGenerator.base64Characters().genBytes(_512KiB);
+      default:
+        return "Hello, World!".getBytes(StandardCharsets.UTF_8);
     }
   }
 }

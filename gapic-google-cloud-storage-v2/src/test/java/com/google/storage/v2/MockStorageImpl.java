@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -159,7 +159,8 @@ public class MockStorageImpl extends StorageImplBase {
       responseObserver.onError(
           new IllegalArgumentException(
               String.format(
-                  "Unrecognized response type %s for method LockBucketRetentionPolicy, expected %s or %s",
+                  "Unrecognized response type %s for method LockBucketRetentionPolicy, expected %s"
+                      + " or %s",
                   response == null ? "null" : response.getClass().getName(),
                   Bucket.class.getName(),
                   Exception.class.getName())));
@@ -249,91 +250,6 @@ public class MockStorageImpl extends StorageImplBase {
   }
 
   @Override
-  public void deleteNotification(
-      DeleteNotificationRequest request, StreamObserver<Empty> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof Empty) {
-      requests.add(request);
-      responseObserver.onNext(((Empty) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method DeleteNotification, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  Empty.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
-  public void getNotification(
-      GetNotificationRequest request, StreamObserver<Notification> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof Notification) {
-      requests.add(request);
-      responseObserver.onNext(((Notification) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method GetNotification, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  Notification.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
-  public void createNotification(
-      CreateNotificationRequest request, StreamObserver<Notification> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof Notification) {
-      requests.add(request);
-      responseObserver.onNext(((Notification) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method CreateNotification, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  Notification.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
-  public void listNotifications(
-      ListNotificationsRequest request,
-      StreamObserver<ListNotificationsResponse> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof ListNotificationsResponse) {
-      requests.add(request);
-      responseObserver.onNext(((ListNotificationsResponse) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method ListNotifications, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  ListNotificationsResponse.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
   public void composeObject(ComposeObjectRequest request, StreamObserver<Object> responseObserver) {
     java.lang.Object response = responses.poll();
     if (response instanceof Object) {
@@ -374,6 +290,26 @@ public class MockStorageImpl extends StorageImplBase {
   }
 
   @Override
+  public void restoreObject(RestoreObjectRequest request, StreamObserver<Object> responseObserver) {
+    java.lang.Object response = responses.poll();
+    if (response instanceof Object) {
+      requests.add(request);
+      responseObserver.onNext(((Object) response));
+      responseObserver.onCompleted();
+    } else if (response instanceof Exception) {
+      responseObserver.onError(((Exception) response));
+    } else {
+      responseObserver.onError(
+          new IllegalArgumentException(
+              String.format(
+                  "Unrecognized response type %s for method RestoreObject, expected %s or %s",
+                  response == null ? "null" : response.getClass().getName(),
+                  Object.class.getName(),
+                  Exception.class.getName())));
+    }
+  }
+
+  @Override
   public void cancelResumableWrite(
       CancelResumableWriteRequest request,
       StreamObserver<CancelResumableWriteResponse> responseObserver) {
@@ -388,7 +324,8 @@ public class MockStorageImpl extends StorageImplBase {
       responseObserver.onError(
           new IllegalArgumentException(
               String.format(
-                  "Unrecognized response type %s for method CancelResumableWrite, expected %s or %s",
+                  "Unrecognized response type %s for method CancelResumableWrite, expected %s or"
+                      + " %s",
                   response == null ? "null" : response.getClass().getName(),
                   CancelResumableWriteResponse.class.getName(),
                   Exception.class.getName())));
@@ -437,6 +374,44 @@ public class MockStorageImpl extends StorageImplBase {
   }
 
   @Override
+  public StreamObserver<BidiReadObjectRequest> bidiReadObject(
+      final StreamObserver<BidiReadObjectResponse> responseObserver) {
+    StreamObserver<BidiReadObjectRequest> requestObserver =
+        new StreamObserver<BidiReadObjectRequest>() {
+          @Override
+          public void onNext(BidiReadObjectRequest value) {
+            requests.add(value);
+            final java.lang.Object response = responses.remove();
+            if (response instanceof BidiReadObjectResponse) {
+              responseObserver.onNext(((BidiReadObjectResponse) response));
+            } else if (response instanceof Exception) {
+              responseObserver.onError(((Exception) response));
+            } else {
+              responseObserver.onError(
+                  new IllegalArgumentException(
+                      String.format(
+                          "Unrecognized response type %s for method BidiReadObject, expected %s or"
+                              + " %s",
+                          response == null ? "null" : response.getClass().getName(),
+                          BidiReadObjectResponse.class.getName(),
+                          Exception.class.getName())));
+            }
+          }
+
+          @Override
+          public void onError(Throwable t) {
+            responseObserver.onError(t);
+          }
+
+          @Override
+          public void onCompleted() {
+            responseObserver.onCompleted();
+          }
+        };
+    return requestObserver;
+  }
+
+  @Override
   public void updateObject(UpdateObjectRequest request, StreamObserver<Object> responseObserver) {
     java.lang.Object response = responses.poll();
     if (response instanceof Object) {
@@ -476,6 +451,44 @@ public class MockStorageImpl extends StorageImplBase {
                           "Unrecognized response type %s for method WriteObject, expected %s or %s",
                           response == null ? "null" : response.getClass().getName(),
                           WriteObjectResponse.class.getName(),
+                          Exception.class.getName())));
+            }
+          }
+
+          @Override
+          public void onError(Throwable t) {
+            responseObserver.onError(t);
+          }
+
+          @Override
+          public void onCompleted() {
+            responseObserver.onCompleted();
+          }
+        };
+    return requestObserver;
+  }
+
+  @Override
+  public StreamObserver<BidiWriteObjectRequest> bidiWriteObject(
+      final StreamObserver<BidiWriteObjectResponse> responseObserver) {
+    StreamObserver<BidiWriteObjectRequest> requestObserver =
+        new StreamObserver<BidiWriteObjectRequest>() {
+          @Override
+          public void onNext(BidiWriteObjectRequest value) {
+            requests.add(value);
+            final java.lang.Object response = responses.remove();
+            if (response instanceof BidiWriteObjectResponse) {
+              responseObserver.onNext(((BidiWriteObjectResponse) response));
+            } else if (response instanceof Exception) {
+              responseObserver.onError(((Exception) response));
+            } else {
+              responseObserver.onError(
+                  new IllegalArgumentException(
+                      String.format(
+                          "Unrecognized response type %s for method BidiWriteObject, expected %s or"
+                              + " %s",
+                          response == null ? "null" : response.getClass().getName(),
+                          BidiWriteObjectResponse.class.getName(),
                           Exception.class.getName())));
             }
           }
@@ -579,12 +592,11 @@ public class MockStorageImpl extends StorageImplBase {
   }
 
   @Override
-  public void getServiceAccount(
-      GetServiceAccountRequest request, StreamObserver<ServiceAccount> responseObserver) {
+  public void moveObject(MoveObjectRequest request, StreamObserver<Object> responseObserver) {
     java.lang.Object response = responses.poll();
-    if (response instanceof ServiceAccount) {
+    if (response instanceof Object) {
       requests.add(request);
-      responseObserver.onNext(((ServiceAccount) response));
+      responseObserver.onNext(((Object) response));
       responseObserver.onCompleted();
     } else if (response instanceof Exception) {
       responseObserver.onError(((Exception) response));
@@ -592,113 +604,9 @@ public class MockStorageImpl extends StorageImplBase {
       responseObserver.onError(
           new IllegalArgumentException(
               String.format(
-                  "Unrecognized response type %s for method GetServiceAccount, expected %s or %s",
+                  "Unrecognized response type %s for method MoveObject, expected %s or %s",
                   response == null ? "null" : response.getClass().getName(),
-                  ServiceAccount.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
-  public void createHmacKey(
-      CreateHmacKeyRequest request, StreamObserver<CreateHmacKeyResponse> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof CreateHmacKeyResponse) {
-      requests.add(request);
-      responseObserver.onNext(((CreateHmacKeyResponse) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method CreateHmacKey, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  CreateHmacKeyResponse.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
-  public void deleteHmacKey(DeleteHmacKeyRequest request, StreamObserver<Empty> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof Empty) {
-      requests.add(request);
-      responseObserver.onNext(((Empty) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method DeleteHmacKey, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  Empty.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
-  public void getHmacKey(
-      GetHmacKeyRequest request, StreamObserver<HmacKeyMetadata> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof HmacKeyMetadata) {
-      requests.add(request);
-      responseObserver.onNext(((HmacKeyMetadata) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method GetHmacKey, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  HmacKeyMetadata.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
-  public void listHmacKeys(
-      ListHmacKeysRequest request, StreamObserver<ListHmacKeysResponse> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof ListHmacKeysResponse) {
-      requests.add(request);
-      responseObserver.onNext(((ListHmacKeysResponse) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method ListHmacKeys, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  ListHmacKeysResponse.class.getName(),
-                  Exception.class.getName())));
-    }
-  }
-
-  @Override
-  public void updateHmacKey(
-      UpdateHmacKeyRequest request, StreamObserver<HmacKeyMetadata> responseObserver) {
-    java.lang.Object response = responses.poll();
-    if (response instanceof HmacKeyMetadata) {
-      requests.add(request);
-      responseObserver.onNext(((HmacKeyMetadata) response));
-      responseObserver.onCompleted();
-    } else if (response instanceof Exception) {
-      responseObserver.onError(((Exception) response));
-    } else {
-      responseObserver.onError(
-          new IllegalArgumentException(
-              String.format(
-                  "Unrecognized response type %s for method UpdateHmacKey, expected %s or %s",
-                  response == null ? "null" : response.getClass().getName(),
-                  HmacKeyMetadata.class.getName(),
+                  Object.class.getName(),
                   Exception.class.getName())));
     }
   }

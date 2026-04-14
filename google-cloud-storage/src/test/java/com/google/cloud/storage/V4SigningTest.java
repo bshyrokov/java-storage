@@ -16,11 +16,12 @@
 
 package com.google.cloud.storage;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertNotNull;
 
 import com.google.api.core.ApiClock;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.Tuple;
 import com.google.cloud.conformance.storage.v1.SigningV4Test;
 import com.google.cloud.conformance.storage.v1.TestFile;
 import com.google.cloud.conformance.storage.v1.UrlStyle;
@@ -32,11 +33,17 @@ import com.google.protobuf.util.JsonFormat;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -93,9 +100,7 @@ public class V4SigningTest {
   @Test
   public void test() {
     Storage storage =
-        RemoteStorageHelper.create()
-            .getOptions()
-            .toBuilder()
+        RemoteStorageHelper.create().getOptions().toBuilder()
             .setCredentials(serviceAccountCredentials)
             .setClock(new FakeClock(testData.getTimestamp()))
             .build()
@@ -128,7 +133,9 @@ public class V4SigningTest {
                 SignUrlOption.withQueryParams(testData.getQueryParametersMap()),
                 style)
             .toString();
-    assertEquals(testData.getExpectedUrl(), signedUrl);
+    SmarterUrl expected = SmarterUrl.of(URI.create(testData.getExpectedUrl()));
+    SmarterUrl actual = SmarterUrl.of(URI.create(signedUrl));
+    assertThat(actual).isEqualTo(expected);
   }
 
   /**
@@ -144,12 +151,14 @@ public class V4SigningTest {
 
     InputStream credentialsStream = cl.getResourceAsStream(SERVICE_ACCOUNT_JSON_RESOURCE);
     assertNotNull(
-        String.format("Unable to load service account json: %s", SERVICE_ACCOUNT_JSON_RESOURCE),
+        String.format(
+            Locale.US, "Unable to load service account json: %s", SERVICE_ACCOUNT_JSON_RESOURCE),
         credentialsStream);
 
     InputStream dataJson = cl.getResourceAsStream(TEST_DATA_JSON_RESOURCE);
     assertNotNull(
-        String.format("Unable to load test definition: %s", TEST_DATA_JSON_RESOURCE), dataJson);
+        String.format(Locale.US, "Unable to load test definition: %s", TEST_DATA_JSON_RESOURCE),
+        dataJson);
 
     ServiceAccountCredentials serviceAccountCredentials =
         ServiceAccountCredentials.fromStream(credentialsStream);
@@ -165,5 +174,57 @@ public class V4SigningTest {
       data.add(new Object[] {test, serviceAccountCredentials, test.getDescription()});
     }
     return data;
+  }
+
+  /**
+   * Equals on {@link URI} or {@link java.net.URL} perform string comparison on the full query
+   * string. However, query strings are not order dependent. This class essentially provides a
+   * smarter equals and hashcode for a url taking into account a query string is not order
+   * dependent.
+   */
+  private static final class SmarterUrl {
+    private final String path;
+    private final Map<String, String> queryStringParameters;
+
+    private SmarterUrl(String path, Map<String, String> queryStringParameters) {
+      this.path = path;
+      this.queryStringParameters = queryStringParameters;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof SmarterUrl)) {
+        return false;
+      }
+      SmarterUrl that = (SmarterUrl) o;
+      return Objects.equals(path, that.path)
+          && Objects.equals(queryStringParameters, that.queryStringParameters);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(path, queryStringParameters);
+    }
+
+    private static SmarterUrl of(URI uri) {
+      String path = uri.getRawPath();
+      String rawQuery = uri.getRawQuery();
+      String[] split = rawQuery.split("&");
+      Map<String, String> queryStringParameters =
+          Arrays.stream(split)
+              .map(
+                  qp -> {
+                    // use indexOf instead of split, just in case an equals is part of the value
+                    int i = qp.indexOf('=');
+                    String k = qp.substring(0, i);
+                    String v = qp.substring(i + 1);
+                    return Tuple.of(k, v);
+                  })
+              .collect(Collectors.toMap(Tuple::x, Tuple::y));
+      return new SmarterUrl(path, queryStringParameters);
+    }
   }
 }

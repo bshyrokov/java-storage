@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 package com.google.storage.v2;
 
 import static com.google.storage.v2.StorageClient.ListBucketsPagedResponse;
-import static com.google.storage.v2.StorageClient.ListHmacKeysPagedResponse;
-import static com.google.storage.v2.StorageClient.ListNotificationsPagedResponse;
 import static com.google.storage.v2.StorageClient.ListObjectsPagedResponse;
 
 import com.google.api.gax.core.NoCredentialsProvider;
@@ -29,6 +27,7 @@ import com.google.api.gax.grpc.testing.MockServiceHelper;
 import com.google.api.gax.grpc.testing.MockStreamObserver;
 import com.google.api.gax.rpc.ApiClientHeaderProvider;
 import com.google.api.gax.rpc.ApiStreamObserver;
+import com.google.api.gax.rpc.BidiStreamingCallable;
 import com.google.api.gax.rpc.ClientStreamingCallable;
 import com.google.api.gax.rpc.InvalidArgumentException;
 import com.google.api.gax.rpc.ServerStreamingCallable;
@@ -201,6 +200,10 @@ public class StorageClientTest {
             .setSatisfiesPzs(true)
             .setCustomPlacementConfig(Bucket.CustomPlacementConfig.newBuilder().build())
             .setAutoclass(Bucket.Autoclass.newBuilder().build())
+            .setHierarchicalNamespace(Bucket.HierarchicalNamespace.newBuilder().build())
+            .setSoftDeletePolicy(Bucket.SoftDeletePolicy.newBuilder().build())
+            .setObjectRetention(Bucket.ObjectRetention.newBuilder().build())
+            .setIpFilter(Bucket.IpFilter.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -266,6 +269,10 @@ public class StorageClientTest {
             .setSatisfiesPzs(true)
             .setCustomPlacementConfig(Bucket.CustomPlacementConfig.newBuilder().build())
             .setAutoclass(Bucket.Autoclass.newBuilder().build())
+            .setHierarchicalNamespace(Bucket.HierarchicalNamespace.newBuilder().build())
+            .setSoftDeletePolicy(Bucket.SoftDeletePolicy.newBuilder().build())
+            .setObjectRetention(Bucket.ObjectRetention.newBuilder().build())
+            .setIpFilter(Bucket.IpFilter.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -331,6 +338,10 @@ public class StorageClientTest {
             .setSatisfiesPzs(true)
             .setCustomPlacementConfig(Bucket.CustomPlacementConfig.newBuilder().build())
             .setAutoclass(Bucket.Autoclass.newBuilder().build())
+            .setHierarchicalNamespace(Bucket.HierarchicalNamespace.newBuilder().build())
+            .setSoftDeletePolicy(Bucket.SoftDeletePolicy.newBuilder().build())
+            .setObjectRetention(Bucket.ObjectRetention.newBuilder().build())
+            .setIpFilter(Bucket.IpFilter.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -402,6 +413,10 @@ public class StorageClientTest {
             .setSatisfiesPzs(true)
             .setCustomPlacementConfig(Bucket.CustomPlacementConfig.newBuilder().build())
             .setAutoclass(Bucket.Autoclass.newBuilder().build())
+            .setHierarchicalNamespace(Bucket.HierarchicalNamespace.newBuilder().build())
+            .setSoftDeletePolicy(Bucket.SoftDeletePolicy.newBuilder().build())
+            .setObjectRetention(Bucket.ObjectRetention.newBuilder().build())
+            .setIpFilter(Bucket.IpFilter.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -561,6 +576,10 @@ public class StorageClientTest {
             .setSatisfiesPzs(true)
             .setCustomPlacementConfig(Bucket.CustomPlacementConfig.newBuilder().build())
             .setAutoclass(Bucket.Autoclass.newBuilder().build())
+            .setHierarchicalNamespace(Bucket.HierarchicalNamespace.newBuilder().build())
+            .setSoftDeletePolicy(Bucket.SoftDeletePolicy.newBuilder().build())
+            .setObjectRetention(Bucket.ObjectRetention.newBuilder().build())
+            .setIpFilter(Bucket.IpFilter.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -627,6 +646,10 @@ public class StorageClientTest {
             .setSatisfiesPzs(true)
             .setCustomPlacementConfig(Bucket.CustomPlacementConfig.newBuilder().build())
             .setAutoclass(Bucket.Autoclass.newBuilder().build())
+            .setHierarchicalNamespace(Bucket.HierarchicalNamespace.newBuilder().build())
+            .setSoftDeletePolicy(Bucket.SoftDeletePolicy.newBuilder().build())
+            .setObjectRetention(Bucket.ObjectRetention.newBuilder().build())
+            .setIpFilter(Bucket.IpFilter.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -947,6 +970,10 @@ public class StorageClientTest {
             .setSatisfiesPzs(true)
             .setCustomPlacementConfig(Bucket.CustomPlacementConfig.newBuilder().build())
             .setAutoclass(Bucket.Autoclass.newBuilder().build())
+            .setHierarchicalNamespace(Bucket.HierarchicalNamespace.newBuilder().build())
+            .setSoftDeletePolicy(Bucket.SoftDeletePolicy.newBuilder().build())
+            .setObjectRetention(Bucket.ObjectRetention.newBuilder().build())
+            .setIpFilter(Bucket.IpFilter.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -984,344 +1011,6 @@ public class StorageClientTest {
   }
 
   @Test
-  public void deleteNotificationTest() throws Exception {
-    Empty expectedResponse = Empty.newBuilder().build();
-    mockStorage.addResponse(expectedResponse);
-
-    NotificationName name = NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]");
-
-    client.deleteNotification(name);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    DeleteNotificationRequest actualRequest = ((DeleteNotificationRequest) actualRequests.get(0));
-
-    Assert.assertEquals(name.toString(), actualRequest.getName());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void deleteNotificationExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      NotificationName name = NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]");
-      client.deleteNotification(name);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void deleteNotificationTest2() throws Exception {
-    Empty expectedResponse = Empty.newBuilder().build();
-    mockStorage.addResponse(expectedResponse);
-
-    String name = "name3373707";
-
-    client.deleteNotification(name);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    DeleteNotificationRequest actualRequest = ((DeleteNotificationRequest) actualRequests.get(0));
-
-    Assert.assertEquals(name, actualRequest.getName());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void deleteNotificationExceptionTest2() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String name = "name3373707";
-      client.deleteNotification(name);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void getNotificationTest() throws Exception {
-    Notification expectedResponse =
-        Notification.newBuilder()
-            .setName(NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]").toString())
-            .setTopic("topic110546223")
-            .setEtag("etag3123477")
-            .addAllEventTypes(new ArrayList<String>())
-            .putAllCustomAttributes(new HashMap<String, String>())
-            .setObjectNamePrefix("objectNamePrefix-1978236516")
-            .setPayloadFormat("payloadFormat-2140609755")
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    BucketName name = BucketName.of("[PROJECT]", "[BUCKET]");
-
-    Notification actualResponse = client.getNotification(name);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    GetNotificationRequest actualRequest = ((GetNotificationRequest) actualRequests.get(0));
-
-    Assert.assertEquals(name.toString(), actualRequest.getName());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void getNotificationExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      BucketName name = BucketName.of("[PROJECT]", "[BUCKET]");
-      client.getNotification(name);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void getNotificationTest2() throws Exception {
-    Notification expectedResponse =
-        Notification.newBuilder()
-            .setName(NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]").toString())
-            .setTopic("topic110546223")
-            .setEtag("etag3123477")
-            .addAllEventTypes(new ArrayList<String>())
-            .putAllCustomAttributes(new HashMap<String, String>())
-            .setObjectNamePrefix("objectNamePrefix-1978236516")
-            .setPayloadFormat("payloadFormat-2140609755")
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    String name = "name3373707";
-
-    Notification actualResponse = client.getNotification(name);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    GetNotificationRequest actualRequest = ((GetNotificationRequest) actualRequests.get(0));
-
-    Assert.assertEquals(name, actualRequest.getName());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void getNotificationExceptionTest2() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String name = "name3373707";
-      client.getNotification(name);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void createNotificationTest() throws Exception {
-    Notification expectedResponse =
-        Notification.newBuilder()
-            .setName(NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]").toString())
-            .setTopic("topic110546223")
-            .setEtag("etag3123477")
-            .addAllEventTypes(new ArrayList<String>())
-            .putAllCustomAttributes(new HashMap<String, String>())
-            .setObjectNamePrefix("objectNamePrefix-1978236516")
-            .setPayloadFormat("payloadFormat-2140609755")
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    ProjectName parent = ProjectName.of("[PROJECT]");
-    Notification notification = Notification.newBuilder().build();
-
-    Notification actualResponse = client.createNotification(parent, notification);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    CreateNotificationRequest actualRequest = ((CreateNotificationRequest) actualRequests.get(0));
-
-    Assert.assertEquals(parent.toString(), actualRequest.getParent());
-    Assert.assertEquals(notification, actualRequest.getNotification());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void createNotificationExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      ProjectName parent = ProjectName.of("[PROJECT]");
-      Notification notification = Notification.newBuilder().build();
-      client.createNotification(parent, notification);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void createNotificationTest2() throws Exception {
-    Notification expectedResponse =
-        Notification.newBuilder()
-            .setName(NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]").toString())
-            .setTopic("topic110546223")
-            .setEtag("etag3123477")
-            .addAllEventTypes(new ArrayList<String>())
-            .putAllCustomAttributes(new HashMap<String, String>())
-            .setObjectNamePrefix("objectNamePrefix-1978236516")
-            .setPayloadFormat("payloadFormat-2140609755")
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    String parent = "parent-995424086";
-    Notification notification = Notification.newBuilder().build();
-
-    Notification actualResponse = client.createNotification(parent, notification);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    CreateNotificationRequest actualRequest = ((CreateNotificationRequest) actualRequests.get(0));
-
-    Assert.assertEquals(parent, actualRequest.getParent());
-    Assert.assertEquals(notification, actualRequest.getNotification());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void createNotificationExceptionTest2() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String parent = "parent-995424086";
-      Notification notification = Notification.newBuilder().build();
-      client.createNotification(parent, notification);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void listNotificationsTest() throws Exception {
-    Notification responsesElement = Notification.newBuilder().build();
-    ListNotificationsResponse expectedResponse =
-        ListNotificationsResponse.newBuilder()
-            .setNextPageToken("")
-            .addAllNotifications(Arrays.asList(responsesElement))
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    ProjectName parent = ProjectName.of("[PROJECT]");
-
-    ListNotificationsPagedResponse pagedListResponse = client.listNotifications(parent);
-
-    List<Notification> resources = Lists.newArrayList(pagedListResponse.iterateAll());
-
-    Assert.assertEquals(1, resources.size());
-    Assert.assertEquals(expectedResponse.getNotificationsList().get(0), resources.get(0));
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    ListNotificationsRequest actualRequest = ((ListNotificationsRequest) actualRequests.get(0));
-
-    Assert.assertEquals(parent.toString(), actualRequest.getParent());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void listNotificationsExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      ProjectName parent = ProjectName.of("[PROJECT]");
-      client.listNotifications(parent);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void listNotificationsTest2() throws Exception {
-    Notification responsesElement = Notification.newBuilder().build();
-    ListNotificationsResponse expectedResponse =
-        ListNotificationsResponse.newBuilder()
-            .setNextPageToken("")
-            .addAllNotifications(Arrays.asList(responsesElement))
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    String parent = "parent-995424086";
-
-    ListNotificationsPagedResponse pagedListResponse = client.listNotifications(parent);
-
-    List<Notification> resources = Lists.newArrayList(pagedListResponse.iterateAll());
-
-    Assert.assertEquals(1, resources.size());
-    Assert.assertEquals(expectedResponse.getNotificationsList().get(0), resources.get(0));
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    ListNotificationsRequest actualRequest = ((ListNotificationsRequest) actualRequests.get(0));
-
-    Assert.assertEquals(parent, actualRequest.getParent());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void listNotificationsExceptionTest2() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String parent = "parent-995424086";
-      client.listNotifications(parent);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
   public void composeObjectTest() throws Exception {
     Object expectedResponse =
         Object.newBuilder()
@@ -1329,6 +1018,7 @@ public class StorageClientTest {
             .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
             .setEtag("etag3123477")
             .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
             .setMetageneration(1048558813)
             .setStorageClass("storageClass871353277")
             .setSize(3530753)
@@ -1338,6 +1028,7 @@ public class StorageClientTest {
             .addAllAcl(new ArrayList<ObjectAccessControl>())
             .setContentLanguage("contentLanguage810066673")
             .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
             .setContentType("contentType-389131437")
             .setCreateTime(Timestamp.newBuilder().build())
             .setComponentCount(-485073075)
@@ -1350,10 +1041,14 @@ public class StorageClientTest {
             .setTemporaryHold(true)
             .setRetentionExpireTime(Timestamp.newBuilder().build())
             .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
             .setEventBasedHold(true)
             .setOwner(Owner.newBuilder().build())
             .setCustomerEncryption(CustomerEncryption.newBuilder().build())
             .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -1368,6 +1063,8 @@ public class StorageClientTest {
                 CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
                     .toString())
             .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+            .setObjectChecksums(ObjectChecksums.newBuilder().build())
+            .setDeleteSourceObjects(true)
             .build();
 
     Object actualResponse = client.composeObject(request);
@@ -1387,6 +1084,8 @@ public class StorageClientTest {
     Assert.assertEquals(request.getKmsKey(), actualRequest.getKmsKey());
     Assert.assertEquals(
         request.getCommonObjectRequestParams(), actualRequest.getCommonObjectRequestParams());
+    Assert.assertEquals(request.getObjectChecksums(), actualRequest.getObjectChecksums());
+    Assert.assertEquals(request.getDeleteSourceObjects(), actualRequest.getDeleteSourceObjects());
     Assert.assertTrue(
         channelProvider.isHeaderSent(
             ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
@@ -1410,6 +1109,8 @@ public class StorageClientTest {
                   CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
                       .toString())
               .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+              .setObjectChecksums(ObjectChecksums.newBuilder().build())
+              .setDeleteSourceObjects(true)
               .build();
       client.composeObject(request);
       Assert.fail("No exception raised");
@@ -1420,6 +1121,43 @@ public class StorageClientTest {
 
   @Test
   public void deleteObjectTest() throws Exception {
+    Empty expectedResponse = Empty.newBuilder().build();
+    mockStorage.addResponse(expectedResponse);
+
+    BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+    String object = "object-1023368385";
+
+    client.deleteObject(bucket, object);
+
+    List<AbstractMessage> actualRequests = mockStorage.getRequests();
+    Assert.assertEquals(1, actualRequests.size());
+    DeleteObjectRequest actualRequest = ((DeleteObjectRequest) actualRequests.get(0));
+
+    Assert.assertEquals(bucket.toString(), actualRequest.getBucket());
+    Assert.assertEquals(object, actualRequest.getObject());
+    Assert.assertTrue(
+        channelProvider.isHeaderSent(
+            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
+            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
+  }
+
+  @Test
+  public void deleteObjectExceptionTest() throws Exception {
+    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
+    mockStorage.addException(exception);
+
+    try {
+      BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+      String object = "object-1023368385";
+      client.deleteObject(bucket, object);
+      Assert.fail("No exception raised");
+    } catch (InvalidArgumentException e) {
+      // Expected exception.
+    }
+  }
+
+  @Test
+  public void deleteObjectTest2() throws Exception {
     Empty expectedResponse = Empty.newBuilder().build();
     mockStorage.addResponse(expectedResponse);
 
@@ -1441,7 +1179,7 @@ public class StorageClientTest {
   }
 
   @Test
-  public void deleteObjectExceptionTest() throws Exception {
+  public void deleteObjectExceptionTest2() throws Exception {
     StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
     mockStorage.addException(exception);
 
@@ -1456,7 +1194,47 @@ public class StorageClientTest {
   }
 
   @Test
-  public void deleteObjectTest2() throws Exception {
+  public void deleteObjectTest3() throws Exception {
+    Empty expectedResponse = Empty.newBuilder().build();
+    mockStorage.addResponse(expectedResponse);
+
+    BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+    String object = "object-1023368385";
+    long generation = 305703192;
+
+    client.deleteObject(bucket, object, generation);
+
+    List<AbstractMessage> actualRequests = mockStorage.getRequests();
+    Assert.assertEquals(1, actualRequests.size());
+    DeleteObjectRequest actualRequest = ((DeleteObjectRequest) actualRequests.get(0));
+
+    Assert.assertEquals(bucket.toString(), actualRequest.getBucket());
+    Assert.assertEquals(object, actualRequest.getObject());
+    Assert.assertEquals(generation, actualRequest.getGeneration());
+    Assert.assertTrue(
+        channelProvider.isHeaderSent(
+            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
+            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
+  }
+
+  @Test
+  public void deleteObjectExceptionTest3() throws Exception {
+    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
+    mockStorage.addException(exception);
+
+    try {
+      BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+      String object = "object-1023368385";
+      long generation = 305703192;
+      client.deleteObject(bucket, object, generation);
+      Assert.fail("No exception raised");
+    } catch (InvalidArgumentException e) {
+      // Expected exception.
+    }
+  }
+
+  @Test
+  public void deleteObjectTest4() throws Exception {
     Empty expectedResponse = Empty.newBuilder().build();
     mockStorage.addResponse(expectedResponse);
 
@@ -1480,7 +1258,7 @@ public class StorageClientTest {
   }
 
   @Test
-  public void deleteObjectExceptionTest2() throws Exception {
+  public void deleteObjectExceptionTest4() throws Exception {
     StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
     mockStorage.addException(exception);
 
@@ -1489,6 +1267,162 @@ public class StorageClientTest {
       String object = "object-1023368385";
       long generation = 305703192;
       client.deleteObject(bucket, object, generation);
+      Assert.fail("No exception raised");
+    } catch (InvalidArgumentException e) {
+      // Expected exception.
+    }
+  }
+
+  @Test
+  public void restoreObjectTest() throws Exception {
+    Object expectedResponse =
+        Object.newBuilder()
+            .setName("name3373707")
+            .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+            .setEtag("etag3123477")
+            .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
+            .setMetageneration(1048558813)
+            .setStorageClass("storageClass871353277")
+            .setSize(3530753)
+            .setContentEncoding("contentEncoding-160088852")
+            .setContentDisposition("contentDisposition1034341758")
+            .setCacheControl("cacheControl-1336592517")
+            .addAllAcl(new ArrayList<ObjectAccessControl>())
+            .setContentLanguage("contentLanguage810066673")
+            .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
+            .setContentType("contentType-389131437")
+            .setCreateTime(Timestamp.newBuilder().build())
+            .setComponentCount(-485073075)
+            .setChecksums(ObjectChecksums.newBuilder().build())
+            .setUpdateTime(Timestamp.newBuilder().build())
+            .setKmsKey(
+                CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
+                    .toString())
+            .setUpdateStorageClassTime(Timestamp.newBuilder().build())
+            .setTemporaryHold(true)
+            .setRetentionExpireTime(Timestamp.newBuilder().build())
+            .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
+            .setEventBasedHold(true)
+            .setOwner(Owner.newBuilder().build())
+            .setCustomerEncryption(CustomerEncryption.newBuilder().build())
+            .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
+            .build();
+    mockStorage.addResponse(expectedResponse);
+
+    BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+    String object = "object-1023368385";
+    long generation = 305703192;
+
+    Object actualResponse = client.restoreObject(bucket, object, generation);
+    Assert.assertEquals(expectedResponse, actualResponse);
+
+    List<AbstractMessage> actualRequests = mockStorage.getRequests();
+    Assert.assertEquals(1, actualRequests.size());
+    RestoreObjectRequest actualRequest = ((RestoreObjectRequest) actualRequests.get(0));
+
+    Assert.assertEquals(bucket.toString(), actualRequest.getBucket());
+    Assert.assertEquals(object, actualRequest.getObject());
+    Assert.assertEquals(generation, actualRequest.getGeneration());
+    Assert.assertTrue(
+        channelProvider.isHeaderSent(
+            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
+            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
+  }
+
+  @Test
+  public void restoreObjectExceptionTest() throws Exception {
+    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
+    mockStorage.addException(exception);
+
+    try {
+      BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+      String object = "object-1023368385";
+      long generation = 305703192;
+      client.restoreObject(bucket, object, generation);
+      Assert.fail("No exception raised");
+    } catch (InvalidArgumentException e) {
+      // Expected exception.
+    }
+  }
+
+  @Test
+  public void restoreObjectTest2() throws Exception {
+    Object expectedResponse =
+        Object.newBuilder()
+            .setName("name3373707")
+            .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+            .setEtag("etag3123477")
+            .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
+            .setMetageneration(1048558813)
+            .setStorageClass("storageClass871353277")
+            .setSize(3530753)
+            .setContentEncoding("contentEncoding-160088852")
+            .setContentDisposition("contentDisposition1034341758")
+            .setCacheControl("cacheControl-1336592517")
+            .addAllAcl(new ArrayList<ObjectAccessControl>())
+            .setContentLanguage("contentLanguage810066673")
+            .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
+            .setContentType("contentType-389131437")
+            .setCreateTime(Timestamp.newBuilder().build())
+            .setComponentCount(-485073075)
+            .setChecksums(ObjectChecksums.newBuilder().build())
+            .setUpdateTime(Timestamp.newBuilder().build())
+            .setKmsKey(
+                CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
+                    .toString())
+            .setUpdateStorageClassTime(Timestamp.newBuilder().build())
+            .setTemporaryHold(true)
+            .setRetentionExpireTime(Timestamp.newBuilder().build())
+            .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
+            .setEventBasedHold(true)
+            .setOwner(Owner.newBuilder().build())
+            .setCustomerEncryption(CustomerEncryption.newBuilder().build())
+            .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
+            .build();
+    mockStorage.addResponse(expectedResponse);
+
+    String bucket = "bucket-1378203158";
+    String object = "object-1023368385";
+    long generation = 305703192;
+
+    Object actualResponse = client.restoreObject(bucket, object, generation);
+    Assert.assertEquals(expectedResponse, actualResponse);
+
+    List<AbstractMessage> actualRequests = mockStorage.getRequests();
+    Assert.assertEquals(1, actualRequests.size());
+    RestoreObjectRequest actualRequest = ((RestoreObjectRequest) actualRequests.get(0));
+
+    Assert.assertEquals(bucket, actualRequest.getBucket());
+    Assert.assertEquals(object, actualRequest.getObject());
+    Assert.assertEquals(generation, actualRequest.getGeneration());
+    Assert.assertTrue(
+        channelProvider.isHeaderSent(
+            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
+            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
+  }
+
+  @Test
+  public void restoreObjectExceptionTest2() throws Exception {
+    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
+    mockStorage.addException(exception);
+
+    try {
+      String bucket = "bucket-1378203158";
+      String object = "object-1023368385";
+      long generation = 305703192;
+      client.restoreObject(bucket, object, generation);
       Assert.fail("No exception raised");
     } catch (InvalidArgumentException e) {
       // Expected exception.
@@ -1540,6 +1474,7 @@ public class StorageClientTest {
             .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
             .setEtag("etag3123477")
             .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
             .setMetageneration(1048558813)
             .setStorageClass("storageClass871353277")
             .setSize(3530753)
@@ -1549,6 +1484,7 @@ public class StorageClientTest {
             .addAllAcl(new ArrayList<ObjectAccessControl>())
             .setContentLanguage("contentLanguage810066673")
             .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
             .setContentType("contentType-389131437")
             .setCreateTime(Timestamp.newBuilder().build())
             .setComponentCount(-485073075)
@@ -1561,10 +1497,89 @@ public class StorageClientTest {
             .setTemporaryHold(true)
             .setRetentionExpireTime(Timestamp.newBuilder().build())
             .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
             .setEventBasedHold(true)
             .setOwner(Owner.newBuilder().build())
             .setCustomerEncryption(CustomerEncryption.newBuilder().build())
             .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
+            .build();
+    mockStorage.addResponse(expectedResponse);
+
+    BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+    String object = "object-1023368385";
+
+    Object actualResponse = client.getObject(bucket, object);
+    Assert.assertEquals(expectedResponse, actualResponse);
+
+    List<AbstractMessage> actualRequests = mockStorage.getRequests();
+    Assert.assertEquals(1, actualRequests.size());
+    GetObjectRequest actualRequest = ((GetObjectRequest) actualRequests.get(0));
+
+    Assert.assertEquals(bucket.toString(), actualRequest.getBucket());
+    Assert.assertEquals(object, actualRequest.getObject());
+    Assert.assertTrue(
+        channelProvider.isHeaderSent(
+            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
+            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
+  }
+
+  @Test
+  public void getObjectExceptionTest() throws Exception {
+    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
+    mockStorage.addException(exception);
+
+    try {
+      BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+      String object = "object-1023368385";
+      client.getObject(bucket, object);
+      Assert.fail("No exception raised");
+    } catch (InvalidArgumentException e) {
+      // Expected exception.
+    }
+  }
+
+  @Test
+  public void getObjectTest2() throws Exception {
+    Object expectedResponse =
+        Object.newBuilder()
+            .setName("name3373707")
+            .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+            .setEtag("etag3123477")
+            .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
+            .setMetageneration(1048558813)
+            .setStorageClass("storageClass871353277")
+            .setSize(3530753)
+            .setContentEncoding("contentEncoding-160088852")
+            .setContentDisposition("contentDisposition1034341758")
+            .setCacheControl("cacheControl-1336592517")
+            .addAllAcl(new ArrayList<ObjectAccessControl>())
+            .setContentLanguage("contentLanguage810066673")
+            .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
+            .setContentType("contentType-389131437")
+            .setCreateTime(Timestamp.newBuilder().build())
+            .setComponentCount(-485073075)
+            .setChecksums(ObjectChecksums.newBuilder().build())
+            .setUpdateTime(Timestamp.newBuilder().build())
+            .setKmsKey(
+                CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
+                    .toString())
+            .setUpdateStorageClassTime(Timestamp.newBuilder().build())
+            .setTemporaryHold(true)
+            .setRetentionExpireTime(Timestamp.newBuilder().build())
+            .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
+            .setEventBasedHold(true)
+            .setOwner(Owner.newBuilder().build())
+            .setCustomerEncryption(CustomerEncryption.newBuilder().build())
+            .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -1587,7 +1602,7 @@ public class StorageClientTest {
   }
 
   @Test
-  public void getObjectExceptionTest() throws Exception {
+  public void getObjectExceptionTest2() throws Exception {
     StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
     mockStorage.addException(exception);
 
@@ -1602,13 +1617,14 @@ public class StorageClientTest {
   }
 
   @Test
-  public void getObjectTest2() throws Exception {
+  public void getObjectTest3() throws Exception {
     Object expectedResponse =
         Object.newBuilder()
             .setName("name3373707")
             .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
             .setEtag("etag3123477")
             .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
             .setMetageneration(1048558813)
             .setStorageClass("storageClass871353277")
             .setSize(3530753)
@@ -1618,6 +1634,7 @@ public class StorageClientTest {
             .addAllAcl(new ArrayList<ObjectAccessControl>())
             .setContentLanguage("contentLanguage810066673")
             .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
             .setContentType("contentType-389131437")
             .setCreateTime(Timestamp.newBuilder().build())
             .setComponentCount(-485073075)
@@ -1630,10 +1647,92 @@ public class StorageClientTest {
             .setTemporaryHold(true)
             .setRetentionExpireTime(Timestamp.newBuilder().build())
             .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
             .setEventBasedHold(true)
             .setOwner(Owner.newBuilder().build())
             .setCustomerEncryption(CustomerEncryption.newBuilder().build())
             .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
+            .build();
+    mockStorage.addResponse(expectedResponse);
+
+    BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+    String object = "object-1023368385";
+    long generation = 305703192;
+
+    Object actualResponse = client.getObject(bucket, object, generation);
+    Assert.assertEquals(expectedResponse, actualResponse);
+
+    List<AbstractMessage> actualRequests = mockStorage.getRequests();
+    Assert.assertEquals(1, actualRequests.size());
+    GetObjectRequest actualRequest = ((GetObjectRequest) actualRequests.get(0));
+
+    Assert.assertEquals(bucket.toString(), actualRequest.getBucket());
+    Assert.assertEquals(object, actualRequest.getObject());
+    Assert.assertEquals(generation, actualRequest.getGeneration());
+    Assert.assertTrue(
+        channelProvider.isHeaderSent(
+            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
+            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
+  }
+
+  @Test
+  public void getObjectExceptionTest3() throws Exception {
+    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
+    mockStorage.addException(exception);
+
+    try {
+      BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+      String object = "object-1023368385";
+      long generation = 305703192;
+      client.getObject(bucket, object, generation);
+      Assert.fail("No exception raised");
+    } catch (InvalidArgumentException e) {
+      // Expected exception.
+    }
+  }
+
+  @Test
+  public void getObjectTest4() throws Exception {
+    Object expectedResponse =
+        Object.newBuilder()
+            .setName("name3373707")
+            .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+            .setEtag("etag3123477")
+            .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
+            .setMetageneration(1048558813)
+            .setStorageClass("storageClass871353277")
+            .setSize(3530753)
+            .setContentEncoding("contentEncoding-160088852")
+            .setContentDisposition("contentDisposition1034341758")
+            .setCacheControl("cacheControl-1336592517")
+            .addAllAcl(new ArrayList<ObjectAccessControl>())
+            .setContentLanguage("contentLanguage810066673")
+            .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
+            .setContentType("contentType-389131437")
+            .setCreateTime(Timestamp.newBuilder().build())
+            .setComponentCount(-485073075)
+            .setChecksums(ObjectChecksums.newBuilder().build())
+            .setUpdateTime(Timestamp.newBuilder().build())
+            .setKmsKey(
+                CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
+                    .toString())
+            .setUpdateStorageClassTime(Timestamp.newBuilder().build())
+            .setTemporaryHold(true)
+            .setRetentionExpireTime(Timestamp.newBuilder().build())
+            .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
+            .setEventBasedHold(true)
+            .setOwner(Owner.newBuilder().build())
+            .setCustomerEncryption(CustomerEncryption.newBuilder().build())
+            .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -1658,7 +1757,7 @@ public class StorageClientTest {
   }
 
   @Test
-  public void getObjectExceptionTest2() throws Exception {
+  public void getObjectExceptionTest4() throws Exception {
     StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
     mockStorage.addException(exception);
 
@@ -1685,7 +1784,7 @@ public class StorageClientTest {
     mockStorage.addResponse(expectedResponse);
     ReadObjectRequest request =
         ReadObjectRequest.newBuilder()
-            .setBucket("bucket-1378203158")
+            .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
             .setObject("object-1023368385")
             .setGeneration(305703192)
             .setReadOffset(-715377828)
@@ -1715,7 +1814,7 @@ public class StorageClientTest {
     mockStorage.addException(exception);
     ReadObjectRequest request =
         ReadObjectRequest.newBuilder()
-            .setBucket("bucket-1378203158")
+            .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
             .setObject("object-1023368385")
             .setGeneration(305703192)
             .setReadOffset(-715377828)
@@ -1745,6 +1844,65 @@ public class StorageClientTest {
   }
 
   @Test
+  public void bidiReadObjectTest() throws Exception {
+    BidiReadObjectResponse expectedResponse =
+        BidiReadObjectResponse.newBuilder()
+            .addAllObjectDataRanges(new ArrayList<ObjectRangeData>())
+            .setMetadata(Object.newBuilder().build())
+            .setReadHandle(BidiReadHandle.newBuilder().build())
+            .build();
+    mockStorage.addResponse(expectedResponse);
+    BidiReadObjectRequest request =
+        BidiReadObjectRequest.newBuilder()
+            .setReadObjectSpec(BidiReadObjectSpec.newBuilder().build())
+            .addAllReadRanges(new ArrayList<ReadRange>())
+            .build();
+
+    MockStreamObserver<BidiReadObjectResponse> responseObserver = new MockStreamObserver<>();
+
+    BidiStreamingCallable<BidiReadObjectRequest, BidiReadObjectResponse> callable =
+        client.bidiReadObjectCallable();
+    ApiStreamObserver<BidiReadObjectRequest> requestObserver =
+        callable.bidiStreamingCall(responseObserver);
+
+    requestObserver.onNext(request);
+    requestObserver.onCompleted();
+
+    List<BidiReadObjectResponse> actualResponses = responseObserver.future().get();
+    Assert.assertEquals(1, actualResponses.size());
+    Assert.assertEquals(expectedResponse, actualResponses.get(0));
+  }
+
+  @Test
+  public void bidiReadObjectExceptionTest() throws Exception {
+    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
+    mockStorage.addException(exception);
+    BidiReadObjectRequest request =
+        BidiReadObjectRequest.newBuilder()
+            .setReadObjectSpec(BidiReadObjectSpec.newBuilder().build())
+            .addAllReadRanges(new ArrayList<ReadRange>())
+            .build();
+
+    MockStreamObserver<BidiReadObjectResponse> responseObserver = new MockStreamObserver<>();
+
+    BidiStreamingCallable<BidiReadObjectRequest, BidiReadObjectResponse> callable =
+        client.bidiReadObjectCallable();
+    ApiStreamObserver<BidiReadObjectRequest> requestObserver =
+        callable.bidiStreamingCall(responseObserver);
+
+    requestObserver.onNext(request);
+
+    try {
+      List<BidiReadObjectResponse> actualResponses = responseObserver.future().get();
+      Assert.fail("No exception thrown");
+    } catch (ExecutionException e) {
+      Assert.assertTrue(e.getCause() instanceof InvalidArgumentException);
+      InvalidArgumentException apiException = ((InvalidArgumentException) e.getCause());
+      Assert.assertEquals(StatusCode.Code.INVALID_ARGUMENT, apiException.getStatusCode().getCode());
+    }
+  }
+
+  @Test
   public void updateObjectTest() throws Exception {
     Object expectedResponse =
         Object.newBuilder()
@@ -1752,6 +1910,7 @@ public class StorageClientTest {
             .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
             .setEtag("etag3123477")
             .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
             .setMetageneration(1048558813)
             .setStorageClass("storageClass871353277")
             .setSize(3530753)
@@ -1761,6 +1920,7 @@ public class StorageClientTest {
             .addAllAcl(new ArrayList<ObjectAccessControl>())
             .setContentLanguage("contentLanguage810066673")
             .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
             .setContentType("contentType-389131437")
             .setCreateTime(Timestamp.newBuilder().build())
             .setComponentCount(-485073075)
@@ -1773,10 +1933,14 @@ public class StorageClientTest {
             .setTemporaryHold(true)
             .setRetentionExpireTime(Timestamp.newBuilder().build())
             .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
             .setEventBasedHold(true)
             .setOwner(Owner.newBuilder().build())
             .setCustomerEncryption(CustomerEncryption.newBuilder().build())
             .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
@@ -1872,6 +2036,71 @@ public class StorageClientTest {
   }
 
   @Test
+  public void bidiWriteObjectTest() throws Exception {
+    BidiWriteObjectResponse expectedResponse =
+        BidiWriteObjectResponse.newBuilder()
+            .setWriteHandle(BidiWriteHandle.newBuilder().build())
+            .build();
+    mockStorage.addResponse(expectedResponse);
+    BidiWriteObjectRequest request =
+        BidiWriteObjectRequest.newBuilder()
+            .setWriteOffset(-1559543565)
+            .setObjectChecksums(ObjectChecksums.newBuilder().build())
+            .setStateLookup(true)
+            .setFlush(true)
+            .setFinishWrite(true)
+            .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+            .build();
+
+    MockStreamObserver<BidiWriteObjectResponse> responseObserver = new MockStreamObserver<>();
+
+    BidiStreamingCallable<BidiWriteObjectRequest, BidiWriteObjectResponse> callable =
+        client.bidiWriteObjectCallable();
+    ApiStreamObserver<BidiWriteObjectRequest> requestObserver =
+        callable.bidiStreamingCall(responseObserver);
+
+    requestObserver.onNext(request);
+    requestObserver.onCompleted();
+
+    List<BidiWriteObjectResponse> actualResponses = responseObserver.future().get();
+    Assert.assertEquals(1, actualResponses.size());
+    Assert.assertEquals(expectedResponse, actualResponses.get(0));
+  }
+
+  @Test
+  public void bidiWriteObjectExceptionTest() throws Exception {
+    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
+    mockStorage.addException(exception);
+    BidiWriteObjectRequest request =
+        BidiWriteObjectRequest.newBuilder()
+            .setWriteOffset(-1559543565)
+            .setObjectChecksums(ObjectChecksums.newBuilder().build())
+            .setStateLookup(true)
+            .setFlush(true)
+            .setFinishWrite(true)
+            .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+            .build();
+
+    MockStreamObserver<BidiWriteObjectResponse> responseObserver = new MockStreamObserver<>();
+
+    BidiStreamingCallable<BidiWriteObjectRequest, BidiWriteObjectResponse> callable =
+        client.bidiWriteObjectCallable();
+    ApiStreamObserver<BidiWriteObjectRequest> requestObserver =
+        callable.bidiStreamingCall(responseObserver);
+
+    requestObserver.onNext(request);
+
+    try {
+      List<BidiWriteObjectResponse> actualResponses = responseObserver.future().get();
+      Assert.fail("No exception thrown");
+    } catch (ExecutionException e) {
+      Assert.assertTrue(e.getCause() instanceof InvalidArgumentException);
+      InvalidArgumentException apiException = ((InvalidArgumentException) e.getCause());
+      Assert.assertEquals(StatusCode.Code.INVALID_ARGUMENT, apiException.getStatusCode().getCode());
+    }
+  }
+
+  @Test
   public void listObjectsTest() throws Exception {
     Object responsesElement = Object.newBuilder().build();
     ListObjectsResponse expectedResponse =
@@ -1881,7 +2110,7 @@ public class StorageClientTest {
             .build();
     mockStorage.addResponse(expectedResponse);
 
-    ProjectName parent = ProjectName.of("[PROJECT]");
+    BucketName parent = BucketName.of("[PROJECT]", "[BUCKET]");
 
     ListObjectsPagedResponse pagedListResponse = client.listObjects(parent);
 
@@ -1907,7 +2136,7 @@ public class StorageClientTest {
     mockStorage.addException(exception);
 
     try {
-      ProjectName parent = ProjectName.of("[PROJECT]");
+      BucketName parent = BucketName.of("[PROJECT]", "[BUCKET]");
       client.listObjects(parent);
       Assert.fail("No exception raised");
     } catch (InvalidArgumentException e) {
@@ -1979,7 +2208,7 @@ public class StorageClientTest {
                 CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
                     .toString())
             .setDestination(Object.newBuilder().build())
-            .setSourceBucket("sourceBucket841604581")
+            .setSourceBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
             .setSourceObject("sourceObject1196439354")
             .setSourceGeneration(1232209852)
             .setRewriteToken("rewriteToken80654285")
@@ -1997,6 +2226,7 @@ public class StorageClientTest {
             .setCopySourceEncryptionKeyBytes(ByteString.EMPTY)
             .setCopySourceEncryptionKeySha256Bytes(ByteString.EMPTY)
             .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+            .setObjectChecksums(ObjectChecksums.newBuilder().build())
             .build();
 
     RewriteResponse actualResponse = client.rewriteObject(request);
@@ -2043,6 +2273,7 @@ public class StorageClientTest {
         actualRequest.getCopySourceEncryptionKeySha256Bytes());
     Assert.assertEquals(
         request.getCommonObjectRequestParams(), actualRequest.getCommonObjectRequestParams());
+    Assert.assertEquals(request.getObjectChecksums(), actualRequest.getObjectChecksums());
     Assert.assertTrue(
         channelProvider.isHeaderSent(
             ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
@@ -2063,7 +2294,7 @@ public class StorageClientTest {
                   CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
                       .toString())
               .setDestination(Object.newBuilder().build())
-              .setSourceBucket("sourceBucket841604581")
+              .setSourceBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
               .setSourceObject("sourceObject1196439354")
               .setSourceGeneration(1232209852)
               .setRewriteToken("rewriteToken80654285")
@@ -2081,6 +2312,7 @@ public class StorageClientTest {
               .setCopySourceEncryptionKeyBytes(ByteString.EMPTY)
               .setCopySourceEncryptionKeySha256Bytes(ByteString.EMPTY)
               .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+              .setObjectChecksums(ObjectChecksums.newBuilder().build())
               .build();
       client.rewriteObject(request);
       Assert.fail("No exception raised");
@@ -2099,6 +2331,7 @@ public class StorageClientTest {
         StartResumableWriteRequest.newBuilder()
             .setWriteObjectSpec(WriteObjectSpec.newBuilder().build())
             .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+            .setObjectChecksums(ObjectChecksums.newBuilder().build())
             .build();
 
     StartResumableWriteResponse actualResponse = client.startResumableWrite(request);
@@ -2111,6 +2344,7 @@ public class StorageClientTest {
     Assert.assertEquals(request.getWriteObjectSpec(), actualRequest.getWriteObjectSpec());
     Assert.assertEquals(
         request.getCommonObjectRequestParams(), actualRequest.getCommonObjectRequestParams());
+    Assert.assertEquals(request.getObjectChecksums(), actualRequest.getObjectChecksums());
     Assert.assertTrue(
         channelProvider.isHeaderSent(
             ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
@@ -2127,6 +2361,7 @@ public class StorageClientTest {
           StartResumableWriteRequest.newBuilder()
               .setWriteObjectSpec(WriteObjectSpec.newBuilder().build())
               .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+              .setObjectChecksums(ObjectChecksums.newBuilder().build())
               .build();
       client.startResumableWrite(request);
       Assert.fail("No exception raised");
@@ -2171,310 +2406,61 @@ public class StorageClientTest {
   }
 
   @Test
-  public void getServiceAccountTest() throws Exception {
-    ServiceAccount expectedResponse =
-        ServiceAccount.newBuilder().setEmailAddress("emailAddress-1070931784").build();
-    mockStorage.addResponse(expectedResponse);
-
-    ProjectName project = ProjectName.of("[PROJECT]");
-
-    ServiceAccount actualResponse = client.getServiceAccount(project);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    GetServiceAccountRequest actualRequest = ((GetServiceAccountRequest) actualRequests.get(0));
-
-    Assert.assertEquals(project.toString(), actualRequest.getProject());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void getServiceAccountExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      ProjectName project = ProjectName.of("[PROJECT]");
-      client.getServiceAccount(project);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void getServiceAccountTest2() throws Exception {
-    ServiceAccount expectedResponse =
-        ServiceAccount.newBuilder().setEmailAddress("emailAddress-1070931784").build();
-    mockStorage.addResponse(expectedResponse);
-
-    String project = "project-309310695";
-
-    ServiceAccount actualResponse = client.getServiceAccount(project);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    GetServiceAccountRequest actualRequest = ((GetServiceAccountRequest) actualRequests.get(0));
-
-    Assert.assertEquals(project, actualRequest.getProject());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void getServiceAccountExceptionTest2() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String project = "project-309310695";
-      client.getServiceAccount(project);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void createHmacKeyTest() throws Exception {
-    CreateHmacKeyResponse expectedResponse =
-        CreateHmacKeyResponse.newBuilder()
-            .setMetadata(HmacKeyMetadata.newBuilder().build())
-            .setSecretKeyBytes(ByteString.EMPTY)
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    ProjectName project = ProjectName.of("[PROJECT]");
-    String serviceAccountEmail = "serviceAccountEmail1825953988";
-
-    CreateHmacKeyResponse actualResponse = client.createHmacKey(project, serviceAccountEmail);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    CreateHmacKeyRequest actualRequest = ((CreateHmacKeyRequest) actualRequests.get(0));
-
-    Assert.assertEquals(project.toString(), actualRequest.getProject());
-    Assert.assertEquals(serviceAccountEmail, actualRequest.getServiceAccountEmail());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void createHmacKeyExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      ProjectName project = ProjectName.of("[PROJECT]");
-      String serviceAccountEmail = "serviceAccountEmail1825953988";
-      client.createHmacKey(project, serviceAccountEmail);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void createHmacKeyTest2() throws Exception {
-    CreateHmacKeyResponse expectedResponse =
-        CreateHmacKeyResponse.newBuilder()
-            .setMetadata(HmacKeyMetadata.newBuilder().build())
-            .setSecretKeyBytes(ByteString.EMPTY)
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    String project = "project-309310695";
-    String serviceAccountEmail = "serviceAccountEmail1825953988";
-
-    CreateHmacKeyResponse actualResponse = client.createHmacKey(project, serviceAccountEmail);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    CreateHmacKeyRequest actualRequest = ((CreateHmacKeyRequest) actualRequests.get(0));
-
-    Assert.assertEquals(project, actualRequest.getProject());
-    Assert.assertEquals(serviceAccountEmail, actualRequest.getServiceAccountEmail());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void createHmacKeyExceptionTest2() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String project = "project-309310695";
-      String serviceAccountEmail = "serviceAccountEmail1825953988";
-      client.createHmacKey(project, serviceAccountEmail);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void deleteHmacKeyTest() throws Exception {
-    Empty expectedResponse = Empty.newBuilder().build();
-    mockStorage.addResponse(expectedResponse);
-
-    String accessId = "accessId-2146437729";
-    ProjectName project = ProjectName.of("[PROJECT]");
-
-    client.deleteHmacKey(accessId, project);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    DeleteHmacKeyRequest actualRequest = ((DeleteHmacKeyRequest) actualRequests.get(0));
-
-    Assert.assertEquals(accessId, actualRequest.getAccessId());
-    Assert.assertEquals(project.toString(), actualRequest.getProject());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void deleteHmacKeyExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String accessId = "accessId-2146437729";
-      ProjectName project = ProjectName.of("[PROJECT]");
-      client.deleteHmacKey(accessId, project);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void deleteHmacKeyTest2() throws Exception {
-    Empty expectedResponse = Empty.newBuilder().build();
-    mockStorage.addResponse(expectedResponse);
-
-    String accessId = "accessId-2146437729";
-    String project = "project-309310695";
-
-    client.deleteHmacKey(accessId, project);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    DeleteHmacKeyRequest actualRequest = ((DeleteHmacKeyRequest) actualRequests.get(0));
-
-    Assert.assertEquals(accessId, actualRequest.getAccessId());
-    Assert.assertEquals(project, actualRequest.getProject());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void deleteHmacKeyExceptionTest2() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String accessId = "accessId-2146437729";
-      String project = "project-309310695";
-      client.deleteHmacKey(accessId, project);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void getHmacKeyTest() throws Exception {
-    HmacKeyMetadata expectedResponse =
-        HmacKeyMetadata.newBuilder()
-            .setId("id3355")
-            .setAccessId("accessId-2146437729")
-            .setProject(ProjectName.of("[PROJECT]").toString())
-            .setServiceAccountEmail("serviceAccountEmail1825953988")
-            .setState("state109757585")
-            .setCreateTime(Timestamp.newBuilder().build())
-            .setUpdateTime(Timestamp.newBuilder().build())
+  public void moveObjectTest() throws Exception {
+    Object expectedResponse =
+        Object.newBuilder()
+            .setName("name3373707")
+            .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
             .setEtag("etag3123477")
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    String accessId = "accessId-2146437729";
-    ProjectName project = ProjectName.of("[PROJECT]");
-
-    HmacKeyMetadata actualResponse = client.getHmacKey(accessId, project);
-    Assert.assertEquals(expectedResponse, actualResponse);
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    GetHmacKeyRequest actualRequest = ((GetHmacKeyRequest) actualRequests.get(0));
-
-    Assert.assertEquals(accessId, actualRequest.getAccessId());
-    Assert.assertEquals(project.toString(), actualRequest.getProject());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void getHmacKeyExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String accessId = "accessId-2146437729";
-      ProjectName project = ProjectName.of("[PROJECT]");
-      client.getHmacKey(accessId, project);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void getHmacKeyTest2() throws Exception {
-    HmacKeyMetadata expectedResponse =
-        HmacKeyMetadata.newBuilder()
-            .setId("id3355")
-            .setAccessId("accessId-2146437729")
-            .setProject(ProjectName.of("[PROJECT]").toString())
-            .setServiceAccountEmail("serviceAccountEmail1825953988")
-            .setState("state109757585")
+            .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
+            .setMetageneration(1048558813)
+            .setStorageClass("storageClass871353277")
+            .setSize(3530753)
+            .setContentEncoding("contentEncoding-160088852")
+            .setContentDisposition("contentDisposition1034341758")
+            .setCacheControl("cacheControl-1336592517")
+            .addAllAcl(new ArrayList<ObjectAccessControl>())
+            .setContentLanguage("contentLanguage810066673")
+            .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
+            .setContentType("contentType-389131437")
             .setCreateTime(Timestamp.newBuilder().build())
+            .setComponentCount(-485073075)
+            .setChecksums(ObjectChecksums.newBuilder().build())
             .setUpdateTime(Timestamp.newBuilder().build())
-            .setEtag("etag3123477")
+            .setKmsKey(
+                CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
+                    .toString())
+            .setUpdateStorageClassTime(Timestamp.newBuilder().build())
+            .setTemporaryHold(true)
+            .setRetentionExpireTime(Timestamp.newBuilder().build())
+            .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
+            .setEventBasedHold(true)
+            .setOwner(Owner.newBuilder().build())
+            .setCustomerEncryption(CustomerEncryption.newBuilder().build())
+            .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
-    String accessId = "accessId-2146437729";
-    String project = "project-309310695";
+    BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+    String sourceObject = "sourceObject1196439354";
+    String destinationObject = "destinationObject-1761603347";
 
-    HmacKeyMetadata actualResponse = client.getHmacKey(accessId, project);
+    Object actualResponse = client.moveObject(bucket, sourceObject, destinationObject);
     Assert.assertEquals(expectedResponse, actualResponse);
 
     List<AbstractMessage> actualRequests = mockStorage.getRequests();
     Assert.assertEquals(1, actualRequests.size());
-    GetHmacKeyRequest actualRequest = ((GetHmacKeyRequest) actualRequests.get(0));
+    MoveObjectRequest actualRequest = ((MoveObjectRequest) actualRequests.get(0));
 
-    Assert.assertEquals(accessId, actualRequest.getAccessId());
-    Assert.assertEquals(project, actualRequest.getProject());
+    Assert.assertEquals(bucket.toString(), actualRequest.getBucket());
+    Assert.assertEquals(sourceObject, actualRequest.getSourceObject());
+    Assert.assertEquals(destinationObject, actualRequest.getDestinationObject());
     Assert.assertTrue(
         channelProvider.isHeaderSent(
             ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
@@ -2482,14 +2468,15 @@ public class StorageClientTest {
   }
 
   @Test
-  public void getHmacKeyExceptionTest2() throws Exception {
+  public void moveObjectExceptionTest() throws Exception {
     StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
     mockStorage.addException(exception);
 
     try {
-      String accessId = "accessId-2146437729";
-      String project = "project-309310695";
-      client.getHmacKey(accessId, project);
+      BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+      String sourceObject = "sourceObject1196439354";
+      String destinationObject = "destinationObject-1761603347";
+      client.moveObject(bucket, sourceObject, destinationObject);
       Assert.fail("No exception raised");
     } catch (InvalidArgumentException e) {
       // Expected exception.
@@ -2497,120 +2484,61 @@ public class StorageClientTest {
   }
 
   @Test
-  public void listHmacKeysTest() throws Exception {
-    HmacKeyMetadata responsesElement = HmacKeyMetadata.newBuilder().build();
-    ListHmacKeysResponse expectedResponse =
-        ListHmacKeysResponse.newBuilder()
-            .setNextPageToken("")
-            .addAllHmacKeys(Arrays.asList(responsesElement))
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    ProjectName project = ProjectName.of("[PROJECT]");
-
-    ListHmacKeysPagedResponse pagedListResponse = client.listHmacKeys(project);
-
-    List<HmacKeyMetadata> resources = Lists.newArrayList(pagedListResponse.iterateAll());
-
-    Assert.assertEquals(1, resources.size());
-    Assert.assertEquals(expectedResponse.getHmacKeysList().get(0), resources.get(0));
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    ListHmacKeysRequest actualRequest = ((ListHmacKeysRequest) actualRequests.get(0));
-
-    Assert.assertEquals(project.toString(), actualRequest.getProject());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void listHmacKeysExceptionTest() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      ProjectName project = ProjectName.of("[PROJECT]");
-      client.listHmacKeys(project);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void listHmacKeysTest2() throws Exception {
-    HmacKeyMetadata responsesElement = HmacKeyMetadata.newBuilder().build();
-    ListHmacKeysResponse expectedResponse =
-        ListHmacKeysResponse.newBuilder()
-            .setNextPageToken("")
-            .addAllHmacKeys(Arrays.asList(responsesElement))
-            .build();
-    mockStorage.addResponse(expectedResponse);
-
-    String project = "project-309310695";
-
-    ListHmacKeysPagedResponse pagedListResponse = client.listHmacKeys(project);
-
-    List<HmacKeyMetadata> resources = Lists.newArrayList(pagedListResponse.iterateAll());
-
-    Assert.assertEquals(1, resources.size());
-    Assert.assertEquals(expectedResponse.getHmacKeysList().get(0), resources.get(0));
-
-    List<AbstractMessage> actualRequests = mockStorage.getRequests();
-    Assert.assertEquals(1, actualRequests.size());
-    ListHmacKeysRequest actualRequest = ((ListHmacKeysRequest) actualRequests.get(0));
-
-    Assert.assertEquals(project, actualRequest.getProject());
-    Assert.assertTrue(
-        channelProvider.isHeaderSent(
-            ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
-            GaxGrpcProperties.getDefaultApiClientHeaderPattern()));
-  }
-
-  @Test
-  public void listHmacKeysExceptionTest2() throws Exception {
-    StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
-    mockStorage.addException(exception);
-
-    try {
-      String project = "project-309310695";
-      client.listHmacKeys(project);
-      Assert.fail("No exception raised");
-    } catch (InvalidArgumentException e) {
-      // Expected exception.
-    }
-  }
-
-  @Test
-  public void updateHmacKeyTest() throws Exception {
-    HmacKeyMetadata expectedResponse =
-        HmacKeyMetadata.newBuilder()
-            .setId("id3355")
-            .setAccessId("accessId-2146437729")
-            .setProject(ProjectName.of("[PROJECT]").toString())
-            .setServiceAccountEmail("serviceAccountEmail1825953988")
-            .setState("state109757585")
+  public void moveObjectTest2() throws Exception {
+    Object expectedResponse =
+        Object.newBuilder()
+            .setName("name3373707")
+            .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+            .setEtag("etag3123477")
+            .setGeneration(305703192)
+            .setRestoreToken("restoreToken1638686731")
+            .setMetageneration(1048558813)
+            .setStorageClass("storageClass871353277")
+            .setSize(3530753)
+            .setContentEncoding("contentEncoding-160088852")
+            .setContentDisposition("contentDisposition1034341758")
+            .setCacheControl("cacheControl-1336592517")
+            .addAllAcl(new ArrayList<ObjectAccessControl>())
+            .setContentLanguage("contentLanguage810066673")
+            .setDeleteTime(Timestamp.newBuilder().build())
+            .setFinalizeTime(Timestamp.newBuilder().build())
+            .setContentType("contentType-389131437")
             .setCreateTime(Timestamp.newBuilder().build())
+            .setComponentCount(-485073075)
+            .setChecksums(ObjectChecksums.newBuilder().build())
             .setUpdateTime(Timestamp.newBuilder().build())
-            .setEtag("etag3123477")
+            .setKmsKey(
+                CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
+                    .toString())
+            .setUpdateStorageClassTime(Timestamp.newBuilder().build())
+            .setTemporaryHold(true)
+            .setRetentionExpireTime(Timestamp.newBuilder().build())
+            .putAllMetadata(new HashMap<String, String>())
+            .setContexts(ObjectContexts.newBuilder().build())
+            .setEventBasedHold(true)
+            .setOwner(Owner.newBuilder().build())
+            .setCustomerEncryption(CustomerEncryption.newBuilder().build())
+            .setCustomTime(Timestamp.newBuilder().build())
+            .setSoftDeleteTime(Timestamp.newBuilder().build())
+            .setHardDeleteTime(Timestamp.newBuilder().build())
+            .setRetention(Object.Retention.newBuilder().build())
             .build();
     mockStorage.addResponse(expectedResponse);
 
-    HmacKeyMetadata hmacKey = HmacKeyMetadata.newBuilder().build();
-    FieldMask updateMask = FieldMask.newBuilder().build();
+    String bucket = "bucket-1378203158";
+    String sourceObject = "sourceObject1196439354";
+    String destinationObject = "destinationObject-1761603347";
 
-    HmacKeyMetadata actualResponse = client.updateHmacKey(hmacKey, updateMask);
+    Object actualResponse = client.moveObject(bucket, sourceObject, destinationObject);
     Assert.assertEquals(expectedResponse, actualResponse);
 
     List<AbstractMessage> actualRequests = mockStorage.getRequests();
     Assert.assertEquals(1, actualRequests.size());
-    UpdateHmacKeyRequest actualRequest = ((UpdateHmacKeyRequest) actualRequests.get(0));
+    MoveObjectRequest actualRequest = ((MoveObjectRequest) actualRequests.get(0));
 
-    Assert.assertEquals(hmacKey, actualRequest.getHmacKey());
-    Assert.assertEquals(updateMask, actualRequest.getUpdateMask());
+    Assert.assertEquals(bucket, actualRequest.getBucket());
+    Assert.assertEquals(sourceObject, actualRequest.getSourceObject());
+    Assert.assertEquals(destinationObject, actualRequest.getDestinationObject());
     Assert.assertTrue(
         channelProvider.isHeaderSent(
             ApiClientHeaderProvider.getDefaultApiClientHeaderKey(),
@@ -2618,14 +2546,15 @@ public class StorageClientTest {
   }
 
   @Test
-  public void updateHmacKeyExceptionTest() throws Exception {
+  public void moveObjectExceptionTest2() throws Exception {
     StatusRuntimeException exception = new StatusRuntimeException(io.grpc.Status.INVALID_ARGUMENT);
     mockStorage.addException(exception);
 
     try {
-      HmacKeyMetadata hmacKey = HmacKeyMetadata.newBuilder().build();
-      FieldMask updateMask = FieldMask.newBuilder().build();
-      client.updateHmacKey(hmacKey, updateMask);
+      String bucket = "bucket-1378203158";
+      String sourceObject = "sourceObject1196439354";
+      String destinationObject = "destinationObject-1761603347";
+      client.moveObject(bucket, sourceObject, destinationObject);
       Assert.fail("No exception raised");
     } catch (InvalidArgumentException e) {
       // Expected exception.

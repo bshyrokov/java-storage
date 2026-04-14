@@ -16,9 +16,11 @@
 
 package com.example.storage;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -29,6 +31,7 @@ import com.example.storage.bucket.AddBucketLabel;
 import com.example.storage.bucket.ChangeDefaultStorageClass;
 import com.example.storage.bucket.ConfigureBucketCors;
 import com.example.storage.bucket.CreateBucket;
+import com.example.storage.bucket.CreateBucketWithObjectRetention;
 import com.example.storage.bucket.CreateBucketWithStorageClassAndLocation;
 import com.example.storage.bucket.CreateBucketWithTurboReplication;
 import com.example.storage.bucket.DeleteBucket;
@@ -36,12 +39,14 @@ import com.example.storage.bucket.DisableBucketVersioning;
 import com.example.storage.bucket.DisableDefaultEventBasedHold;
 import com.example.storage.bucket.DisableLifecycleManagement;
 import com.example.storage.bucket.DisableRequesterPays;
+import com.example.storage.bucket.DisableSoftDelete;
 import com.example.storage.bucket.DisableUniformBucketLevelAccess;
 import com.example.storage.bucket.EnableBucketVersioning;
 import com.example.storage.bucket.EnableDefaultEventBasedHold;
 import com.example.storage.bucket.EnableLifecycleManagement;
 import com.example.storage.bucket.EnableRequesterPays;
 import com.example.storage.bucket.EnableUniformBucketLevelAccess;
+import com.example.storage.bucket.GetBucketEncryptionEnforcementConfig;
 import com.example.storage.bucket.GetBucketMetadata;
 import com.example.storage.bucket.GetBucketRpo;
 import com.example.storage.bucket.GetDefaultEventBasedHold;
@@ -60,26 +65,37 @@ import com.example.storage.bucket.RemoveBucketLabel;
 import com.example.storage.bucket.RemoveRetentionPolicy;
 import com.example.storage.bucket.SetAsyncTurboRpo;
 import com.example.storage.bucket.SetBucketDefaultKmsKey;
+import com.example.storage.bucket.SetBucketEncryptionEnforcementConfig;
 import com.example.storage.bucket.SetBucketWebsiteInfo;
 import com.example.storage.bucket.SetClientEndpoint;
 import com.example.storage.bucket.SetDefaultRpo;
 import com.example.storage.bucket.SetPublicAccessPreventionEnforced;
 import com.example.storage.bucket.SetPublicAccessPreventionInherited;
 import com.example.storage.bucket.SetRetentionPolicy;
+import com.example.storage.bucket.SetSoftDeletePolicy;
+import com.example.storage.bucket.UpdateBucketEncryptionEnforcementConfig;
 import com.example.storage.object.DownloadRequesterPaysObject;
 import com.example.storage.object.ReleaseEventBasedHold;
 import com.example.storage.object.ReleaseTemporaryHold;
 import com.example.storage.object.SetEventBasedHold;
 import com.example.storage.object.SetTemporaryHold;
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.Identity;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
+import com.google.cloud.storage.BucketInfo.CustomerManagedEncryptionEnforcementConfig;
+import com.google.cloud.storage.BucketInfo.EncryptionEnforcementRestrictionMode;
+import com.google.cloud.storage.BucketInfo.GoogleManagedEncryptionEnforcementConfig;
+import com.google.cloud.storage.BucketInfo.PublicAccessPrevention;
 import com.google.cloud.storage.Cors;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobTargetOption;
 import com.google.cloud.storage.StorageRoles;
+import com.google.cloud.storage.it.BucketCleaner;
 import com.google.cloud.storage.testing.RemoteStorageHelper;
 import com.google.cloud.testing.junit4.StdOutCaptureRule;
 import com.google.common.collect.ImmutableList;
@@ -87,27 +103,32 @@ import com.google.common.collect.ImmutableMap;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.Timeout;
+import org.threeten.bp.Duration;
 
 public class ITBucketSnippets {
 
   private static final Logger log = Logger.getLogger(ITBucketSnippets.class.getName());
   private static final String BUCKET = RemoteStorageHelper.generateBucketName();
-  private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
+  private static final String PROJECT_ID = Env.GOOGLE_CLOUD_PROJECT;
   private static final String KMS_KEY_NAME =
-      "projects/java-docs-samples-testing/locations/us/keyRings/"
-          + "jds_test_kms_key_ring/cryptoKeys/gcs_kms_key_one";
+      "projects/cloud-java-ci-sample/locations/us/keyRings/"
+          + "gcs_test_kms_key_ring/cryptoKeys/gcs_kms_key_one";
+  private static final RetrySettings RETRY_SETTINGS =
+      RetrySettings.newBuilder()
+          .setInitialRetryDelay(Duration.ofSeconds(2))
+          .setRetryDelayMultiplier(1.75)
+          .setTotalTimeout(Duration.ofSeconds(90))
+          .setMaxRetryDelay(Duration.ofSeconds(10))
+          .build();
 
   private static Storage storage;
 
@@ -121,14 +142,9 @@ public class ITBucketSnippets {
   public static void beforeClass() {
     RemoteStorageHelper helper = RemoteStorageHelper.create();
     storage =
-        helper
-            .getOptions()
-            .toBuilder()
+        helper.getOptions().toBuilder()
             .setRetrySettings(
-                helper
-                    .getOptions()
-                    .getRetrySettings()
-                    .toBuilder()
+                helper.getOptions().getRetrySettings().toBuilder()
                     .setRetryDelayMultiplier(3.0)
                     .build())
             .build()
@@ -137,12 +153,9 @@ public class ITBucketSnippets {
   }
 
   @AfterClass
-  public static void afterClass() throws ExecutionException, InterruptedException {
-    if (storage != null) {
-      boolean wasDeleted = RemoteStorageHelper.forceDelete(storage, BUCKET, 5, TimeUnit.SECONDS);
-      if (!wasDeleted && log.isLoggable(Level.WARNING)) {
-        log.log(Level.WARNING, "Deletion of bucket {0} timed out, bucket is not empty", BUCKET);
-      }
+  public static void afterClass() throws Exception {
+    try (Storage ignore = storage) {
+      BucketCleaner.doCleanup(BUCKET, storage);
     }
   }
 
@@ -160,12 +173,14 @@ public class ITBucketSnippets {
   }
 
   @Test
-  public void testChangeDefaultStorageClass() {
-    Bucket remoteBucket = storage.get(BUCKET);
-    assertEquals("STANDARD", remoteBucket.getStorageClass().name());
+  public void testChangeDefaultStorageClass() throws Throwable {
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () -> assertEquals("STANDARD", storage.get(BUCKET).getStorageClass().name()));
     ChangeDefaultStorageClass.changeDefaultStorageClass(PROJECT_ID, BUCKET);
-    remoteBucket = storage.get(BUCKET);
-    assertEquals("COLDLINE", remoteBucket.getStorageClass().name());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () -> assertEquals("COLDLINE", storage.get(BUCKET).getStorageClass().name()));
   }
 
   @Test
@@ -213,8 +228,7 @@ public class ITBucketSnippets {
     Bucket bucket =
         storage.get(BUCKET, Storage.BucketGetOption.fields(Storage.BucketField.values()));
     bucket =
-        bucket
-            .toBuilder()
+        bucket.toBuilder()
             .setLabels(ImmutableMap.of("k", "v"))
             .setLifecycleRules(
                 ImmutableList.of(
@@ -251,6 +265,7 @@ public class ITBucketSnippets {
     assertTrue(snippetOutput.contains("Labels:"));
     assertTrue(snippetOutput.contains("k=v"));
     assertTrue(snippetOutput.contains("Lifecycle Rules:"));
+    assertTrue(snippetOutput.contains("ObjectRetention: " + bucket.getObjectRetention()));
   }
 
   @Test
@@ -272,16 +287,15 @@ public class ITBucketSnippets {
   }
 
   @Test
-  public void testEnableLifecycleManagement() {
+  public void testEnableLifecycleManagement() throws Throwable {
     EnableLifecycleManagement.enableLifecycleManagement(PROJECT_ID, BUCKET);
-    assertEquals(1, storage.get(BUCKET).getLifecycleRules().size());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertEquals(1, storage.get(BUCKET).getLifecycleRules().size()));
   }
 
   @Test
-  public void testDisableLifecycleManagement() {
-    storage
-        .get(BUCKET)
-        .toBuilder()
+  public void testDisableLifecycleManagement() throws Throwable {
+    storage.get(BUCKET).toBuilder()
         .setLifecycleRules(
             ImmutableList.of(
                 new BucketInfo.LifecycleRule(
@@ -289,42 +303,36 @@ public class ITBucketSnippets {
                     BucketInfo.LifecycleRule.LifecycleCondition.newBuilder().setAge(5).build())))
         .build()
         .update();
-    assertEquals(1, storage.get(BUCKET).getLifecycleRules().size());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertEquals(1, storage.get(BUCKET).getLifecycleRules().size()));
     DisableLifecycleManagement.disableLifecycleManagement(PROJECT_ID, BUCKET);
-    assertEquals(0, storage.get(BUCKET).getLifecycleRules().size());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertEquals(0, storage.get(BUCKET).getLifecycleRules().size()));
   }
 
   @Test
-  public void testGetPublicAccessPrevention() {
+  public void testGetPublicAccessPrevention() throws Throwable {
     try {
       // By default a bucket PAP state is INHERITED and we are changing the state to validate
       // non-default state.
-      storage
-          .get(BUCKET)
-          .toBuilder()
+      storage.get(BUCKET).toBuilder()
           .setIamConfiguration(
               BucketInfo.IamConfiguration.newBuilder()
                   .setPublicAccessPrevention(BucketInfo.PublicAccessPrevention.ENFORCED)
                   .build())
           .build()
           .update();
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () ->
+              assertThat(storage.get(BUCKET).getIamConfiguration().getPublicAccessPrevention())
+                  .isEqualTo(PublicAccessPrevention.ENFORCED));
       GetPublicAccessPrevention.getPublicAccessPrevention(PROJECT_ID, BUCKET);
       String snippetOutput = stdOutCaptureRule.getCapturedOutputAsUtf8String();
       assertTrue(snippetOutput.contains("enforced"));
-      storage
-          .get(BUCKET)
-          .toBuilder()
-          .setIamConfiguration(
-              BucketInfo.IamConfiguration.newBuilder()
-                  .setPublicAccessPrevention(BucketInfo.PublicAccessPrevention.INHERITED)
-                  .build())
-          .build()
-          .update();
     } finally {
       // No matter what happens make sure test set bucket back to INHERITED
-      storage
-          .get(BUCKET)
-          .toBuilder()
+      storage.get(BUCKET).toBuilder()
           .setIamConfiguration(
               BucketInfo.IamConfiguration.newBuilder()
                   .setPublicAccessPrevention(BucketInfo.PublicAccessPrevention.INHERITED)
@@ -335,26 +343,18 @@ public class ITBucketSnippets {
   }
 
   @Test
-  public void testSetPublicAccessPreventionEnforced() {
+  public void testSetPublicAccessPreventionEnforced() throws Throwable {
     try {
       SetPublicAccessPreventionEnforced.setPublicAccessPreventionEnforced(PROJECT_ID, BUCKET);
-      assertEquals(
-          storage.get(BUCKET).getIamConfiguration().getPublicAccessPrevention(),
-          BucketInfo.PublicAccessPrevention.ENFORCED);
-      storage
-          .get(BUCKET)
-          .toBuilder()
-          .setIamConfiguration(
-              BucketInfo.IamConfiguration.newBuilder()
-                  .setPublicAccessPrevention(BucketInfo.PublicAccessPrevention.INHERITED)
-                  .build())
-          .build()
-          .update();
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () ->
+              assertEquals(
+                  storage.get(BUCKET).getIamConfiguration().getPublicAccessPrevention(),
+                  BucketInfo.PublicAccessPrevention.ENFORCED));
     } finally {
       // No matter what happens make sure test set bucket back to INHERITED
-      storage
-          .get(BUCKET)
-          .toBuilder()
+      storage.get(BUCKET).toBuilder()
           .setIamConfiguration(
               BucketInfo.IamConfiguration.newBuilder()
                   .setPublicAccessPrevention(BucketInfo.PublicAccessPrevention.INHERITED)
@@ -365,26 +365,31 @@ public class ITBucketSnippets {
   }
 
   @Test
-  public void testSetPublicAccessPreventionInherited() {
+  public void testSetPublicAccessPreventionInherited() throws Throwable {
     try {
-      storage
-          .get(BUCKET)
-          .toBuilder()
+      storage.get(BUCKET).toBuilder()
           .setIamConfiguration(
               BucketInfo.IamConfiguration.newBuilder()
                   .setPublicAccessPrevention(BucketInfo.PublicAccessPrevention.ENFORCED)
                   .build())
           .build()
           .update();
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () ->
+              assertThat(storage.get(BUCKET).getIamConfiguration().getPublicAccessPrevention())
+                  .isEqualTo(PublicAccessPrevention.ENFORCED));
+
       SetPublicAccessPreventionInherited.setPublicAccessPreventionInherited(PROJECT_ID, BUCKET);
-      assertEquals(
-          storage.get(BUCKET).getIamConfiguration().getPublicAccessPrevention(),
-          BucketInfo.PublicAccessPrevention.INHERITED);
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () ->
+              assertEquals(
+                  storage.get(BUCKET).getIamConfiguration().getPublicAccessPrevention(),
+                  BucketInfo.PublicAccessPrevention.INHERITED));
     } finally {
       // No matter what happens make sure test set bucket back to INHERITED
-      storage
-          .get(BUCKET)
-          .toBuilder()
+      storage.get(BUCKET).toBuilder()
           .setIamConfiguration(
               BucketInfo.IamConfiguration.newBuilder()
                   .setPublicAccessPrevention(BucketInfo.PublicAccessPrevention.INHERITED)
@@ -395,7 +400,7 @@ public class ITBucketSnippets {
   }
 
   @Test
-  public void testAddListRemoveBucketIamMembers() {
+  public void testAddListRemoveBucketIamMembers() throws Throwable {
     storage.update(
         BucketInfo.newBuilder(BUCKET)
             .setIamConfiguration(
@@ -403,6 +408,7 @@ public class ITBucketSnippets {
                     .setIsUniformBucketLevelAccessEnabled(true)
                     .build())
             .build());
+    // todo:
     int originalSize = storage.getIamPolicy(BUCKET).getBindingsList().size();
     AddBucketIamMember.addBucketIamMember(PROJECT_ID, BUCKET);
     assertEquals(originalSize + 1, storage.getIamPolicy(BUCKET).getBindingsList().size());
@@ -414,7 +420,9 @@ public class ITBucketSnippets {
     AddBucketIamConditionalBinding.addBucketIamConditionalBinding(PROJECT_ID, BUCKET);
     assertEquals(originalSize + 1, storage.getIamPolicy(BUCKET).getBindingsList().size());
     RemoveBucketIamConditionalBinding.removeBucketIamConditionalBinding(PROJECT_ID, BUCKET);
-    assertEquals(originalSize, storage.getIamPolicy(BUCKET).getBindingsList().size());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () -> assertEquals(originalSize, storage.getIamPolicy(BUCKET).getBindingsList().size()));
     storage.update(
         BucketInfo.newBuilder(BUCKET)
             .setIamConfiguration(
@@ -424,46 +432,56 @@ public class ITBucketSnippets {
             .build());
   }
 
+  @Ignore("TODO(b/456381873): Test fails in CI due to project's public access prevention policy.")
   @Test
-  public void testMakeBucketPublic() {
+  public void testMakeBucketPublic() throws Throwable {
     MakeBucketPublic.makeBucketPublic(PROJECT_ID, BUCKET);
-    assertTrue(
-        storage
-            .getIamPolicy(BUCKET)
-            .getBindings()
-            .get(StorageRoles.objectViewer())
-            .contains(Identity.allUsers()));
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () ->
+            assertTrue(
+                storage
+                    .getIamPolicy(BUCKET)
+                    .getBindings()
+                    .get(StorageRoles.objectViewer())
+                    .contains(Identity.allUsers())));
   }
 
   @Test
-  public void deleteBucketDefaultKmsKey() {
-    storage
-        .get(BUCKET)
-        .toBuilder()
+  public void deleteBucketDefaultKmsKey() throws Throwable {
+    storage.get(BUCKET).toBuilder()
         .setDefaultKmsKeyName(
-            "projects/java-docs-samples-testing/locations/us/keyRings/"
-                + "jds_test_kms_key_ring/cryptoKeys/gcs_kms_key_one")
+            "projects/cloud-java-ci-sample/locations/us/keyRings/"
+                + "gcs_test_kms_key_ring/cryptoKeys/gcs_kms_key_one")
         .build()
         .update();
-    assertNotNull(storage.get(BUCKET).getDefaultKmsKeyName());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertNotNull(storage.get(BUCKET).getDefaultKmsKeyName()));
     RemoveBucketDefaultKmsKey.removeBucketDefaultKmsKey(PROJECT_ID, BUCKET);
-    assertNull(storage.get(BUCKET).getDefaultKmsKeyName());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertNull(storage.get(BUCKET).getDefaultKmsKeyName()));
   }
 
   @Test
-  public void testEnableDisableVersioning() {
+  public void testEnableDisableVersioning() throws Throwable {
     EnableBucketVersioning.enableBucketVersioning(PROJECT_ID, BUCKET);
-    assertTrue(storage.get(BUCKET).versioningEnabled());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertTrue(storage.get(BUCKET).versioningEnabled()));
     DisableBucketVersioning.disableBucketVersioning(PROJECT_ID, BUCKET);
-    Assert.assertFalse(storage.get(BUCKET).versioningEnabled());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertFalse(storage.get(BUCKET).versioningEnabled()));
   }
 
   @Test
-  public void testSetBucketWebsiteInfo() {
+  public void testSetBucketWebsiteInfo() throws Throwable {
     SetBucketWebsiteInfo.setBucketWesbiteInfo(PROJECT_ID, BUCKET, "index.html", "404.html");
-    Bucket bucket = storage.get(BUCKET);
-    assertEquals("index.html", bucket.getIndexPage());
-    assertEquals("404.html", bucket.getNotFoundPage());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () -> {
+          Bucket bucket = storage.get(BUCKET);
+          assertEquals("index.html", bucket.getIndexPage());
+          assertEquals("404.html", bucket.getNotFoundPage());
+        });
   }
 
   @Test
@@ -474,21 +492,23 @@ public class ITBucketSnippets {
   }
 
   @Test
-  public void testConfigureBucketCors() {
+  public void testConfigureBucketCors() throws Throwable {
     ConfigureBucketCors.configureBucketCors(
         PROJECT_ID, BUCKET, "http://example.appspot.com", "Content-Type", 3600);
-    Cors cors = storage.get(BUCKET).getCors().get(0);
-    assertTrue(cors.getOrigins().get(0).toString().contains("example.appspot.com"));
-    assertTrue(cors.getResponseHeaders().contains("Content-Type"));
-    assertEquals(3600, cors.getMaxAgeSeconds().intValue());
-    assertTrue(cors.getMethods().get(0).toString().equalsIgnoreCase("GET"));
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () -> {
+          Cors cors = storage.get(BUCKET).getCors().get(0);
+          assertTrue(cors.getOrigins().get(0).toString().contains("example.appspot.com"));
+          assertTrue(cors.getResponseHeaders().contains("Content-Type"));
+          assertEquals(3600, cors.getMaxAgeSeconds().intValue());
+          assertTrue(cors.getMethods().get(0).toString().equalsIgnoreCase("GET"));
+        });
   }
 
   @Test
-  public void testRemoveBucketCors() {
-    storage
-        .get(BUCKET)
-        .toBuilder()
+  public void testRemoveBucketCors() throws Throwable {
+    storage.get(BUCKET).toBuilder()
         .setCors(
             ImmutableList.of(
                 Cors.newBuilder()
@@ -499,51 +519,66 @@ public class ITBucketSnippets {
                     .build()))
         .build()
         .update();
-    Cors cors = storage.get(BUCKET).getCors().get(0);
-    assertNotNull(cors);
-    assertTrue(cors.getOrigins().get(0).toString().contains("example.appspot.com"));
-    assertTrue(cors.getResponseHeaders().contains("Content-Type"));
-    assertEquals(3600, cors.getMaxAgeSeconds().intValue());
-    assertTrue(cors.getMethods().get(0).toString().equalsIgnoreCase("GET"));
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () -> {
+          Cors cors = storage.get(BUCKET).getCors().get(0);
+          assertNotNull(cors);
+          assertTrue(cors.getOrigins().get(0).toString().contains("example.appspot.com"));
+          assertTrue(cors.getResponseHeaders().contains("Content-Type"));
+          assertEquals(3600, cors.getMaxAgeSeconds().intValue());
+          assertTrue(cors.getMethods().get(0).toString().equalsIgnoreCase("GET"));
+        });
     RemoveBucketCors.removeBucketCors(PROJECT_ID, BUCKET);
-    assertNull(storage.get(BUCKET).getCors());
+    TestUtils.retryAssert(RETRY_SETTINGS, () -> assertNull(storage.get(BUCKET).getCors()));
   }
 
   @Test
-  public void testRequesterPays() throws Exception {
+  public void testRequesterPays() throws Throwable {
     EnableRequesterPays.enableRequesterPays(PROJECT_ID, BUCKET);
-    Bucket bucket = storage.get(BUCKET, Storage.BucketGetOption.userProject(PROJECT_ID));
-    assertTrue(bucket.requesterPays());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () ->
+            assertTrue(
+                storage
+                    .get(BUCKET, Storage.BucketGetOption.userProject(PROJECT_ID))
+                    .requesterPays()));
     String projectId = ServiceOptions.getDefaultProjectId();
     String blobName = "test-create-empty-blob-requester-pays";
     byte[] content = {0xD, 0xE, 0xA, 0xD};
     Blob remoteBlob =
-        bucket.create(blobName, content, Bucket.BlobTargetOption.userProject(projectId));
+        storage.create(
+            BlobInfo.newBuilder(BUCKET, blobName).build(),
+            content,
+            BlobTargetOption.userProject(projectId));
     assertNotNull(remoteBlob);
     DownloadRequesterPaysObject.downloadRequesterPaysObject(
         projectId, BUCKET, blobName, Paths.get(blobName));
     byte[] readBytes = Files.readAllBytes(Paths.get(blobName));
     assertArrayEquals(content, readBytes);
     DisableRequesterPays.disableRequesterPays(PROJECT_ID, BUCKET);
-    assertFalse(storage.get(BUCKET).requesterPays());
+    TestUtils.retryAssert(RETRY_SETTINGS, () -> assertFalse(storage.get(BUCKET).requesterPays()));
   }
 
   @Test
-  public void testRpo() throws Exception {
+  public void testRpo() throws Throwable {
     String rpoBucket = RemoteStorageHelper.generateBucketName();
     try {
       CreateBucketWithTurboReplication.createBucketWithTurboReplication(
           PROJECT_ID, rpoBucket, "NAM4");
-      Bucket bucket = storage.get(rpoBucket);
-      assertEquals("ASYNC_TURBO", bucket.getRpo().toString());
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () -> assertEquals("ASYNC_TURBO", storage.get(rpoBucket).getRpo().toString()));
 
       SetDefaultRpo.setDefaultRpo(PROJECT_ID, rpoBucket);
-      bucket = storage.get(rpoBucket);
-      assertEquals("DEFAULT", bucket.getRpo().toString());
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () -> assertEquals("DEFAULT", storage.get(rpoBucket).getRpo().toString()));
 
       SetAsyncTurboRpo.setAsyncTurboRpo(PROJECT_ID, rpoBucket);
-      bucket = storage.get(rpoBucket);
-      assertEquals("ASYNC_TURBO", bucket.getRpo().toString());
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () -> assertEquals("ASYNC_TURBO", storage.get(rpoBucket).getRpo().toString()));
 
       GetBucketRpo.getBucketRpo(PROJECT_ID, rpoBucket);
       String snippetOutput = stdOutCaptureRule.getCapturedOutputAsUtf8String();
@@ -554,16 +589,19 @@ public class ITBucketSnippets {
   }
 
   @Test
-  public void testDefaultKMSKey() {
+  public void testDefaultKMSKey() throws Throwable {
     SetBucketDefaultKmsKey.setBucketDefaultKmsKey(PROJECT_ID, BUCKET, KMS_KEY_NAME);
-    assertEquals(KMS_KEY_NAME, storage.get(BUCKET).getDefaultKmsKeyName());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () -> assertEquals(KMS_KEY_NAME, storage.get(BUCKET).getDefaultKmsKeyName()));
 
     RemoveBucketDefaultKmsKey.removeBucketDefaultKmsKey(PROJECT_ID, BUCKET);
-    assertNull(storage.get(BUCKET).getDefaultKmsKeyName());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertNull(storage.get(BUCKET).getDefaultKmsKeyName()));
   }
 
   @Test
-  public void testBucketRetention() {
+  public void testBucketRetention() throws Throwable {
     Long retention = 5L;
     SetRetentionPolicy.setRetentionPolicy(PROJECT_ID, BUCKET, retention);
     Bucket bucket = storage.get(BUCKET);
@@ -575,7 +613,8 @@ public class ITBucketSnippets {
     assertTrue(snippetOutput.contains("5"));
 
     EnableDefaultEventBasedHold.enableDefaultEventBasedHold(PROJECT_ID, BUCKET);
-    assertTrue(storage.get(BUCKET).getDefaultEventBasedHold());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertTrue(storage.get(BUCKET).getDefaultEventBasedHold()));
 
     GetDefaultEventBasedHold.getDefaultEventBasedHold(PROJECT_ID, BUCKET);
     snippetOutput = stdOutCaptureRule.getCapturedOutputAsUtf8String();
@@ -585,17 +624,23 @@ public class ITBucketSnippets {
     String blobName = "test-create-empty-blob-retention-policy";
     bucket.create(blobName, content);
     SetEventBasedHold.setEventBasedHold(PROJECT_ID, BUCKET, blobName);
-    assertTrue(storage.get(BUCKET, blobName).getEventBasedHold());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertTrue(storage.get(BUCKET, blobName).getEventBasedHold()));
     ReleaseEventBasedHold.releaseEventBasedHold(PROJECT_ID, BUCKET, blobName);
-    assertFalse(storage.get(BUCKET, blobName).getEventBasedHold());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertFalse(storage.get(BUCKET, blobName).getEventBasedHold()));
     RemoveRetentionPolicy.removeRetentionPolicy(PROJECT_ID, BUCKET);
-    assertNull(storage.get(BUCKET).getRetentionPeriod());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertNull(storage.get(BUCKET).getRetentionPeriod()));
     DisableDefaultEventBasedHold.disableDefaultEventBasedHold(PROJECT_ID, BUCKET);
-    assertFalse(storage.get(BUCKET).getDefaultEventBasedHold());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertFalse(storage.get(BUCKET).getDefaultEventBasedHold()));
     SetTemporaryHold.setTemporaryHold(PROJECT_ID, BUCKET, blobName);
-    assertTrue(storage.get(BUCKET, blobName).getTemporaryHold());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertTrue(storage.get(BUCKET, blobName).getTemporaryHold()));
     ReleaseTemporaryHold.releaseTemporaryHold(PROJECT_ID, BUCKET, blobName);
-    assertFalse(storage.get(BUCKET, blobName).getTemporaryHold());
+    TestUtils.retryAssert(
+        RETRY_SETTINGS, () -> assertFalse(storage.get(BUCKET, blobName).getTemporaryHold()));
   }
 
   @Test
@@ -603,10 +648,14 @@ public class ITBucketSnippets {
     String tempBucket = RemoteStorageHelper.generateBucketName();
     Bucket bucket = storage.create(BucketInfo.of(tempBucket));
     assertNotNull(bucket);
-    SetRetentionPolicy.setRetentionPolicy(PROJECT_ID, tempBucket, 5L);
-    assertEquals(5L, (long) storage.get(tempBucket).getRetentionPeriod());
-    LockRetentionPolicy.lockRetentionPolicy(PROJECT_ID, tempBucket);
-    assertTrue(storage.get(tempBucket).retentionPolicyIsLocked());
+    try {
+      SetRetentionPolicy.setRetentionPolicy(PROJECT_ID, tempBucket, 5L);
+      assertEquals(5L, (long) storage.get(tempBucket).getRetentionPeriod());
+      LockRetentionPolicy.lockRetentionPolicy(PROJECT_ID, tempBucket);
+      assertTrue(storage.get(tempBucket).retentionPolicyIsLocked());
+    } finally {
+      storage.delete(tempBucket);
+    }
   }
 
   @Test
@@ -622,5 +671,168 @@ public class ITBucketSnippets {
 
     DisableUniformBucketLevelAccess.disableUniformBucketLevelAccess(PROJECT_ID, BUCKET);
     assertFalse(storage.get(BUCKET).getIamConfiguration().isUniformBucketLevelAccessEnabled());
+  }
+
+  @Test
+  public void testCreateBucketWithObjectRetention() {
+    String tempBucket = RemoteStorageHelper.generateBucketName();
+
+    try {
+      CreateBucketWithObjectRetention.createBucketWithObjectRetention(PROJECT_ID, tempBucket);
+      assertNotNull(storage.get(tempBucket).getObjectRetention());
+      String snippetOutput = stdOutCaptureRule.getCapturedOutputAsUtf8String();
+      assertTrue(snippetOutput.contains("Enabled"));
+    } finally {
+      storage.delete(tempBucket);
+    }
+  }
+
+  @Test
+  public void testSetSoftDeletePolicy() {
+    String tempBucket = RemoteStorageHelper.generateBucketName();
+    Bucket bucket = storage.create(BucketInfo.of(tempBucket));
+    try {
+      assertNotEquals(
+          java.time.Duration.ofDays(10), bucket.getSoftDeletePolicy().getRetentionDuration());
+      SetSoftDeletePolicy.setSoftDeletePolicy(PROJECT_ID, tempBucket);
+      assertEquals(
+          java.time.Duration.ofDays(10),
+          storage.get(tempBucket).getSoftDeletePolicy().getRetentionDuration());
+    } finally {
+      storage.delete(tempBucket);
+    }
+  }
+
+  @Test
+  public void testDisableSoftDelete() {
+    String tempBucket = RemoteStorageHelper.generateBucketName();
+    Bucket bucket = storage.create(BucketInfo.of(tempBucket));
+    try {
+      assertNotEquals(
+          java.time.Duration.ofDays(0), bucket.getSoftDeletePolicy().getRetentionDuration());
+      DisableSoftDelete.disableSoftDelete(PROJECT_ID, tempBucket);
+      assertEquals(
+          java.time.Duration.ofSeconds(0),
+          storage.get(tempBucket).getSoftDeletePolicy().getRetentionDuration());
+    } finally {
+      storage.delete(tempBucket);
+    }
+  }
+
+  @Test
+  public void testSetEncryptionEnforcementConfig() throws Throwable {
+    String gmekOnly = "g-" + BUCKET;
+    String cmekOnly = "c-" + BUCKET;
+    String restrictCsek = "rc-" + BUCKET;
+
+    try {
+      SetBucketEncryptionEnforcementConfig.setBucketEncryptionEnforcementConfig(PROJECT_ID, BUCKET);
+
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () -> {
+            // Case 1: GMEK Only
+            Bucket b1 = storage.get(gmekOnly);
+            assertNotNull(b1);
+            assertEquals(
+                EncryptionEnforcementRestrictionMode.NOT_RESTRICTED,
+                b1.getGoogleManagedEncryptionEnforcementConfig().getRestrictionMode());
+            assertEquals(
+                EncryptionEnforcementRestrictionMode.FULLY_RESTRICTED,
+                b1.getCustomerManagedEncryptionEnforcementConfig().getRestrictionMode());
+
+            // Case 2: CMEK Only
+            Bucket b2 = storage.get(cmekOnly);
+            assertNotNull(b2);
+            assertEquals(
+                EncryptionEnforcementRestrictionMode.FULLY_RESTRICTED,
+                b2.getGoogleManagedEncryptionEnforcementConfig().getRestrictionMode());
+            assertEquals(
+                EncryptionEnforcementRestrictionMode.NOT_RESTRICTED,
+                b2.getCustomerManagedEncryptionEnforcementConfig().getRestrictionMode());
+
+            // Case 3: Restrict CSEK
+            Bucket b3 = storage.get(restrictCsek);
+            assertNotNull(b3);
+            assertEquals(
+                EncryptionEnforcementRestrictionMode.FULLY_RESTRICTED,
+                b3.getCustomerSuppliedEncryptionEnforcementConfig().getRestrictionMode());
+          });
+    } finally {
+      // Cleanup all three buckets
+      storage.delete(gmekOnly);
+      storage.delete(cmekOnly);
+      storage.delete(restrictCsek);
+    }
+  }
+
+  @Test
+  public void testGetEncryptionEnforcementConfig() throws Throwable {
+    // Setup: Set a specific config to verify retrieval
+    GoogleManagedEncryptionEnforcementConfig gmekConfig =
+        GoogleManagedEncryptionEnforcementConfig.of(
+            EncryptionEnforcementRestrictionMode.FULLY_RESTRICTED);
+    BucketInfo bucketInfo =
+        storage.get(BUCKET).toBuilder()
+            .setGoogleManagedEncryptionEnforcementConfig(gmekConfig)
+            .build();
+    storage.update(bucketInfo);
+
+    TestUtils.retryAssert(
+        RETRY_SETTINGS,
+        () -> {
+          try {
+            GetBucketEncryptionEnforcementConfig.getBucketEncryptionEnforcementConfig(
+                PROJECT_ID, BUCKET);
+            String snippetOutput = stdOutCaptureRule.getCapturedOutputAsUtf8String();
+            assertTrue(snippetOutput.contains("GMEK Enforcement: Mode: FullyRestricted"));
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  @Test
+  public void testUpdateEncryptionEnforcementConfig() throws Throwable {
+    String tempBucketName = RemoteStorageHelper.generateBucketName();
+    // Setup: Create the bucket with initial enforcement configs
+    BucketInfo initialInfo =
+        BucketInfo.newBuilder(tempBucketName)
+            .setCustomerManagedEncryptionEnforcementConfig(
+                CustomerManagedEncryptionEnforcementConfig.of(
+                    EncryptionEnforcementRestrictionMode.FULLY_RESTRICTED))
+            .setGoogleManagedEncryptionEnforcementConfig(
+                GoogleManagedEncryptionEnforcementConfig.of(
+                    EncryptionEnforcementRestrictionMode.NOT_RESTRICTED))
+            .build();
+
+    storage.create(initialInfo);
+
+    try {
+      // Execution: Call the update snippet
+      // This snippet should update GMEK to FULLY_RESTRICTED and reset CMEK
+      UpdateBucketEncryptionEnforcementConfig.updateBucketEncryptionEnforcementConfig(
+          PROJECT_ID, tempBucketName);
+
+      TestUtils.retryAssert(
+          RETRY_SETTINGS,
+          () -> {
+            Bucket bucket = storage.get(tempBucketName);
+            assertNotNull(bucket);
+
+            // Verify GMEK was updated to FULLY_RESTRICTED
+            assertEquals(
+                EncryptionEnforcementRestrictionMode.FULLY_RESTRICTED,
+                bucket.getGoogleManagedEncryptionEnforcementConfig().getRestrictionMode());
+
+            // Verify CMEK was reverted/reset (defaults back to NOT_RESTRICTED)
+            assertEquals(
+                EncryptionEnforcementRestrictionMode.NOT_RESTRICTED,
+                bucket.getCustomerManagedEncryptionEnforcementConfig().getRestrictionMode());
+          });
+
+    } finally {
+      storage.delete(tempBucketName);
+    }
   }
 }

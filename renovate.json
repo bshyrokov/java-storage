@@ -11,6 +11,17 @@
     ":autodetectPinVersions"
   ],
   "ignorePaths": [".kokoro/requirements.txt"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^.github/workflows/unmanaged_dependency_check.yaml$"
+      ],
+      "matchStrings": ["uses: googleapis/sdk-platform-java/java-shared-dependencies/unmanaged-dependency-check@google-cloud-shared-dependencies/v(?<currentValue>.+?)\\n"],
+      "depNameTemplate": "com.google.cloud:sdk-platform-java-config",
+      "datasourceTemplate": "maven"
+    }
+  ],
   "packageRules": [
     {
       "packagePatterns": [
@@ -26,6 +37,7 @@
       "semanticCommitScope": null
     },
     {
+      "groupName": "maven plugins",
       "packagePatterns": [
         "^org.apache.maven",
         "^org.jacoco:",
@@ -38,8 +50,15 @@
       "semanticCommitScope": "deps"
     },
     {
+      "groupName": "storage release dependencies",
       "packagePatterns": [
         "^com.google.cloud:google-cloud-storage",
+        "^com.google.api.grpc:proto-google-cloud-storage-v2",
+        "^com.google.api.grpc:grpc-google-cloud-storage-v2",
+        "^com.google.api.grpc:gapic-google-cloud-storage-v2",
+        "^com.google.api.grpc:proto-google-cloud-storage-control-v2",
+        "^com.google.api.grpc:grpc-google-cloud-storage-control-v2",
+        "^com.google.cloud:google-cloud-storage-control",
         "^com.google.cloud:libraries-bom",
         "^com.google.cloud.samples:shared-configuration"
       ],
@@ -47,12 +66,18 @@
       "semanticCommitScope": "deps"
     },
     {
+      "groupName": "test libraries",
       "packagePatterns": [
         "^junit:junit",
+        "^org.junit",
+        "^net.jqwik",
         "^com.google.truth:truth",
         "^org.mockito:mockito-core",
         "^org.objenesis:objenesis",
-        "^com.google.cloud:google-cloud-conformance-tests"
+        "^com.google.cloud:google-cloud-conformance-tests",
+        "^io.github.classgraph:classgraph",
+        "^ch.qos.logback:logback-classic",
+        "^org.slf4j:jul-to-slf4j"
       ],
       "semanticCommitType": "test",
       "semanticCommitScope": "deps"
@@ -70,13 +95,39 @@
       "groupName": "jackson dependencies"
     },
     {
+      "groupName": "cross product test dependencies",
       "packagePatterns": [
+        "^com.google.cloud:google-cloud-kms",
         "^com.google.cloud:google-cloud-pubsub",
         "^com.google.api.grpc:grpc-google-cloud-kms-v1",
-        "^com.google.api.grpc:proto-google-cloud-kms-v1"
+        "^com.google.api.grpc:proto-google-cloud-kms-v1",
+        "^com.google.api.grpc:proto-google-cloud-pubsub-v1"
       ],
       "semanticCommitType": "test",
       "semanticCommitScope": "deps"
+    },
+    {
+      "groupName": "OpenTelemetry extended dependencies",
+      "packagePatterns": [
+        "^io.opentelemetry.semconv:",
+        "^io.opentelemetry.instrumentation:",
+        "^io.opentelemetry.contrib:",
+        "^com.google.cloud.opentelemetry:",
+        "$com.google.cloud.opentelemetry:shared-resourcemapping"
+      ]
+    },
+    {
+      "packagePatterns": [
+        "^com.google.api:gapic-generator-java",
+        "^com.google.cloud:sdk-platform-java-config"
+      ],
+      "groupName": "sdk-platform-java dependencies"
+    },
+    {
+      "packagePatterns": [
+        "^ch.qos.logback:logback-classic"
+      ],
+      "allowedVersions": "<1.4.0"
     }
   ],
   "semanticCommits": true,

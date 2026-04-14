@@ -26,6 +26,7 @@ import java.util.Objects;
  * details.
  */
 public class Notification extends NotificationInfo {
+  private static final long serialVersionUID = 3150928330690874200L;
 
   private final StorageOptions options;
   private transient Storage storage;
@@ -115,25 +116,18 @@ public class Notification extends NotificationInfo {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof Notification)) {
       return false;
     }
     if (!super.equals(o)) {
       return false;
     }
-    Notification notification = (Notification) o;
-    return Objects.equals(toPb(), notification.toPb())
-        && Objects.equals(options, notification.options);
+    Notification that = (Notification) o;
+    return Objects.equals(options, that.options) && Objects.equals(storage, that.storage);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(super.hashCode(), options, storage);
-  }
-
-  static Notification fromPb(
-      Storage storage, com.google.api.services.storage.model.Notification notificationPb) {
-    return new Notification(
-        storage, new NotificationInfo.BuilderImpl(NotificationInfo.fromPb(notificationPb)));
   }
 }

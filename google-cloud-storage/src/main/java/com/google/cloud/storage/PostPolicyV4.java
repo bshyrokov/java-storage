@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -166,7 +167,9 @@ public final class PostPolicyV4 {
         return this;
       }
 
-      /** @deprecated Use {@link #setExpires(String)}. */
+      /**
+       * @deprecated Use {@link #setExpires(String)}.
+       */
       @Deprecated
       public Builder Expires(String expires) {
         return setExpires(expires);
@@ -187,7 +190,9 @@ public final class PostPolicyV4 {
         return this;
       }
 
-      /** @deprecated Use {@link #setCustomMetadataField(String, String)}. */
+      /**
+       * @deprecated Use {@link #setCustomMetadataField(String, String)}.
+       */
       @Deprecated
       public Builder AddCustomMetadataField(String field, String value) {
         return setCustomMetadataField(field, value);
@@ -296,13 +301,17 @@ public final class PostPolicyV4 {
         return this;
       }
 
-      /** @deprecated Use {@link #addExpiresCondition(long)} */
+      /**
+       * @deprecated Use {@link #addExpiresCondition(long)}
+       */
       @Deprecated
       public Builder addExpiresCondition(ConditionV4Type type, long expires) {
         return addExpiresCondition(expires);
       }
 
-      /** @deprecated Use {@link #addExpiresCondition(String)} */
+      /**
+       * @deprecated Use {@link #addExpiresCondition(String)}
+       */
       @Deprecated
       public Builder addExpiresCondition(ConditionV4Type type, String expires) {
         return addExpiresCondition(expires);
@@ -330,7 +339,9 @@ public final class PostPolicyV4 {
         return this;
       }
 
-      /** @deprecated Use {@link #addSuccessActionStatusCondition(int)} */
+      /**
+       * @deprecated Use {@link #addSuccessActionStatusCondition(int)}
+       */
       @Deprecated
       public Builder addSuccessActionStatusCondition(ConditionV4Type type, int status) {
         return addSuccessActionStatusCondition(status);
@@ -416,7 +427,7 @@ public final class PostPolicyV4 {
       for (int i = 0; i < jsonArray.length; i++) {
         char c = jsonArray[i];
         if (c >= 128) { // is a unicode character
-          escapedJson.append(String.format("\\u%04x", (int) c));
+          escapedJson.append(String.format(Locale.US, "\\u%04x", (int) c));
         } else {
           switch (c) {
             case '\\':

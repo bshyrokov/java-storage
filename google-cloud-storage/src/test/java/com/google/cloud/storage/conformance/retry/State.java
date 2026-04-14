@@ -29,12 +29,15 @@ import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.HmacKey;
 import com.google.cloud.storage.HmacKey.HmacKeyMetadata;
+import com.google.cloud.storage.Notification;
 import com.google.cloud.storage.ServiceAccount;
 import com.google.cloud.storage.Storage.ComposeRequest;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import com.google.pubsub.v1.TopicName;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -76,6 +79,10 @@ final class State {
   private static final Key<List<Acl>> KEY_ACLS = new Key<>("acls");
   private static final Key<byte[]> KEY_BYTES = new Key<>("bytes");
   private static final Key<ComposeRequest> KEY_COMPOSE_REQUEST = new Key<>("composeRequest");
+  private static final Key<TopicName> KEY_PUBSUB_TOPIC = new Key<>("topicName");
+  private static final Key<Notification> KEY_NOTIFICATION = new Key<>("notification");
+  private static final Key<List<Notification>> KEY_LIST_NOTIFICATION =
+      new Key<>("lise<notification>");
 
   private final ImmutableMap<Key<?>, Object> data;
 
@@ -301,9 +308,45 @@ final class State {
     return hasValue(KEY_COMPOSE_REQUEST);
   }
 
+  public boolean hasTopicName() {
+    return hasValue(KEY_PUBSUB_TOPIC);
+  }
+
+  public TopicName getTopicName() {
+    return getValue(KEY_PUBSUB_TOPIC);
+  }
+
+  public State with(TopicName topic) {
+    return newStateWith(KEY_PUBSUB_TOPIC, topic);
+  }
+
+  public boolean hasNotification() {
+    return hasValue(KEY_NOTIFICATION);
+  }
+
+  public Notification getNotification() {
+    return getValue(KEY_NOTIFICATION);
+  }
+
+  public State with(Notification notification) {
+    return newStateWith(KEY_NOTIFICATION, notification);
+  }
+
+  public boolean hasNotifications() {
+    return hasValue(KEY_LIST_NOTIFICATION);
+  }
+
+  public List<Notification> getNotifications() {
+    return getValue(KEY_LIST_NOTIFICATION);
+  }
+
+  public State with(List<Notification> notifications) {
+    return newStateWith(KEY_LIST_NOTIFICATION, notifications);
+  }
+
   private <T> T getValue(Key<T> key) {
     Object o = data.get(key);
-    requireNonNull(o, () -> String.format("%s was not found in state", key.name));
+    requireNonNull(o, () -> String.format(Locale.US, "%s was not found in state", key.name));
     return key.cast(o);
   }
 

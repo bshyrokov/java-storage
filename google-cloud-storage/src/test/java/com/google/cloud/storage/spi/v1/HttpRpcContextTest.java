@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
+import com.google.cloud.NoCredentials;
 import com.google.cloud.TransportOptions;
 import com.google.cloud.Tuple;
 import com.google.cloud.WriteChannel;
@@ -42,11 +43,15 @@ public class HttpRpcContextTest {
     UUID uuid = UUID.fromString("28220dff-1e8b-4770-9e10-022c2a99d8f3");
     HttpRpcContext testContext = new HttpRpcContext(() -> uuid);
 
-    assertThat(testContext.newInvocationId()).isEqualTo(uuid);
-    assertThat(testContext.getInvocationId()).isEqualTo(uuid);
-    // call again to ensure the id is consistent with our supplier
-    assertThat(testContext.newInvocationId()).isEqualTo(uuid);
-    assertThat(testContext.getInvocationId()).isEqualTo(uuid);
+    try {
+      assertThat(testContext.newInvocationId()).isEqualTo(uuid);
+      assertThat(testContext.getInvocationId()).isEqualTo(uuid);
+      // call again to ensure the id is consistent with our supplier
+      assertThat(testContext.newInvocationId()).isEqualTo(uuid);
+      assertThat(testContext.getInvocationId()).isEqualTo(uuid);
+    } finally {
+      testContext.clearInvocationId();
+    }
   }
 
   @Test
@@ -57,15 +62,17 @@ public class HttpRpcContextTest {
             .setContent(
                 "{\n"
                     + "  \"kind\": \"storage#serviceAccount\",\n"
-                    + "  \"email_address\": \"service-234234@gs-project-accounts.iam.gserviceaccount.com\"\n"
+                    + "  \"email_address\":"
+                    + " \"service-234234@gs-project-accounts.iam.gserviceaccount.com\"\n"
                     + "}\n")
             .setStatusCode(200);
     AuditingHttpTransport transport = new AuditingHttpTransport(response);
     TransportOptions transportOptions =
         HttpTransportOptions.newBuilder().setHttpTransportFactory(() -> transport).build();
     Storage service =
-        StorageOptions.getDefaultInstance()
-            .toBuilder()
+        StorageOptions.getDefaultInstance().toBuilder()
+            .setProjectId("test-project")
+            .setCredentials(NoCredentials.getInstance())
             .setTransportOptions(transportOptions)
             .build()
             .getService();
@@ -105,8 +112,7 @@ public class HttpRpcContextTest {
     TransportOptions transportOptions =
         HttpTransportOptions.newBuilder().setHttpTransportFactory(() -> transport).build();
     Storage service =
-        StorageOptions.getDefaultInstance()
-            .toBuilder()
+        StorageOptions.getDefaultInstance().toBuilder()
             .setTransportOptions(transportOptions)
             .build()
             .getService();

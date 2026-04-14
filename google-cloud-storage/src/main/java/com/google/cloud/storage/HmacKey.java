@@ -16,14 +16,16 @@
 
 package com.google.cloud.storage;
 
-import com.google.api.client.util.DateTime;
+import static com.google.cloud.storage.BackwardCompatibilityUtils.millisOffsetDateTimeCodec;
+
 import java.io.Serializable;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 
 /** HMAC key for a service account. */
 public class HmacKey implements Serializable {
 
-  private static final long serialVersionUID = -1809610424373783062L;
+  private static final long serialVersionUID = 3033393659217005187L;
   private final String secretKey;
   private final HmacKeyMetadata metadata;
 
@@ -77,33 +79,16 @@ public class HmacKey implements Serializable {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
+  public boolean equals(Object o) {
+    if (this == o) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (!(o instanceof HmacKey)) {
       return false;
     }
-    final HmacKeyMetadata other = (HmacKeyMetadata) obj;
-    return Objects.equals(this.secretKey, secretKey) && Objects.equals(this.metadata, metadata);
-  }
-
-  com.google.api.services.storage.model.HmacKey toPb() {
-    com.google.api.services.storage.model.HmacKey hmacKey =
-        new com.google.api.services.storage.model.HmacKey();
-    hmacKey.setSecret(this.secretKey);
-
-    if (metadata != null) {
-      hmacKey.setMetadata(metadata.toPb());
-    }
-
-    return hmacKey;
-  }
-
-  static HmacKey fromPb(com.google.api.services.storage.model.HmacKey hmacKey) {
-    return HmacKey.newBuilder(hmacKey.getSecret())
-        .setMetadata(HmacKeyMetadata.fromPb(hmacKey.getMetadata()))
-        .build();
+    HmacKey hmacKey = (HmacKey) o;
+    return Objects.equals(secretKey, hmacKey.secretKey)
+        && Objects.equals(metadata, hmacKey.metadata);
   }
 
   public enum HmacKeyState {
@@ -124,15 +109,15 @@ public class HmacKey implements Serializable {
    */
   public static class HmacKeyMetadata implements Serializable {
 
-    private static final long serialVersionUID = 4571684785352640737L;
+    private static final long serialVersionUID = 9130344756739042314L;
     private final String accessId;
     private final String etag;
     private final String id;
     private final String projectId;
     private final ServiceAccount serviceAccount;
     private final HmacKeyState state;
-    private final Long createTime;
-    private final Long updateTime;
+    private final OffsetDateTime createTime;
+    private final OffsetDateTime updateTime;
 
     private HmacKeyMetadata(Builder builder) {
       this.accessId = builder.accessId;
@@ -182,34 +167,6 @@ public class HmacKey implements Serializable {
           && Objects.equals(this.updateTime, other.updateTime);
     }
 
-    public com.google.api.services.storage.model.HmacKeyMetadata toPb() {
-      com.google.api.services.storage.model.HmacKeyMetadata metadata =
-          new com.google.api.services.storage.model.HmacKeyMetadata();
-      metadata.setAccessId(this.accessId);
-      metadata.setEtag(this.etag);
-      metadata.setId(this.id);
-      metadata.setProjectId(this.projectId);
-      metadata.setServiceAccountEmail(
-          this.serviceAccount == null ? null : this.serviceAccount.getEmail());
-      metadata.setState(this.state == null ? null : this.state.toString());
-      metadata.setTimeCreated(this.createTime == null ? null : new DateTime(this.createTime));
-      metadata.setUpdated(this.updateTime == null ? null : new DateTime(this.updateTime));
-
-      return metadata;
-    }
-
-    static HmacKeyMetadata fromPb(com.google.api.services.storage.model.HmacKeyMetadata metadata) {
-      return newBuilder(ServiceAccount.of(metadata.getServiceAccountEmail()))
-          .setAccessId(metadata.getAccessId())
-          .setCreateTime(metadata.getTimeCreated().getValue())
-          .setEtag(metadata.getEtag())
-          .setId(metadata.getId())
-          .setProjectId(metadata.getProjectId())
-          .setState(HmacKeyState.valueOf(metadata.getState()))
-          .setUpdateTime(metadata.getUpdated().getValue())
-          .build();
-    }
-
     /**
      * Returns the access id for this HMAC key. This is the id needed to get or delete the key. *
      */
@@ -246,13 +203,33 @@ public class HmacKey implements Serializable {
       return state;
     }
 
-    /** Returns the creation time of this HMAC key. * */
+    /**
+     * Returns the creation time of this HMAC key.
+     *
+     * @deprecated Use {@link #getCreateTimeOffsetDateTime()}
+     */
+    @Deprecated
     public Long getCreateTime() {
+      return millisOffsetDateTimeCodec.decode(createTime);
+    }
+
+    /** Returns the creation time of this HMAC key. * */
+    public OffsetDateTime getCreateTimeOffsetDateTime() {
       return createTime;
     }
 
-    /** Returns the last updated time of this HMAC key. * */
+    /**
+     * Returns the last updated time of this HMAC key.
+     *
+     * @deprecated Use {@link #getUpdateTimeOffsetDateTime()}
+     */
+    @Deprecated
     public Long getUpdateTime() {
+      return millisOffsetDateTimeCodec.decode(updateTime);
+    }
+
+    /** Returns the last updated time of this HMAC key. * */
+    public OffsetDateTime getUpdateTimeOffsetDateTime() {
       return updateTime;
     }
 
@@ -264,8 +241,8 @@ public class HmacKey implements Serializable {
       private String projectId;
       private ServiceAccount serviceAccount;
       private HmacKeyState state;
-      private Long createTime;
-      private Long updateTime;
+      private OffsetDateTime createTime;
+      private OffsetDateTime updateTime;
 
       private Builder(ServiceAccount serviceAccount) {
         this.serviceAccount = serviceAccount;
@@ -307,7 +284,15 @@ public class HmacKey implements Serializable {
         return this;
       }
 
+      /**
+       * @deprecated Use {@link #setCreateTimeOffsetDateTime(OffsetDateTime)}
+       */
+      @Deprecated
       public Builder setCreateTime(long createTime) {
+        return setCreateTimeOffsetDateTime(millisOffsetDateTimeCodec.encode(createTime));
+      }
+
+      public Builder setCreateTimeOffsetDateTime(OffsetDateTime createTime) {
         this.createTime = createTime;
         return this;
       }
@@ -322,7 +307,15 @@ public class HmacKey implements Serializable {
         return new HmacKeyMetadata(this);
       }
 
+      /**
+       * @deprecated Use {@link #setUpdateTimeOffsetDateTime(OffsetDateTime)}
+       */
+      @Deprecated
       public Builder setUpdateTime(long updateTime) {
+        return setUpdateTimeOffsetDateTime(millisOffsetDateTimeCodec.encode(updateTime));
+      }
+
+      public Builder setUpdateTimeOffsetDateTime(OffsetDateTime updateTime) {
         this.updateTime = updateTime;
         return this;
       }

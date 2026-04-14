@@ -16,19 +16,22 @@
 
 package com.google.cloud.storage.conformance.retry;
 
+import static com.google.cloud.storage.TestUtils.xxd;
 import static com.google.cloud.storage.conformance.retry.CtxFunctions.ResourceSetup.defaultSetup;
+import static com.google.cloud.storage.conformance.retry.CtxFunctions.ResourceSetup.notificationSetup;
+import static com.google.cloud.storage.conformance.retry.CtxFunctions.ResourceSetup.pubsubTopicSetup;
 import static com.google.cloud.storage.conformance.retry.CtxFunctions.ResourceSetup.serviceAccount;
 import static com.google.common.base.Predicates.and;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.Binding;
 import com.google.cloud.Identity;
 import com.google.cloud.Policy;
 import com.google.cloud.ReadChannel;
-import com.google.cloud.RetryHelper.RetryHelperException;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Acl.User;
 import com.google.cloud.storage.Blob;
@@ -37,6 +40,8 @@ import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.HmacKey.HmacKeyMetadata;
 import com.google.cloud.storage.HmacKey.HmacKeyState;
 import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.NotificationInfo;
+import com.google.cloud.storage.NotificationInfo.PayloadFormat;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobGetOption;
 import com.google.cloud.storage.Storage.BlobSourceOption;
@@ -48,14 +53,17 @@ import com.google.cloud.storage.Storage.CopyRequest;
 import com.google.cloud.storage.Storage.SignUrlOption;
 import com.google.cloud.storage.Storage.UriScheme;
 import com.google.cloud.storage.StorageRoles;
+import com.google.cloud.storage.TransportCompatibility.Transport;
 import com.google.cloud.storage.conformance.retry.CtxFunctions.Local;
 import com.google.cloud.storage.conformance.retry.CtxFunctions.ResourceSetup;
 import com.google.cloud.storage.conformance.retry.CtxFunctions.Rpc;
+import com.google.cloud.storage.conformance.retry.Functions.CtxFunction;
 import com.google.cloud.storage.conformance.retry.Functions.EConsumer;
 import com.google.cloud.storage.conformance.retry.RpcMethod.storage.bucket_acl;
 import com.google.cloud.storage.conformance.retry.RpcMethod.storage.buckets;
 import com.google.cloud.storage.conformance.retry.RpcMethod.storage.default_object_acl;
 import com.google.cloud.storage.conformance.retry.RpcMethod.storage.hmacKey;
+import com.google.cloud.storage.conformance.retry.RpcMethod.storage.notifications;
 import com.google.cloud.storage.conformance.retry.RpcMethod.storage.object_acl;
 import com.google.cloud.storage.conformance.retry.RpcMethod.storage.objects;
 import com.google.cloud.storage.conformance.retry.RpcMethod.storage.serviceaccount;
@@ -79,6 +87,7 @@ import com.google.common.io.ByteStreams;
 import com.google.errorprone.annotations.Immutable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -89,12 +98,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A class which serves to try and organize all of the {@link RpcMethodMapping} for the retry
@@ -108,7 +121,7 @@ import java.util.stream.Collectors;
 @Immutable
 @SuppressWarnings("Guava")
 final class RpcMethodMappings {
-  private static final Logger LOGGER = Logger.getLogger(RpcMethodMappings.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(RpcMethodMappings.class);
 
   private static final Predicate<TestRetryConformance> groupIsDownload =
       methodGroupIs("storage.objects.download");
@@ -116,6 +129,7 @@ final class RpcMethodMappings {
       methodGroupIs("storage.resumable.upload");
 
   static final int _2MiB = 2 * 1024 * 1024;
+  private static final ImmutableMap<String, String> MODIFY = ImmutableMap.of("a", "b");
   final Multimap<RpcMethod, RpcMethodMapping> funcMap;
 
   RpcMethodMappings() {
@@ -211,7 +225,7 @@ final class RpcMethodMappings {
 
   private void reportMappingSummary() {
     int mappingCount = funcMap.values().stream().mapToInt(m -> 1).sum();
-    LOGGER.info("Current total number of mappings defined: " + mappingCount);
+    LOGGER.info("Current total number of mappings defined: {}", mappingCount);
     String counts =
         funcMap.asMap().entrySet().stream()
             .map(
@@ -219,6 +233,7 @@ final class RpcMethodMappings {
                   RpcMethod rpcMethod = e.getKey();
                   Collection<RpcMethodMapping> mappings = e.getValue();
                   return String.format(
+                      Locale.US,
                       "\t%s.%s: %d",
                       rpcMethod
                           .getClass()
@@ -230,11 +245,11 @@ final class RpcMethodMappings {
                 })
             .sorted()
             .collect(Collectors.joining("\n", "\n", ""));
-    LOGGER.info("Current number of mappings per rpc method: " + counts);
+    LOGGER.info("Current number of mappings per rpc method: {}", counts);
     OptionalInt max =
         funcMap.values().stream().map(RpcMethodMapping::getMappingId).mapToInt(i -> i).max();
     if (max.isPresent()) {
-      LOGGER.info(String.format("Current max mapping index is: %d%n", max.getAsInt()));
+      LOGGER.info(String.format(Locale.US, "Current max mapping index is: %d%n", max.getAsInt()));
     } else {
       throw new IllegalStateException("No mappings defined");
     }
@@ -545,7 +560,14 @@ final class RpcMethodMappings {
                 .withApplicable(not(TestRetryConformance::isPreconditionsProvided))
                 .withTest(
                     (ctx, c) ->
-                        ctx.map(state -> state.with(ctx.getStorage().update(state.getBucket()))))
+                        ctx.map(
+                            state ->
+                                state.with(
+                                    ctx.getStorage()
+                                        .update(
+                                            state.getBucket().toBuilder()
+                                                .setLabels(MODIFY)
+                                                .build()))))
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(122, buckets.patch)
@@ -557,7 +579,7 @@ final class RpcMethodMappings {
                                 state.with(
                                     ctx.getStorage()
                                         .update(
-                                            state.getBucket(),
+                                            state.getBucket().toBuilder().setLabels(MODIFY).build(),
                                             BucketTargetOption.metagenerationMatch()))))
                 .build());
         a.add(
@@ -568,14 +590,23 @@ final class RpcMethodMappings {
                         ctx.map(
                             state ->
                                 state.with(
-                                    state
-                                        .getBucket()
+                                    state.getBucket().toBuilder()
+                                        .setLabels(MODIFY)
+                                        .build()
                                         .update(BucketTargetOption.metagenerationMatch()))))
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(243, buckets.patch)
                 .withApplicable(not(TestRetryConformance::isPreconditionsProvided))
-                .withTest((ctx, c) -> ctx.map(state -> state.with(state.getBucket().update())))
+                .withTest(
+                    (ctx, c) ->
+                        ctx.map(
+                            state ->
+                                state.with(
+                                    state.getBucket().toBuilder()
+                                        .setLabels(MODIFY)
+                                        .build()
+                                        .update())))
                 .build());
       }
 
@@ -651,6 +682,7 @@ final class RpcMethodMappings {
         a.add(
             RpcMethodMapping.newBuilder(240, buckets.setIamPolicy)
                 .withApplicable(TestRetryConformance::isPreconditionsProvided)
+                .withSetup(ResourceSetup.defaultSetup.andThen(Rpc.bucketIamPolicy))
                 .withTest(
                     (ctx, c) ->
                         ctx.map(
@@ -660,7 +692,7 @@ final class RpcMethodMappings {
                                         .setIamPolicy(
                                             state.getBucket().getName(),
                                             Policy.newBuilder()
-                                                .setEtag("h??")
+                                                .setEtag(state.getPolicy().getEtag())
                                                 .setVersion(3)
                                                 .setBindings(
                                                     ImmutableList.of(
@@ -817,6 +849,7 @@ final class RpcMethodMappings {
       private static void delete(ArrayList<RpcMethodMapping> a) {
         a.add(
             RpcMethodMapping.newBuilder(26, hmacKey.delete)
+                .withApplicable(TestRetryConformance.transportIs(Transport.HTTP))
                 .withSetup(
                     defaultSetup.andThen(
                         (ctx, c) ->
@@ -846,6 +879,7 @@ final class RpcMethodMappings {
       private static void get(ArrayList<RpcMethodMapping> a) {
         a.add(
             RpcMethodMapping.newBuilder(27, hmacKey.get)
+                .withApplicable(TestRetryConformance.transportIs(Transport.HTTP))
                 .withTest(
                     (ctx, c) ->
                         ctx.map(
@@ -860,6 +894,7 @@ final class RpcMethodMappings {
       private static void list(ArrayList<RpcMethodMapping> a) {
         a.add(
             RpcMethodMapping.newBuilder(28, hmacKey.list)
+                .withApplicable(TestRetryConformance.transportIs(Transport.HTTP))
                 .withTest(
                     (ctx, c) -> ctx.map(state -> state.consume(ctx.getStorage().listHmacKeys())))
                 .build());
@@ -868,7 +903,9 @@ final class RpcMethodMappings {
       private static void update(ArrayList<RpcMethodMapping> a) {
         a.add(
             RpcMethodMapping.newBuilder(29, hmacKey.update)
-                .withApplicable(not(TestRetryConformance::isPreconditionsProvided))
+                .withApplicable(
+                    not(TestRetryConformance::isPreconditionsProvided)
+                        .and(TestRetryConformance.transportIs(Transport.HTTP)))
                 .withTest(
                     (ctx, c) ->
                         ctx.map(
@@ -884,6 +921,7 @@ final class RpcMethodMappings {
       private static void create(ArrayList<RpcMethodMapping> a) {
         a.add(
             RpcMethodMapping.newBuilder(25, hmacKey.create)
+                .withApplicable(TestRetryConformance.transportIs(Transport.HTTP))
                 .withSetup(defaultSetup.andThen(serviceAccount))
                 .withTest(
                     (ctx, c) ->
@@ -897,13 +935,80 @@ final class RpcMethodMappings {
 
     static final class Notification {
 
-      private static void delete(ArrayList<RpcMethodMapping> a) {}
+      private static void delete(ArrayList<RpcMethodMapping> a) {
+        a.add(
+            RpcMethodMapping.newBuilder(248, notifications.delete)
+                .withSetup(notificationSetup)
+                .withTest(
+                    (ctx, c) ->
+                        ctx.map(
+                            state -> {
+                              boolean success =
+                                  ctx.getStorage()
+                                      .deleteNotification(
+                                          state.getBucket().getName(),
+                                          state.getNotification().getNotificationId());
+                              assertTrue(success);
+                              return state.with(success);
+                            }))
+                .build());
+      }
 
-      private static void get(ArrayList<RpcMethodMapping> a) {}
+      private static void get(ArrayList<RpcMethodMapping> a) {
+        a.add(
+            RpcMethodMapping.newBuilder(246, notifications.get)
+                .withSetup(notificationSetup)
+                .withTest(
+                    (ctx, c) ->
+                        ctx.map(
+                            state -> {
+                              com.google.cloud.storage.Notification notification =
+                                  ctx.getStorage()
+                                      .getNotification(
+                                          state.getBucket().getName(),
+                                          state.getNotification().getNotificationId());
+                              return state.with(notification);
+                            }))
+                .build());
+      }
 
-      private static void insert(ArrayList<RpcMethodMapping> a) {}
+      private static void insert(ArrayList<RpcMethodMapping> a) {
+        a.add(
+            RpcMethodMapping.newBuilder(247, notifications.insert)
+                .withSetup(pubsubTopicSetup)
+                .withTest(
+                    (ctx, c) ->
+                        ctx.map(
+                            state -> {
+                              PayloadFormat format = PayloadFormat.JSON_API_V1;
+                              Map<String, String> attributes = ImmutableMap.of("label1", "value1");
+                              NotificationInfo info =
+                                  NotificationInfo.newBuilder(state.getTopicName().toString())
+                                      .setPayloadFormat(format)
+                                      .setCustomAttributes(attributes)
+                                      .build();
+                              com.google.cloud.storage.Notification notification =
+                                  ctx.getStorage()
+                                      .createNotification(state.getBucket().getName(), info);
+                              return state.with(notification);
+                            }))
+                .build());
+      }
 
-      private static void list(ArrayList<RpcMethodMapping> a) {}
+      private static void list(ArrayList<RpcMethodMapping> a) {
+        a.add(
+            RpcMethodMapping.newBuilder(249, notifications.list)
+                .withSetup(pubsubTopicSetup)
+                .withTest(
+                    (ctx, c) ->
+                        ctx.map(
+                            state -> {
+                              List<com.google.cloud.storage.Notification> notifications =
+                                  ctx.getStorage().listNotifications(state.getBucket().getName());
+                              return state.with(notifications);
+                            }))
+                .build());
+      }
     }
 
     static final class ObjectAcl {
@@ -1027,8 +1132,9 @@ final class RpcMethodMappings {
                     (ctx, c) ->
                         ctx.map(
                             state -> {
-                              boolean success =
-                                  ctx.getStorage().delete(state.getBlob().getBlobId());
+                              BlobId id = state.getBlob().getBlobId();
+                              BlobId idWithoutGeneration = BlobId.of(id.getBucket(), id.getName());
+                              boolean success = ctx.getStorage().delete(idWithoutGeneration);
                               assertTrue(success);
                               return state.with(success);
                             }))
@@ -1070,7 +1176,17 @@ final class RpcMethodMappings {
         a.add(
             RpcMethodMapping.newBuilder(67, objects.delete)
                 .withApplicable(not(TestRetryConformance::isPreconditionsProvided))
-                .withTest((ctx, c) -> ctx.peek(state -> state.getBlob().delete()))
+                .withTest(
+                    (ctx, c) ->
+                        ctx.peek(
+                            state -> {
+                              Blob blob = state.getBlob();
+                              Blob blobWithoutGeneration =
+                                  blob.toBuilder()
+                                      .setBlobId(BlobId.of(blob.getBucket(), blob.getName()))
+                                      .build();
+                              blobWithoutGeneration.delete();
+                            }))
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(68, objects.delete)
@@ -1164,20 +1280,18 @@ final class RpcMethodMappings {
                     (ctx, c) ->
                         ctx.peek(
                             state -> {
-                              try {
-                                ReadChannel reader =
-                                    ctx.getStorage().reader(ctx.getState().getBlob().getBlobId());
-                                WritableByteChannel write =
-                                    Channels.newChannel(ByteStreams.nullOutputStream());
+                              ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                              try (ReadChannel reader =
+                                  ctx.getStorage().reader(ctx.getState().getBlob().getBlobId())) {
+                                WritableByteChannel write = Channels.newChannel(baos);
                                 ByteStreams.copy(reader, write);
                               } catch (IOException e) {
-                                if (e.getCause() instanceof RetryHelperException) {
-                                  RetryHelperException cause = (RetryHelperException) e.getCause();
-                                  if (cause.getCause() instanceof BaseServiceException) {
-                                    throw cause.getCause();
-                                  }
+                                if (e.getCause() instanceof BaseServiceException) {
+                                  throw e.getCause();
                                 }
                               }
+                              assertThat(xxd(baos.toByteArray()))
+                                  .isEqualTo(xxd(c.getHelloWorldUtf8Bytes()));
                             }))
                 .build());
         a.add(
@@ -1186,23 +1300,46 @@ final class RpcMethodMappings {
                     (ctx, c) ->
                         ctx.peek(
                             state -> {
-                              try {
-                                ReadChannel reader =
-                                    ctx.getStorage()
-                                        .reader(
-                                            ctx.getState().getBlob().getBlobId().getBucket(),
-                                            ctx.getState().getBlob().getBlobId().getName());
-                                WritableByteChannel write =
-                                    Channels.newChannel(ByteStreams.nullOutputStream());
+                              ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                              try (ReadChannel reader =
+                                  ctx.getStorage()
+                                      .reader(
+                                          ctx.getState().getBlob().getBlobId().getBucket(),
+                                          ctx.getState().getBlob().getBlobId().getName())) {
+                                WritableByteChannel write = Channels.newChannel(baos);
                                 ByteStreams.copy(reader, write);
                               } catch (IOException e) {
-                                if (e.getCause() instanceof RetryHelperException) {
-                                  RetryHelperException cause = (RetryHelperException) e.getCause();
-                                  if (cause.getCause() instanceof BaseServiceException) {
-                                    throw cause.getCause();
-                                  }
+                                if (e.getCause() instanceof BaseServiceException) {
+                                  throw e.getCause();
                                 }
                               }
+
+                              assertThat(xxd(baos.toByteArray()))
+                                  .isEqualTo(xxd(c.getHelloWorldUtf8Bytes()));
+                            }))
+                .build());
+        a.add(
+            RpcMethodMapping.newBuilder(250, objects.get)
+                .withTest(
+                    (ctx, c) ->
+                        ctx.peek(
+                            state -> {
+                              ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                              try (ReadChannel reader =
+                                  ctx.getStorage()
+                                      .reader(
+                                          ctx.getState().getBlob().getBlobId(),
+                                          BlobSourceOption.shouldReturnRawInputStream(false))) {
+                                WritableByteChannel write = Channels.newChannel(baos);
+                                ByteStreams.copy(reader, write);
+                              } catch (IOException e) {
+                                if (e.getCause() instanceof BaseServiceException) {
+                                  throw e.getCause();
+                                }
+                              }
+
+                              assertThat(xxd(baos.toByteArray()))
+                                  .isEqualTo(xxd(c.getHelloWorldUtf8Bytes()));
                             }))
                 .build());
         a.add(
@@ -1330,6 +1467,40 @@ final class RpcMethodMappings {
                 .withTest(
                     (ctx, c) ->
                         ctx.map(state -> state.with(state.getBucket().get(c.getObjectName()))))
+                .build());
+        a.add(
+            RpcMethodMapping.newBuilder(244, objects.get)
+                .withTest(
+                    (ctx, c) ->
+                        ctx.peek(
+                            state ->
+                                withTempFile(
+                                    c.getMethod().getName(),
+                                    ".txt",
+                                    (tmpOutFile) -> {
+                                      ctx.getStorage().downloadTo(state.getBlobId(), tmpOutFile);
+                                      byte[] downloadedBytes = Files.readAllBytes(tmpOutFile);
+                                      assertThat(downloadedBytes)
+                                          .isEqualTo(c.getHelloWorldUtf8Bytes());
+                                    })))
+                .build());
+        a.add(
+            RpcMethodMapping.newBuilder(245, objects.get)
+                .withTest(
+                    (ctx, c) ->
+                        ctx.peek(
+                            state ->
+                                withTempFile(
+                                    c.getMethod().getName(),
+                                    ".txt",
+                                    (tmpOutFile) -> {
+                                      FileOutputStream fos =
+                                          new FileOutputStream(tmpOutFile.toFile());
+                                      ctx.getStorage().downloadTo(state.getBlobId(), fos);
+                                      byte[] downloadedBytes = Files.readAllBytes(tmpOutFile);
+                                      assertThat(downloadedBytes)
+                                          .isEqualTo(c.getHelloWorldUtf8Bytes());
+                                    })))
                 .build());
       }
 
@@ -1462,7 +1633,9 @@ final class RpcMethodMappings {
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(54, objects.insert)
-                .withApplicable(not(TestRetryConformance::isPreconditionsProvided))
+                .withApplicable(
+                    not(TestRetryConformance::isPreconditionsProvided)
+                        .and(trc -> trc.getTransport() == Transport.HTTP))
                 .withSetup(defaultSetup.andThen(Local.blobInfoWithoutGeneration))
                 .withTest(
                     (ctx, c) ->
@@ -1678,7 +1851,8 @@ final class RpcMethodMappings {
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(118, objects.insert)
-                .withApplicable(TestRetryConformance::isPreconditionsProvided)
+                .withApplicable(
+                    and(TestRetryConformance::isPreconditionsProvided, not(groupIsResumableUpload)))
                 .withTest(
                     (ctx, c) ->
                         ctx.map(
@@ -1693,7 +1867,8 @@ final class RpcMethodMappings {
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(119, objects.insert)
-                .withApplicable(TestRetryConformance::isPreconditionsProvided)
+                .withApplicable(
+                    and(TestRetryConformance::isPreconditionsProvided, not(groupIsResumableUpload)))
                 .withTest(
                     (ctx, c) ->
                         ctx.map(
@@ -1704,7 +1879,7 @@ final class RpcMethodMappings {
                                         .create(
                                             c.getObjectName(),
                                             c.getHelloWorldUtf8Bytes(),
-                                            "text/plain);charset=utf-8",
+                                            "text/plain;charset=utf-8",
                                             Bucket.BlobTargetOption.doesNotExist()))))
                 .build());
         a.add(
@@ -1756,7 +1931,13 @@ final class RpcMethodMappings {
                 .withTest(
                     (ctx, c) ->
                         ctx.map(
-                            state -> state.with(ctx.getStorage().update(ctx.getState().getBlob()))))
+                            state ->
+                                state.with(
+                                    ctx.getStorage()
+                                        .update(
+                                            ctx.getState().getBlob().toBuilder()
+                                                .setMetadata(MODIFY)
+                                                .build()))))
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(57, objects.patch)
@@ -1768,13 +1949,19 @@ final class RpcMethodMappings {
                                 state.with(
                                     ctx.getStorage()
                                         .update(
-                                            ctx.getState().getBlob(),
+                                            ctx.getState().getBlob().toBuilder()
+                                                .setMetadata(MODIFY)
+                                                .build(),
                                             BlobTargetOption.metagenerationMatch()))))
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(79, objects.patch)
                 .withApplicable(not(TestRetryConformance::isPreconditionsProvided))
-                .withTest((ctx, c) -> ctx.peek(state -> state.getBlob().update()))
+                .withTest(
+                    (ctx, c) ->
+                        ctx.peek(
+                            state ->
+                                state.getBlob().toBuilder().setMetadata(MODIFY).build().update()))
                 .build());
         a.add(
             RpcMethodMapping.newBuilder(80, objects.patch)
@@ -1784,8 +1971,9 @@ final class RpcMethodMappings {
                         ctx.map(
                             state ->
                                 state.with(
-                                    state
-                                        .getBlob()
+                                    state.getBlob().toBuilder()
+                                        .setMetadata(MODIFY)
+                                        .build()
                                         .update(BlobTargetOption.metagenerationMatch()))))
                 .build());
       }
@@ -1938,6 +2126,7 @@ final class RpcMethodMappings {
       private static void get(ArrayList<RpcMethodMapping> a) {
         a.add(
             RpcMethodMapping.newBuilder(59, serviceaccount.get)
+                .withApplicable(TestRetryConformance.transportIs(Transport.HTTP))
                 .withTest(
                     (ctx, c) ->
                         ctx.map(
@@ -1952,5 +2141,13 @@ final class RpcMethodMappings {
 
   private static Predicate<TestRetryConformance> methodGroupIs(String s) {
     return (c) -> s.equals(c.getMethod().getGroup());
+  }
+
+  private static CtxFunction temporarilySkipMapping(
+      String message, java.util.function.Predicate<TestRetryConformance> p) {
+    return (ctx, trc) -> {
+      assumeFalse(message, p.test(trc));
+      return ctx;
+    };
   }
 }

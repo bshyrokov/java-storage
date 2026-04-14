@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import com.google.api.gax.core.BackgroundResource;
 import com.google.api.gax.paging.AbstractFixedSizeCollection;
 import com.google.api.gax.paging.AbstractPage;
 import com.google.api.gax.paging.AbstractPagedListResponse;
+import com.google.api.gax.rpc.BidiStreamingCallable;
 import com.google.api.gax.rpc.ClientStreamingCallable;
 import com.google.api.gax.rpc.PageContext;
 import com.google.api.gax.rpc.ServerStreamingCallable;
@@ -47,18 +48,21 @@ import javax.annotation.Generated;
  * Service Description: ## API Overview and Naming Syntax
  *
  * <p>The Cloud Storage gRPC API allows applications to read and write data through the abstractions
- * of buckets and objects. For a description of these abstractions please see
- * https://cloud.google.com/storage/docs.
+ * of buckets and objects. For a description of these abstractions please see [Cloud Storage
+ * documentation](https://cloud.google.com/storage/docs).
  *
- * <p>Resources are named as follows: - Projects are referred to as they are defined by the Resource
- * Manager API, using strings like `projects/123456` or `projects/my-string-id`. - Buckets are named
- * using string names of the form: `projects/{project}/buckets/{bucket}` For globally unique
- * buckets, `_` may be substituted for the project. - Objects are uniquely identified by their name
- * along with the name of the bucket they belong to, as separate strings in this API. For example:
+ * <p>Resources are named as follows:
  *
- * <p>ReadObjectRequest { bucket: 'projects/_/buckets/my-bucket' object: 'my-object' } Note that
- * object names can contain `/` characters, which are treated as any other character (no special
- * directory semantics).
+ * <p>- Projects are referred to as they are defined by the Resource Manager API, using strings like
+ * `projects/123456` or `projects/my-string-id`. - Buckets are named using string names of the form:
+ * `projects/{project}/buckets/{bucket}`. For globally unique buckets, `_` might be substituted for
+ * the project. - Objects are uniquely identified by their name along with the name of the bucket
+ * they belong to, as separate strings in this API. For example:
+ *
+ * <p>``` ReadObjectRequest { bucket: 'projects/_/buckets/my-bucket' object: 'my-object' } ```
+ *
+ * <p>Note that object names can contain `/` characters, which are treated as any other character
+ * (no special directory semantics).
  *
  * <p>This class provides the ability to make remote calls to the backing service through method
  * calls that map to API methods. Sample code to get started:
@@ -78,19 +82,484 @@ import javax.annotation.Generated;
  * <p>Note: close() needs to be called on the StorageClient object to clean up resources such as
  * threads. In the example above, try-with-resources is used, which automatically calls close().
  *
- * <p>The surface of this class includes several types of Java methods for each of the API's
- * methods:
- *
- * <ol>
- *   <li>A "flattened" method. With this type of method, the fields of the request type have been
- *       converted into function parameters. It may be the case that not all fields are available as
- *       parameters, and not every API method will have a flattened method entry point.
- *   <li>A "request object" method. This type of method only takes one parameter, a request object,
- *       which must be constructed before the call. Not every API method will have a request object
- *       method.
- *   <li>A "callable" method. This type of method takes no parameters and returns an immutable API
- *       callable object, which can be used to initiate calls to the service.
- * </ol>
+ * <table>
+ *    <caption>Methods</caption>
+ *    <tr>
+ *      <th>Method</th>
+ *      <th>Description</th>
+ *      <th>Method Variants</th>
+ *    </tr>
+ *    <tr>
+ *      <td><p> DeleteBucket</td>
+ *      <td><p> Permanently deletes an empty bucket. The request fails if there are any live or noncurrent objects in the bucket, but the request succeeds if the bucket only contains soft-deleted objects or incomplete uploads, such as ongoing XML API multipart uploads. Does not permanently delete soft-deleted objects.
+ * <p>  When this API is used to delete a bucket containing an object that has a soft delete policy enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime` properties are set on the object.
+ * <p>  Objects and multipart uploads that were in the bucket at the time of deletion are also retained for the specified retention duration. When a soft-deleted bucket reaches the end of its retention duration, it is permanently deleted. The `hardDeleteTime` of the bucket always equals or exceeds the expiration time of the last soft-deleted object in the bucket.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.buckets.delete` IAM permission on the bucket.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> deleteBucket(DeleteBucketRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> deleteBucket(BucketName name)
+ *           <li><p> deleteBucket(String name)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> deleteBucketCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> GetBucket</td>
+ *      <td><p> Returns metadata for the specified bucket.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.buckets.get` IAM permission on the bucket. Additionally, to return specific bucket metadata, the authenticated user must have the following permissions:
+ * <p>  - To return the IAM policies: `storage.buckets.getIamPolicy` - To return the bucket IP filtering rules: `storage.buckets.getIpFilter`</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> getBucket(GetBucketRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> getBucket(BucketName name)
+ *           <li><p> getBucket(String name)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> getBucketCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> CreateBucket</td>
+ *      <td><p> Creates a new bucket.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.buckets.create` IAM permission on the bucket. Additionally, to enable specific bucket features, the authenticated user must have the following permissions:
+ * <p>  - To enable object retention using the `enableObjectRetention` query parameter: `storage.buckets.enableObjectRetention` - To set the bucket IP filtering rules: `storage.buckets.setIpFilter`</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> createBucket(CreateBucketRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> createBucket(ProjectName parent, Bucket bucket, String bucketId)
+ *           <li><p> createBucket(String parent, Bucket bucket, String bucketId)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> createBucketCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> ListBuckets</td>
+ *      <td><p> Retrieves a list of buckets for a given project, ordered lexicographically by name.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.buckets.list` IAM permission on the bucket. Additionally, to enable specific bucket features, the authenticated user must have the following permissions:
+ * <p>  - To list the IAM policies: `storage.buckets.getIamPolicy` - To list the bucket IP filtering rules: `storage.buckets.getIpFilter`</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> listBuckets(ListBucketsRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> listBuckets(ProjectName parent)
+ *           <li><p> listBuckets(String parent)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> listBucketsPagedCallable()
+ *           <li><p> listBucketsCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> LockBucketRetentionPolicy</td>
+ *      <td><p> Permanently locks the retention policy that is currently applied to the specified bucket.
+ * <p>  Caution: Locking a bucket is an irreversible action. Once you lock a bucket:
+ * <p>  - You cannot remove the retention policy from the bucket. - You cannot decrease the retention period for the policy.
+ * <p>  Once locked, you must delete the entire bucket in order to remove the bucket's retention policy. However, before you can delete the bucket, you must delete all the objects in the bucket, which is only possible if all the objects have reached the retention period set by the retention policy.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.buckets.update` IAM permission on the bucket.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> lockBucketRetentionPolicy(LockBucketRetentionPolicyRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> lockBucketRetentionPolicy(BucketName bucket)
+ *           <li><p> lockBucketRetentionPolicy(String bucket)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> lockBucketRetentionPolicyCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> GetIamPolicy</td>
+ *      <td><p> Gets the IAM policy for a specified bucket or managed folder. The `resource` field in the request should be `projects/_/buckets/{bucket}` for a bucket, or `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.buckets.getIamPolicy` on the bucket or `storage.managedFolders.getIamPolicy` IAM permission on the managed folder.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> getIamPolicy(GetIamPolicyRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> getIamPolicy(ResourceName resource)
+ *           <li><p> getIamPolicy(String resource)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> getIamPolicyCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> SetIamPolicy</td>
+ *      <td><p> Updates an IAM policy for the specified bucket or managed folder. The `resource` field in the request should be `projects/_/buckets/{bucket}` for a bucket, or `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> setIamPolicy(SetIamPolicyRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> setIamPolicy(ResourceName resource, Policy policy)
+ *           <li><p> setIamPolicy(String resource, Policy policy)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> setIamPolicyCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> TestIamPermissions</td>
+ *      <td><p> Tests a set of permissions on the given bucket, object, or managed folder to see which, if any, are held by the caller. The `resource` field in the request should be `projects/_/buckets/{bucket}` for a bucket, `projects/_/buckets/{bucket}/objects/{object}` for an object, or `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> testIamPermissions(TestIamPermissionsRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> testIamPermissions(ResourceName resource, List&lt;String&gt; permissions)
+ *           <li><p> testIamPermissions(String resource, List&lt;String&gt; permissions)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> testIamPermissionsCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> UpdateBucket</td>
+ *      <td><p> Updates a bucket. Changes to the bucket are readable immediately after writing, but configuration changes might take time to propagate. This method supports `patch` semantics.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.buckets.update` IAM permission on the bucket. Additionally, to enable specific bucket features, the authenticated user must have the following permissions:
+ * <p>  - To set bucket IP filtering rules: `storage.buckets.setIpFilter` - To update public access prevention policies or access control lists (ACLs): `storage.buckets.setIamPolicy`</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> updateBucket(UpdateBucketRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> updateBucket(Bucket bucket, FieldMask updateMask)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> updateBucketCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> ComposeObject</td>
+ *      <td><p> Concatenates a list of existing objects into a new object in the same bucket. The existing source objects are unaffected by this operation.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires the `storage.objects.create` and `storage.objects.get` IAM permissions to use this method. If the new composite object overwrites an existing object, the authenticated user must also have the `storage.objects.delete` permission. If the request body includes the retention property, the authenticated user must also have the `storage.objects.setRetention` IAM permission.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> composeObject(ComposeObjectRequest request)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> composeObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> DeleteObject</td>
+ *      <td><p> Deletes an object and its metadata. Deletions are permanent if versioning is not enabled for the bucket, or if the generation parameter is used, or if soft delete is not enabled for the bucket. When this API is used to delete an object from a bucket that has soft delete policy enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime` properties are set on the object. This API cannot be used to permanently delete soft-deleted objects. Soft-deleted objects are permanently deleted according to their `hardDeleteTime`.
+ * <p>  You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject] API to restore soft-deleted objects until the soft delete retention period has passed.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.objects.delete` IAM permission on the bucket.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> deleteObject(DeleteObjectRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> deleteObject(BucketName bucket, String object)
+ *           <li><p> deleteObject(String bucket, String object)
+ *           <li><p> deleteObject(BucketName bucket, String object, long generation)
+ *           <li><p> deleteObject(String bucket, String object, long generation)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> deleteObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> RestoreObject</td>
+ *      <td><p> Restores a soft-deleted object. When a soft-deleted object is restored, a new copy of that object is created in the same bucket and inherits the same metadata as the soft-deleted object. The inherited metadata is the metadata that existed when the original object became soft deleted, with the following exceptions:
+ * <p>    - The `createTime` of the new object is set to the time at which the   soft-deleted object was restored.   - The `softDeleteTime` and `hardDeleteTime` values are cleared.   - A new generation is assigned and the metageneration is reset to 1.   - If the soft-deleted object was in a bucket that had Autoclass enabled,   the new object is     restored to Standard storage.   - The restored object inherits the bucket's default object ACL, unless   `copySourceAcl` is `true`.
+ * <p>  If a live object using the same name already exists in the bucket and becomes overwritten, the live object becomes a noncurrent object if Object Versioning is enabled on the bucket. If Object Versioning is not enabled, the live object becomes soft deleted.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires the following IAM permissions to use this method:
+ * <p>    - `storage.objects.restore`   - `storage.objects.create`   - `storage.objects.delete` (only required if overwriting an existing   object)   - `storage.objects.getIamPolicy` (only required if `projection` is `full`   and the relevant bucket     has uniform bucket-level access disabled)   - `storage.objects.setIamPolicy` (only required if `copySourceAcl` is   `true` and the relevant     bucket has uniform bucket-level access disabled)</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> restoreObject(RestoreObjectRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> restoreObject(BucketName bucket, String object, long generation)
+ *           <li><p> restoreObject(String bucket, String object, long generation)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> restoreObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> CancelResumableWrite</td>
+ *      <td><p> Cancels an in-progress resumable upload.
+ * <p>  Any attempts to write to the resumable upload after cancelling the upload fail.
+ * <p>  The behavior for any in-progress write operations is not guaranteed; they could either complete before the cancellation or fail if the cancellation completes first.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> cancelResumableWrite(CancelResumableWriteRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> cancelResumableWrite(String uploadId)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> cancelResumableWriteCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> GetObject</td>
+ *      <td><p> Retrieves object metadata.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.objects.get` IAM permission on the bucket. To return object ACLs, the authenticated user must also have the `storage.objects.getIamPolicy` permission.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> getObject(GetObjectRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> getObject(BucketName bucket, String object)
+ *           <li><p> getObject(String bucket, String object)
+ *           <li><p> getObject(BucketName bucket, String object, long generation)
+ *           <li><p> getObject(String bucket, String object, long generation)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> getObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> ReadObject</td>
+ *      <td><p> Retrieves object data.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.objects.get` IAM permission on the bucket.</td>
+ *      <td>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> readObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> BidiReadObject</td>
+ *      <td><p> Reads an object's data.
+ * <p>  This bi-directional API reads data from an object, allowing you to request multiple data ranges within a single stream, even across several messages. If an error occurs with any request, the stream closes with a relevant error code. Since you can have multiple outstanding requests, the error response includes a `BidiReadObjectError` proto in its `details` field, reporting the specific error, if any, for each pending `read_id`.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.objects.get` IAM permission on the bucket.</td>
+ *      <td>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> bidiReadObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> UpdateObject</td>
+ *      <td><p> Updates an object's metadata. Equivalent to JSON API's `storage.objects.patch` method.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.objects.update` IAM permission on the bucket.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> updateObject(UpdateObjectRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> updateObject(Object object, FieldMask updateMask)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> updateObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> WriteObject</td>
+ *      <td><p> Stores a new object and metadata.
+ * <p>  An object can be written either in a single message stream or in a resumable sequence of message streams. To write using a single stream, the client should include in the first message of the stream an `WriteObjectSpec` describing the destination bucket, object, and any preconditions. Additionally, the final message must set 'finish_write' to true, or else it is an error.
+ * <p>  For a resumable write, the client should instead call `StartResumableWrite()`, populating a `WriteObjectSpec` into that request. They should then attach the returned `upload_id` to the first message of each following call to `WriteObject`. If the stream is closed before finishing the upload (either explicitly by the client or due to a network error or an error response from the server), the client should do as follows:
+ * <p>    - Check the result Status of the stream, to determine if writing can be     resumed on this stream or must be restarted from scratch (by calling     `StartResumableWrite()`). The resumable errors are `DEADLINE_EXCEEDED`,     `INTERNAL`, and `UNAVAILABLE`. For each case, the client should use     binary exponential backoff before retrying.  Additionally, writes can     be resumed after `RESOURCE_EXHAUSTED` errors, but only after taking     appropriate measures, which might include reducing aggregate send rate     across clients and/or requesting a quota increase for your project.   - If the call to `WriteObject` returns `ABORTED`, that indicates     concurrent attempts to update the resumable write, caused either by     multiple racing clients or by a single client where the previous     request was timed out on the client side but nonetheless reached the     server. In this case the client should take steps to prevent further     concurrent writes. For example, increase the timeouts and stop using     more than one process to perform the upload. Follow the steps below for     resuming the upload.   - For resumable errors, the client should call `QueryWriteStatus()` and     then continue writing from the returned `persisted_size`. This might be     less than the amount of data the client previously sent. Note also that     it is acceptable to send data starting at an offset earlier than the     returned `persisted_size`; in this case, the service skips data at     offsets that were already persisted (without checking that it matches     the previously written data), and write only the data starting from the     persisted offset. Even though the data isn't written, it might still     incur a performance cost over resuming at the correct write offset.     This behavior can make client-side handling simpler in some cases.   - Clients must only send data that is a multiple of 256 KiB per message,     unless the object is being finished with `finish_write` set to `true`.
+ * <p>  The service does not view the object as complete until the client has sent a `WriteObjectRequest` with `finish_write` set to `true`. Sending any requests on a stream after sending a request with `finish_write` set to `true` causes an error. The client must check the response it receives to determine how much data the service is able to commit and whether the service views the object as complete.
+ * <p>  Attempting to resume an already finalized object results in an `OK` status, with a `WriteObjectResponse` containing the finalized object's metadata.
+ * <p>  Alternatively, you can use the `BidiWriteObject` operation to write an object with controls over flushing and the ability to fetch the ability to determine the current persisted size.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.objects.create` IAM permission on the bucket.</td>
+ *      <td>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> writeObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> BidiWriteObject</td>
+ *      <td><p> Stores a new object and metadata.
+ * <p>  This is similar to the `WriteObject` call with the added support for manual flushing of persisted state, and the ability to determine current persisted size without closing the stream.
+ * <p>  The client might specify one or both of the `state_lookup` and `flush` fields in each `BidiWriteObjectRequest`. If `flush` is specified, the data written so far is persisted to storage. If `state_lookup` is specified, the service responds with a `BidiWriteObjectResponse` that contains the persisted size. If both `flush` and `state_lookup` are specified, the flush always occurs before a `state_lookup`, so that both might be set in the same request and the returned state is the state of the object post-flush. When the stream is closed, a `BidiWriteObjectResponse` is always sent to the client, regardless of the value of `state_lookup`.</td>
+ *      <td>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> bidiWriteObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> ListObjects</td>
+ *      <td><p> Retrieves a list of objects matching the criteria.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  The authenticated user requires `storage.objects.list` IAM permission to use this method. To return object ACLs, the authenticated user must also have the `storage.objects.getIamPolicy` permission.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> listObjects(ListObjectsRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> listObjects(BucketName parent)
+ *           <li><p> listObjects(String parent)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> listObjectsPagedCallable()
+ *           <li><p> listObjectsCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> RewriteObject</td>
+ *      <td><p> Rewrites a source object to a destination object. Optionally overrides metadata.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> rewriteObject(RewriteObjectRequest request)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> rewriteObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> StartResumableWrite</td>
+ *      <td><p> Starts a resumable write operation. This method is part of the Resumable upload feature. This allows you to upload large objects in multiple chunks, which is more resilient to network interruptions than a single upload. The validity duration of the write operation, and the consequences of it becoming invalid, are service-dependent.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires `storage.objects.create` IAM permission on the bucket.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> startResumableWrite(StartResumableWriteRequest request)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> startResumableWriteCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> QueryWriteStatus</td>
+ *      <td><p> Determines the `persisted_size` of an object that is being written. This method is part of the resumable upload feature. The returned value is the size of the object that has been persisted so far. The value can be used as the `write_offset` for the next `Write()` call.
+ * <p>  If the object does not exist, meaning if it was deleted, or the first `Write()` has not yet reached the service, this method returns the error `NOT_FOUND`.
+ * <p>  This method is useful for clients that buffer data and need to know which data can be safely evicted. The client can call `QueryWriteStatus()` at any time to determine how much data has been logged for this object. For any sequence of `QueryWriteStatus()` calls for a given object name, the sequence of returned `persisted_size` values are non-decreasing.</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> queryWriteStatus(QueryWriteStatusRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> queryWriteStatus(String uploadId)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> queryWriteStatusCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *    <tr>
+ *      <td><p> MoveObject</td>
+ *      <td><p> Moves the source object to the destination object in the same bucket. This operation moves a source object to a destination object in the same bucket by renaming the object. The move itself is an atomic transaction, ensuring all steps either complete successfully or no changes are made.
+ * <p>  &#42;&#42;IAM Permissions&#42;&#42;:
+ * <p>  Requires the following IAM permissions to use this method:
+ * <p>    - `storage.objects.move`   - `storage.objects.create`   - `storage.objects.delete` (only required if overwriting an existing   object)</td>
+ *      <td>
+ *      <p>Request object method variants only take one parameter, a request object, which must be constructed before the call.</p>
+ *      <ul>
+ *           <li><p> moveObject(MoveObjectRequest request)
+ *      </ul>
+ *      <p>"Flattened" method variants have converted the fields of the request object into function parameters to enable multiple ways to call the same method.</p>
+ *      <ul>
+ *           <li><p> moveObject(BucketName bucket, String sourceObject, String destinationObject)
+ *           <li><p> moveObject(String bucket, String sourceObject, String destinationObject)
+ *      </ul>
+ *      <p>Callable method variants take no parameters and return an immutable API callable object, which can be used to initiate calls to the service.</p>
+ *      <ul>
+ *           <li><p> moveObjectCallable()
+ *      </ul>
+ *       </td>
+ *    </tr>
+ *  </table>
  *
  * <p>See the individual methods for example code.
  *
@@ -125,23 +594,6 @@ import javax.annotation.Generated;
  * // - It may require specifying regional endpoints when creating the service client as shown in
  * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
  * StorageSettings storageSettings = StorageSettings.newBuilder().setEndpoint(myEndpoint).build();
- * StorageClient storageClient = StorageClient.create(storageSettings);
- * }</pre>
- *
- * <p>To use REST (HTTP1.1/JSON) transport (instead of gRPC) for sending and receiving requests over
- * the wire:
- *
- * <pre>{@code
- * // This snippet has been automatically generated and should be regarded as a code template only.
- * // It will require modifications to work:
- * // - It may require correct/in-range values for request initialization.
- * // - It may require specifying regional endpoints when creating the service client as shown in
- * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
- * StorageSettings storageSettings =
- *     StorageSettings.newBuilder()
- *         .setTransportChannelProvider(
- *             StorageSettings.defaultHttpJsonTransportProviderBuilder().build())
- *         .build();
  * StorageClient storageClient = StorageClient.create(storageSettings);
  * }</pre>
  *
@@ -197,7 +649,23 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Permanently deletes an empty bucket.
+   * Permanently deletes an empty bucket. The request fails if there are any live or noncurrent
+   * objects in the bucket, but the request succeeds if the bucket only contains soft-deleted
+   * objects or incomplete uploads, such as ongoing XML API multipart uploads. Does not permanently
+   * delete soft-deleted objects.
+   *
+   * <p>When this API is used to delete a bucket containing an object that has a soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object.
+   *
+   * <p>Objects and multipart uploads that were in the bucket at the time of deletion are also
+   * retained for the specified retention duration. When a soft-deleted bucket reaches the end of
+   * its retention duration, it is permanently deleted. The `hardDeleteTime` of the bucket always
+   * equals or exceeds the expiration time of the last soft-deleted object in the bucket.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.delete` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -224,7 +692,23 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Permanently deletes an empty bucket.
+   * Permanently deletes an empty bucket. The request fails if there are any live or noncurrent
+   * objects in the bucket, but the request succeeds if the bucket only contains soft-deleted
+   * objects or incomplete uploads, such as ongoing XML API multipart uploads. Does not permanently
+   * delete soft-deleted objects.
+   *
+   * <p>When this API is used to delete a bucket containing an object that has a soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object.
+   *
+   * <p>Objects and multipart uploads that were in the bucket at the time of deletion are also
+   * retained for the specified retention duration. When a soft-deleted bucket reaches the end of
+   * its retention duration, it is permanently deleted. The `hardDeleteTime` of the bucket always
+   * equals or exceeds the expiration time of the last soft-deleted object in the bucket.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.delete` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -250,7 +734,23 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Permanently deletes an empty bucket.
+   * Permanently deletes an empty bucket. The request fails if there are any live or noncurrent
+   * objects in the bucket, but the request succeeds if the bucket only contains soft-deleted
+   * objects or incomplete uploads, such as ongoing XML API multipart uploads. Does not permanently
+   * delete soft-deleted objects.
+   *
+   * <p>When this API is used to delete a bucket containing an object that has a soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object.
+   *
+   * <p>Objects and multipart uploads that were in the bucket at the time of deletion are also
+   * retained for the specified retention duration. When a soft-deleted bucket reaches the end of
+   * its retention duration, it is permanently deleted. The `hardDeleteTime` of the bucket always
+   * equals or exceeds the expiration time of the last soft-deleted object in the bucket.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.delete` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -280,7 +780,23 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Permanently deletes an empty bucket.
+   * Permanently deletes an empty bucket. The request fails if there are any live or noncurrent
+   * objects in the bucket, but the request succeeds if the bucket only contains soft-deleted
+   * objects or incomplete uploads, such as ongoing XML API multipart uploads. Does not permanently
+   * delete soft-deleted objects.
+   *
+   * <p>When this API is used to delete a bucket containing an object that has a soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object.
+   *
+   * <p>Objects and multipart uploads that were in the bucket at the time of deletion are also
+   * retained for the specified retention duration. When a soft-deleted bucket reaches the end of
+   * its retention duration, it is permanently deleted. The `hardDeleteTime` of the bucket always
+   * equals or exceeds the expiration time of the last soft-deleted object in the bucket.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.delete` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -311,6 +827,14 @@ public class StorageClient implements BackgroundResource {
   /**
    * Returns metadata for the specified bucket.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.get` IAM permission on the bucket. Additionally, to return
+   * specific bucket metadata, the authenticated user must have the following permissions:
+   *
+   * <p>- To return the IAM policies: `storage.buckets.getIamPolicy` - To return the bucket IP
+   * filtering rules: `storage.buckets.getIpFilter`
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -338,6 +862,14 @@ public class StorageClient implements BackgroundResource {
   /**
    * Returns metadata for the specified bucket.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.get` IAM permission on the bucket. Additionally, to return
+   * specific bucket metadata, the authenticated user must have the following permissions:
+   *
+   * <p>- To return the IAM policies: `storage.buckets.getIamPolicy` - To return the bucket IP
+   * filtering rules: `storage.buckets.getIpFilter`
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -363,6 +895,14 @@ public class StorageClient implements BackgroundResource {
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
    * Returns metadata for the specified bucket.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.get` IAM permission on the bucket. Additionally, to return
+   * specific bucket metadata, the authenticated user must have the following permissions:
+   *
+   * <p>- To return the IAM policies: `storage.buckets.getIamPolicy` - To return the bucket IP
+   * filtering rules: `storage.buckets.getIpFilter`
    *
    * <p>Sample code:
    *
@@ -395,6 +935,14 @@ public class StorageClient implements BackgroundResource {
   /**
    * Returns metadata for the specified bucket.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.get` IAM permission on the bucket. Additionally, to return
+   * specific bucket metadata, the authenticated user must have the following permissions:
+   *
+   * <p>- To return the IAM policies: `storage.buckets.getIamPolicy` - To return the bucket IP
+   * filtering rules: `storage.buckets.getIpFilter`
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -425,6 +973,15 @@ public class StorageClient implements BackgroundResource {
   /**
    * Creates a new bucket.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.create` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To enable object retention using the `enableObjectRetention` query parameter:
+   * `storage.buckets.enableObjectRetention` - To set the bucket IP filtering rules:
+   * `storage.buckets.setIpFilter`
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -441,13 +998,17 @@ public class StorageClient implements BackgroundResource {
    * }
    * }</pre>
    *
-   * @param parent Required. The project to which this bucket will belong.
-   * @param bucket Properties of the new bucket being inserted. The project and name of the bucket
-   *     are specified in the parent and bucket_id fields, respectively. Populating those fields in
-   *     `bucket` will result in an error.
-   * @param bucketId Required. The ID to use for this bucket, which will become the final component
-   *     of the bucket's resource name. For example, the value `foo` might result in a bucket with
-   *     the name `projects/123456/buckets/foo`.
+   * @param parent Required. The project to which this bucket belongs. This field must either be
+   *     empty or `projects/_`. The project ID that owns this bucket should be specified in the
+   *     `bucket.project` field.
+   * @param bucket Optional. Properties of the new bucket being inserted. The name of the bucket is
+   *     specified in the `bucket_id` field. Populating `bucket.name` field results in an error. The
+   *     project of the bucket must be specified in the `bucket.project` field. This field must be
+   *     in `projects/{projectIdentifier}` format, {projectIdentifier} can be the project ID or
+   *     project number. The `parent` field must be either empty or `projects/_`.
+   * @param bucketId Required. The ID to use for this bucket, which becomes the final component of
+   *     the bucket's resource name. For example, the value `foo` might result in a bucket with the
+   *     name `projects/123456/buckets/foo`.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
   public final Bucket createBucket(ProjectName parent, Bucket bucket, String bucketId) {
@@ -463,6 +1024,15 @@ public class StorageClient implements BackgroundResource {
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
    * Creates a new bucket.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.create` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To enable object retention using the `enableObjectRetention` query parameter:
+   * `storage.buckets.enableObjectRetention` - To set the bucket IP filtering rules:
+   * `storage.buckets.setIpFilter`
    *
    * <p>Sample code:
    *
@@ -480,13 +1050,17 @@ public class StorageClient implements BackgroundResource {
    * }
    * }</pre>
    *
-   * @param parent Required. The project to which this bucket will belong.
-   * @param bucket Properties of the new bucket being inserted. The project and name of the bucket
-   *     are specified in the parent and bucket_id fields, respectively. Populating those fields in
-   *     `bucket` will result in an error.
-   * @param bucketId Required. The ID to use for this bucket, which will become the final component
-   *     of the bucket's resource name. For example, the value `foo` might result in a bucket with
-   *     the name `projects/123456/buckets/foo`.
+   * @param parent Required. The project to which this bucket belongs. This field must either be
+   *     empty or `projects/_`. The project ID that owns this bucket should be specified in the
+   *     `bucket.project` field.
+   * @param bucket Optional. Properties of the new bucket being inserted. The name of the bucket is
+   *     specified in the `bucket_id` field. Populating `bucket.name` field results in an error. The
+   *     project of the bucket must be specified in the `bucket.project` field. This field must be
+   *     in `projects/{projectIdentifier}` format, {projectIdentifier} can be the project ID or
+   *     project number. The `parent` field must be either empty or `projects/_`.
+   * @param bucketId Required. The ID to use for this bucket, which becomes the final component of
+   *     the bucket's resource name. For example, the value `foo` might result in a bucket with the
+   *     name `projects/123456/buckets/foo`.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
   public final Bucket createBucket(String parent, Bucket bucket, String bucketId) {
@@ -503,6 +1077,15 @@ public class StorageClient implements BackgroundResource {
   /**
    * Creates a new bucket.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.create` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To enable object retention using the `enableObjectRetention` query parameter:
+   * `storage.buckets.enableObjectRetention` - To set the bucket IP filtering rules:
+   * `storage.buckets.setIpFilter`
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -519,6 +1102,7 @@ public class StorageClient implements BackgroundResource {
    *           .setBucketId("bucketId-1603305307")
    *           .setPredefinedAcl("predefinedAcl1207041188")
    *           .setPredefinedDefaultObjectAcl("predefinedDefaultObjectAcl2109168048")
+   *           .setEnableObjectRetention(true)
    *           .build();
    *   Bucket response = storageClient.createBucket(request);
    * }
@@ -535,6 +1119,15 @@ public class StorageClient implements BackgroundResource {
   /**
    * Creates a new bucket.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.create` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To enable object retention using the `enableObjectRetention` query parameter:
+   * `storage.buckets.enableObjectRetention` - To set the bucket IP filtering rules:
+   * `storage.buckets.setIpFilter`
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -551,6 +1144,7 @@ public class StorageClient implements BackgroundResource {
    *           .setBucketId("bucketId-1603305307")
    *           .setPredefinedAcl("predefinedAcl1207041188")
    *           .setPredefinedDefaultObjectAcl("predefinedDefaultObjectAcl2109168048")
+   *           .setEnableObjectRetention(true)
    *           .build();
    *   ApiFuture<Bucket> future = storageClient.createBucketCallable().futureCall(request);
    *   // Do something.
@@ -564,7 +1158,15 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves a list of buckets for a given project.
+   * Retrieves a list of buckets for a given project, ordered lexicographically by name.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.list` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To list the IAM policies: `storage.buckets.getIamPolicy` - To list the bucket IP filtering
+   * rules: `storage.buckets.getIpFilter`
    *
    * <p>Sample code:
    *
@@ -595,7 +1197,15 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves a list of buckets for a given project.
+   * Retrieves a list of buckets for a given project, ordered lexicographically by name.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.list` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To list the IAM policies: `storage.buckets.getIamPolicy` - To list the bucket IP filtering
+   * rules: `storage.buckets.getIpFilter`
    *
    * <p>Sample code:
    *
@@ -623,7 +1233,15 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves a list of buckets for a given project.
+   * Retrieves a list of buckets for a given project, ordered lexicographically by name.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.list` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To list the IAM policies: `storage.buckets.getIamPolicy` - To list the bucket IP filtering
+   * rules: `storage.buckets.getIpFilter`
    *
    * <p>Sample code:
    *
@@ -641,6 +1259,7 @@ public class StorageClient implements BackgroundResource {
    *           .setPageToken("pageToken873572522")
    *           .setPrefix("prefix-980110702")
    *           .setReadMask(FieldMask.newBuilder().build())
+   *           .setReturnPartialSuccess(true)
    *           .build();
    *   for (Bucket element : storageClient.listBuckets(request).iterateAll()) {
    *     // doThingsWith(element);
@@ -657,7 +1276,15 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves a list of buckets for a given project.
+   * Retrieves a list of buckets for a given project, ordered lexicographically by name.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.list` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To list the IAM policies: `storage.buckets.getIamPolicy` - To list the bucket IP filtering
+   * rules: `storage.buckets.getIpFilter`
    *
    * <p>Sample code:
    *
@@ -675,6 +1302,7 @@ public class StorageClient implements BackgroundResource {
    *           .setPageToken("pageToken873572522")
    *           .setPrefix("prefix-980110702")
    *           .setReadMask(FieldMask.newBuilder().build())
+   *           .setReturnPartialSuccess(true)
    *           .build();
    *   ApiFuture<Bucket> future = storageClient.listBucketsPagedCallable().futureCall(request);
    *   // Do something.
@@ -691,7 +1319,15 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves a list of buckets for a given project.
+   * Retrieves a list of buckets for a given project, ordered lexicographically by name.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.list` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To list the IAM policies: `storage.buckets.getIamPolicy` - To list the bucket IP filtering
+   * rules: `storage.buckets.getIpFilter`
    *
    * <p>Sample code:
    *
@@ -709,6 +1345,7 @@ public class StorageClient implements BackgroundResource {
    *           .setPageToken("pageToken873572522")
    *           .setPrefix("prefix-980110702")
    *           .setReadMask(FieldMask.newBuilder().build())
+   *           .setReturnPartialSuccess(true)
    *           .build();
    *   while (true) {
    *     ListBucketsResponse response = storageClient.listBucketsCallable().call(request);
@@ -731,7 +1368,21 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Locks retention policy on a bucket.
+   * Permanently locks the retention policy that is currently applied to the specified bucket.
+   *
+   * <p>Caution: Locking a bucket is an irreversible action. Once you lock a bucket:
+   *
+   * <p>- You cannot remove the retention policy from the bucket. - You cannot decrease the
+   * retention period for the policy.
+   *
+   * <p>Once locked, you must delete the entire bucket in order to remove the bucket's retention
+   * policy. However, before you can delete the bucket, you must delete all the objects in the
+   * bucket, which is only possible if all the objects have reached the retention period set by the
+   * retention policy.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.update` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -760,7 +1411,21 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Locks retention policy on a bucket.
+   * Permanently locks the retention policy that is currently applied to the specified bucket.
+   *
+   * <p>Caution: Locking a bucket is an irreversible action. Once you lock a bucket:
+   *
+   * <p>- You cannot remove the retention policy from the bucket. - You cannot decrease the
+   * retention period for the policy.
+   *
+   * <p>Once locked, you must delete the entire bucket in order to remove the bucket's retention
+   * policy. However, before you can delete the bucket, you must delete all the objects in the
+   * bucket, which is only possible if all the objects have reached the retention period set by the
+   * retention policy.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.update` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -787,7 +1452,21 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Locks retention policy on a bucket.
+   * Permanently locks the retention policy that is currently applied to the specified bucket.
+   *
+   * <p>Caution: Locking a bucket is an irreversible action. Once you lock a bucket:
+   *
+   * <p>- You cannot remove the retention policy from the bucket. - You cannot decrease the
+   * retention period for the policy.
+   *
+   * <p>Once locked, you must delete the entire bucket in order to remove the bucket's retention
+   * policy. However, before you can delete the bucket, you must delete all the objects in the
+   * bucket, which is only possible if all the objects have reached the retention period set by the
+   * retention policy.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.update` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -816,7 +1495,21 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Locks retention policy on a bucket.
+   * Permanently locks the retention policy that is currently applied to the specified bucket.
+   *
+   * <p>Caution: Locking a bucket is an irreversible action. Once you lock a bucket:
+   *
+   * <p>- You cannot remove the retention policy from the bucket. - You cannot decrease the
+   * retention period for the policy.
+   *
+   * <p>Once locked, you must delete the entire bucket in order to remove the bucket's retention
+   * policy. However, before you can delete the bucket, you must delete all the objects in the
+   * bucket, which is only possible if all the objects have reached the retention period set by the
+   * retention policy.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.update` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -846,7 +1539,14 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Gets the IAM policy for a specified bucket or object.
+   * Gets the IAM policy for a specified bucket or managed folder. The `resource` field in the
+   * request should be `projects/_/buckets/{bucket}` for a bucket, or
+   * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.getIamPolicy` on the bucket or
+   * `storage.managedFolders.getIamPolicy` IAM permission on the managed folder.
    *
    * <p>Sample code:
    *
@@ -877,7 +1577,14 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Gets the IAM policy for a specified bucket or object.
+   * Gets the IAM policy for a specified bucket or managed folder. The `resource` field in the
+   * request should be `projects/_/buckets/{bucket}` for a bucket, or
+   * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.getIamPolicy` on the bucket or
+   * `storage.managedFolders.getIamPolicy` IAM permission on the managed folder.
    *
    * <p>Sample code:
    *
@@ -905,7 +1612,14 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Gets the IAM policy for a specified bucket or object.
+   * Gets the IAM policy for a specified bucket or managed folder. The `resource` field in the
+   * request should be `projects/_/buckets/{bucket}` for a bucket, or
+   * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.getIamPolicy` on the bucket or
+   * `storage.managedFolders.getIamPolicy` IAM permission on the managed folder.
    *
    * <p>Sample code:
    *
@@ -936,7 +1650,14 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Gets the IAM policy for a specified bucket or object.
+   * Gets the IAM policy for a specified bucket or managed folder. The `resource` field in the
+   * request should be `projects/_/buckets/{bucket}` for a bucket, or
+   * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.getIamPolicy` on the bucket or
+   * `storage.managedFolders.getIamPolicy` IAM permission on the managed folder.
    *
    * <p>Sample code:
    *
@@ -966,7 +1687,9 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates an IAM policy for the specified bucket or object.
+   * Updates an IAM policy for the specified bucket or managed folder. The `resource` field in the
+   * request should be `projects/_/buckets/{bucket}` for a bucket, or
+   * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
    *
    * <p>Sample code:
    *
@@ -1002,7 +1725,9 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates an IAM policy for the specified bucket or object.
+   * Updates an IAM policy for the specified bucket or managed folder. The `resource` field in the
+   * request should be `projects/_/buckets/{bucket}` for a bucket, or
+   * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
    *
    * <p>Sample code:
    *
@@ -1035,7 +1760,9 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates an IAM policy for the specified bucket or object.
+   * Updates an IAM policy for the specified bucket or managed folder. The `resource` field in the
+   * request should be `projects/_/buckets/{bucket}` for a bucket, or
+   * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
    *
    * <p>Sample code:
    *
@@ -1067,7 +1794,9 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates an IAM policy for the specified bucket or object.
+   * Updates an IAM policy for the specified bucket or managed folder. The `resource` field in the
+   * request should be `projects/_/buckets/{bucket}` for a bucket, or
+   * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed folder.
    *
    * <p>Sample code:
    *
@@ -1098,8 +1827,11 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Tests a set of permissions on the given bucket or object to see which, if any, are held by the
-   * caller.
+   * Tests a set of permissions on the given bucket, object, or managed folder to see which, if any,
+   * are held by the caller. The `resource` field in the request should be
+   * `projects/_/buckets/{bucket}` for a bucket, `projects/_/buckets/{bucket}/objects/{object}` for
+   * an object, or `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed
+   * folder.
    *
    * <p>Sample code:
    *
@@ -1136,8 +1868,11 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Tests a set of permissions on the given bucket or object to see which, if any, are held by the
-   * caller.
+   * Tests a set of permissions on the given bucket, object, or managed folder to see which, if any,
+   * are held by the caller. The `resource` field in the request should be
+   * `projects/_/buckets/{bucket}` for a bucket, `projects/_/buckets/{bucket}/objects/{object}` for
+   * an object, or `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed
+   * folder.
    *
    * <p>Sample code:
    *
@@ -1174,8 +1909,11 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Tests a set of permissions on the given bucket or object to see which, if any, are held by the
-   * caller.
+   * Tests a set of permissions on the given bucket, object, or managed folder to see which, if any,
+   * are held by the caller. The `resource` field in the request should be
+   * `projects/_/buckets/{bucket}` for a bucket, `projects/_/buckets/{bucket}/objects/{object}` for
+   * an object, or `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed
+   * folder.
    *
    * <p>Sample code:
    *
@@ -1206,8 +1944,11 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Tests a set of permissions on the given bucket or object to see which, if any, are held by the
-   * caller.
+   * Tests a set of permissions on the given bucket, object, or managed folder to see which, if any,
+   * are held by the caller. The `resource` field in the request should be
+   * `projects/_/buckets/{bucket}` for a bucket, `projects/_/buckets/{bucket}/objects/{object}` for
+   * an object, or `projects/_/buckets/{bucket}/managedFolders/{managedFolder}` for a managed
+   * folder.
    *
    * <p>Sample code:
    *
@@ -1239,7 +1980,16 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates a bucket. Equivalent to JSON API's storage.buckets.patch method.
+   * Updates a bucket. Changes to the bucket are readable immediately after writing, but
+   * configuration changes might take time to propagate. This method supports `patch` semantics.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.update` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To set bucket IP filtering rules: `storage.buckets.setIpFilter` - To update public access
+   * prevention policies or access control lists (ACLs): `storage.buckets.setIamPolicy`
    *
    * <p>Sample code:
    *
@@ -1256,15 +2006,14 @@ public class StorageClient implements BackgroundResource {
    * }
    * }</pre>
    *
-   * @param bucket Required. The bucket to update. The bucket's `name` field will be used to
-   *     identify the bucket.
+   * @param bucket Required. The bucket to update. The bucket's `name` field is used to identify the
+   *     bucket.
    * @param updateMask Required. List of fields to be updated.
    *     <p>To specify ALL fields, equivalent to the JSON API's "update" function, specify a single
    *     field with the value `&#42;`. Note: not recommended. If a new field is introduced at a
-   *     later time, an older client updating with the `&#42;` may accidentally reset the new
+   *     later time, an older client updating with the `&#42;` might accidentally reset the new
    *     field's value.
-   *     <p>Not specifying any fields is an error. Not specifying a field while setting that field
-   *     to a non-default value is an error.
+   *     <p>Not specifying any fields is an error.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
   public final Bucket updateBucket(Bucket bucket, FieldMask updateMask) {
@@ -1275,7 +2024,16 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates a bucket. Equivalent to JSON API's storage.buckets.patch method.
+   * Updates a bucket. Changes to the bucket are readable immediately after writing, but
+   * configuration changes might take time to propagate. This method supports `patch` semantics.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.update` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To set bucket IP filtering rules: `storage.buckets.setIpFilter` - To update public access
+   * prevention policies or access control lists (ACLs): `storage.buckets.setIamPolicy`
    *
    * <p>Sample code:
    *
@@ -1308,7 +2066,16 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates a bucket. Equivalent to JSON API's storage.buckets.patch method.
+   * Updates a bucket. Changes to the bucket are readable immediately after writing, but
+   * configuration changes might take time to propagate. This method supports `patch` semantics.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.buckets.update` IAM permission on the bucket. Additionally, to enable
+   * specific bucket features, the authenticated user must have the following permissions:
+   *
+   * <p>- To set bucket IP filtering rules: `storage.buckets.setIpFilter` - To update public access
+   * prevention policies or access control lists (ACLs): `storage.buckets.setIamPolicy`
    *
    * <p>Sample code:
    *
@@ -1340,523 +2107,16 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Permanently deletes a notification subscription.
+   * Concatenates a list of existing objects into a new object in the same bucket. The existing
+   * source objects are unaffected by this operation.
    *
-   * <p>Sample code:
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
    *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   NotificationName name = NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]");
-   *   storageClient.deleteNotification(name);
-   * }
-   * }</pre>
-   *
-   * @param name Required. The parent bucket of the notification.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final void deleteNotification(NotificationName name) {
-    DeleteNotificationRequest request =
-        DeleteNotificationRequest.newBuilder()
-            .setName(name == null ? null : name.toString())
-            .build();
-    deleteNotification(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Permanently deletes a notification subscription.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String name = NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]").toString();
-   *   storageClient.deleteNotification(name);
-   * }
-   * }</pre>
-   *
-   * @param name Required. The parent bucket of the notification.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final void deleteNotification(String name) {
-    DeleteNotificationRequest request =
-        DeleteNotificationRequest.newBuilder().setName(name).build();
-    deleteNotification(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Permanently deletes a notification subscription.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   DeleteNotificationRequest request =
-   *       DeleteNotificationRequest.newBuilder()
-   *           .setName(NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]").toString())
-   *           .build();
-   *   storageClient.deleteNotification(request);
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final void deleteNotification(DeleteNotificationRequest request) {
-    deleteNotificationCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Permanently deletes a notification subscription.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   DeleteNotificationRequest request =
-   *       DeleteNotificationRequest.newBuilder()
-   *           .setName(NotificationName.of("[PROJECT]", "[BUCKET]", "[NOTIFICATION]").toString())
-   *           .build();
-   *   ApiFuture<Empty> future = storageClient.deleteNotificationCallable().futureCall(request);
-   *   // Do something.
-   *   future.get();
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<DeleteNotificationRequest, Empty> deleteNotificationCallable() {
-    return stub.deleteNotificationCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * View a notification config.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   BucketName name = BucketName.of("[PROJECT]", "[BUCKET]");
-   *   Notification response = storageClient.getNotification(name);
-   * }
-   * }</pre>
-   *
-   * @param name Required. The parent bucket of the notification. Format:
-   *     `projects/{project}/buckets/{bucket}/notificationConfigs/{notification}`
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final Notification getNotification(BucketName name) {
-    GetNotificationRequest request =
-        GetNotificationRequest.newBuilder().setName(name == null ? null : name.toString()).build();
-    return getNotification(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * View a notification config.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String name = BucketName.of("[PROJECT]", "[BUCKET]").toString();
-   *   Notification response = storageClient.getNotification(name);
-   * }
-   * }</pre>
-   *
-   * @param name Required. The parent bucket of the notification. Format:
-   *     `projects/{project}/buckets/{bucket}/notificationConfigs/{notification}`
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final Notification getNotification(String name) {
-    GetNotificationRequest request = GetNotificationRequest.newBuilder().setName(name).build();
-    return getNotification(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * View a notification config.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   GetNotificationRequest request =
-   *       GetNotificationRequest.newBuilder()
-   *           .setName(BucketName.of("[PROJECT]", "[BUCKET]").toString())
-   *           .build();
-   *   Notification response = storageClient.getNotification(request);
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final Notification getNotification(GetNotificationRequest request) {
-    return getNotificationCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * View a notification config.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   GetNotificationRequest request =
-   *       GetNotificationRequest.newBuilder()
-   *           .setName(BucketName.of("[PROJECT]", "[BUCKET]").toString())
-   *           .build();
-   *   ApiFuture<Notification> future = storageClient.getNotificationCallable().futureCall(request);
-   *   // Do something.
-   *   Notification response = future.get();
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<GetNotificationRequest, Notification> getNotificationCallable() {
-    return stub.getNotificationCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Creates a notification subscription for a given bucket. These notifications, when triggered,
-   * publish messages to the specified Pub/Sub topics. See
-   * https://cloud.google.com/storage/docs/pubsub-notifications.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ProjectName parent = ProjectName.of("[PROJECT]");
-   *   Notification notification = Notification.newBuilder().build();
-   *   Notification response = storageClient.createNotification(parent, notification);
-   * }
-   * }</pre>
-   *
-   * @param parent Required. The bucket to which this notification belongs.
-   * @param notification Required. Properties of the notification to be inserted.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final Notification createNotification(ProjectName parent, Notification notification) {
-    CreateNotificationRequest request =
-        CreateNotificationRequest.newBuilder()
-            .setParent(parent == null ? null : parent.toString())
-            .setNotification(notification)
-            .build();
-    return createNotification(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Creates a notification subscription for a given bucket. These notifications, when triggered,
-   * publish messages to the specified Pub/Sub topics. See
-   * https://cloud.google.com/storage/docs/pubsub-notifications.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String parent = ProjectName.of("[PROJECT]").toString();
-   *   Notification notification = Notification.newBuilder().build();
-   *   Notification response = storageClient.createNotification(parent, notification);
-   * }
-   * }</pre>
-   *
-   * @param parent Required. The bucket to which this notification belongs.
-   * @param notification Required. Properties of the notification to be inserted.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final Notification createNotification(String parent, Notification notification) {
-    CreateNotificationRequest request =
-        CreateNotificationRequest.newBuilder()
-            .setParent(parent)
-            .setNotification(notification)
-            .build();
-    return createNotification(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Creates a notification subscription for a given bucket. These notifications, when triggered,
-   * publish messages to the specified Pub/Sub topics. See
-   * https://cloud.google.com/storage/docs/pubsub-notifications.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   CreateNotificationRequest request =
-   *       CreateNotificationRequest.newBuilder()
-   *           .setParent(ProjectName.of("[PROJECT]").toString())
-   *           .setNotification(Notification.newBuilder().build())
-   *           .build();
-   *   Notification response = storageClient.createNotification(request);
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final Notification createNotification(CreateNotificationRequest request) {
-    return createNotificationCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Creates a notification subscription for a given bucket. These notifications, when triggered,
-   * publish messages to the specified Pub/Sub topics. See
-   * https://cloud.google.com/storage/docs/pubsub-notifications.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   CreateNotificationRequest request =
-   *       CreateNotificationRequest.newBuilder()
-   *           .setParent(ProjectName.of("[PROJECT]").toString())
-   *           .setNotification(Notification.newBuilder().build())
-   *           .build();
-   *   ApiFuture<Notification> future =
-   *       storageClient.createNotificationCallable().futureCall(request);
-   *   // Do something.
-   *   Notification response = future.get();
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<CreateNotificationRequest, Notification> createNotificationCallable() {
-    return stub.createNotificationCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Retrieves a list of notification subscriptions for a given bucket.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ProjectName parent = ProjectName.of("[PROJECT]");
-   *   for (Notification element : storageClient.listNotifications(parent).iterateAll()) {
-   *     // doThingsWith(element);
-   *   }
-   * }
-   * }</pre>
-   *
-   * @param parent Required. Name of a Google Cloud Storage bucket.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final ListNotificationsPagedResponse listNotifications(ProjectName parent) {
-    ListNotificationsRequest request =
-        ListNotificationsRequest.newBuilder()
-            .setParent(parent == null ? null : parent.toString())
-            .build();
-    return listNotifications(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Retrieves a list of notification subscriptions for a given bucket.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String parent = ProjectName.of("[PROJECT]").toString();
-   *   for (Notification element : storageClient.listNotifications(parent).iterateAll()) {
-   *     // doThingsWith(element);
-   *   }
-   * }
-   * }</pre>
-   *
-   * @param parent Required. Name of a Google Cloud Storage bucket.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final ListNotificationsPagedResponse listNotifications(String parent) {
-    ListNotificationsRequest request =
-        ListNotificationsRequest.newBuilder().setParent(parent).build();
-    return listNotifications(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Retrieves a list of notification subscriptions for a given bucket.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ListNotificationsRequest request =
-   *       ListNotificationsRequest.newBuilder()
-   *           .setParent(ProjectName.of("[PROJECT]").toString())
-   *           .setPageSize(883849137)
-   *           .setPageToken("pageToken873572522")
-   *           .build();
-   *   for (Notification element : storageClient.listNotifications(request).iterateAll()) {
-   *     // doThingsWith(element);
-   *   }
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final ListNotificationsPagedResponse listNotifications(ListNotificationsRequest request) {
-    return listNotificationsPagedCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Retrieves a list of notification subscriptions for a given bucket.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ListNotificationsRequest request =
-   *       ListNotificationsRequest.newBuilder()
-   *           .setParent(ProjectName.of("[PROJECT]").toString())
-   *           .setPageSize(883849137)
-   *           .setPageToken("pageToken873572522")
-   *           .build();
-   *   ApiFuture<Notification> future =
-   *       storageClient.listNotificationsPagedCallable().futureCall(request);
-   *   // Do something.
-   *   for (Notification element : future.get().iterateAll()) {
-   *     // doThingsWith(element);
-   *   }
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<ListNotificationsRequest, ListNotificationsPagedResponse>
-      listNotificationsPagedCallable() {
-    return stub.listNotificationsPagedCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Retrieves a list of notification subscriptions for a given bucket.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ListNotificationsRequest request =
-   *       ListNotificationsRequest.newBuilder()
-   *           .setParent(ProjectName.of("[PROJECT]").toString())
-   *           .setPageSize(883849137)
-   *           .setPageToken("pageToken873572522")
-   *           .build();
-   *   while (true) {
-   *     ListNotificationsResponse response =
-   *         storageClient.listNotificationsCallable().call(request);
-   *     for (Notification element : response.getNotificationsList()) {
-   *       // doThingsWith(element);
-   *     }
-   *     String nextPageToken = response.getNextPageToken();
-   *     if (!Strings.isNullOrEmpty(nextPageToken)) {
-   *       request = request.toBuilder().setPageToken(nextPageToken).build();
-   *     } else {
-   *       break;
-   *     }
-   *   }
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<ListNotificationsRequest, ListNotificationsResponse>
-      listNotificationsCallable() {
-    return stub.listNotificationsCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Concatenates a list of existing objects into a new object in the same bucket.
+   * <p>Requires the `storage.objects.create` and `storage.objects.get` IAM permissions to use this
+   * method. If the new composite object overwrites an existing object, the authenticated user must
+   * also have the `storage.objects.delete` permission. If the request body includes the retention
+   * property, the authenticated user must also have the `storage.objects.setRetention` IAM
+   * permission.
    *
    * <p>Sample code:
    *
@@ -1878,6 +2138,8 @@ public class StorageClient implements BackgroundResource {
    *               CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
    *                   .toString())
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .setObjectChecksums(ObjectChecksums.newBuilder().build())
+   *           .setDeleteSourceObjects(true)
    *           .build();
    *   Object response = storageClient.composeObject(request);
    * }
@@ -1892,7 +2154,16 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Concatenates a list of existing objects into a new object in the same bucket.
+   * Concatenates a list of existing objects into a new object in the same bucket. The existing
+   * source objects are unaffected by this operation.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the `storage.objects.create` and `storage.objects.get` IAM permissions to use this
+   * method. If the new composite object overwrites an existing object, the authenticated user must
+   * also have the `storage.objects.delete` permission. If the request body includes the retention
+   * property, the authenticated user must also have the `storage.objects.setRetention` IAM
+   * permission.
    *
    * <p>Sample code:
    *
@@ -1914,6 +2185,8 @@ public class StorageClient implements BackgroundResource {
    *               CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
    *                   .toString())
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .setObjectChecksums(ObjectChecksums.newBuilder().build())
+   *           .setDeleteSourceObjects(true)
    *           .build();
    *   ApiFuture<Object> future = storageClient.composeObjectCallable().futureCall(request);
    *   // Do something.
@@ -1928,7 +2201,18 @@ public class StorageClient implements BackgroundResource {
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
    * Deletes an object and its metadata. Deletions are permanent if versioning is not enabled for
-   * the bucket, or if the `generation` parameter is used.
+   * the bucket, or if the generation parameter is used, or if soft delete is not enabled for the
+   * bucket. When this API is used to delete an object from a bucket that has soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object. This API cannot be used to permanently delete soft-deleted
+   * objects. Soft-deleted objects are permanently deleted according to their `hardDeleteTime`.
+   *
+   * <p>You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject] API to restore
+   * soft-deleted objects until the soft delete retention period has passed.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.delete` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -1939,14 +2223,60 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   String bucket = "bucket-1378203158";
+   *   BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
    *   String object = "object-1023368385";
    *   storageClient.deleteObject(bucket, object);
    * }
    * }</pre>
    *
    * @param bucket Required. Name of the bucket in which the object resides.
-   * @param object Required. The name of the object to delete (when not using a resumable write).
+   * @param object Required. The name of the finalized object to delete. Note: If you want to delete
+   *     an unfinalized resumable upload please use `CancelResumableWrite`.
+   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
+   */
+  public final void deleteObject(BucketName bucket, String object) {
+    DeleteObjectRequest request =
+        DeleteObjectRequest.newBuilder()
+            .setBucket(bucket == null ? null : bucket.toString())
+            .setObject(object)
+            .build();
+    deleteObject(request);
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Deletes an object and its metadata. Deletions are permanent if versioning is not enabled for
+   * the bucket, or if the generation parameter is used, or if soft delete is not enabled for the
+   * bucket. When this API is used to delete an object from a bucket that has soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object. This API cannot be used to permanently delete soft-deleted
+   * objects. Soft-deleted objects are permanently deleted according to their `hardDeleteTime`.
+   *
+   * <p>You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject] API to restore
+   * soft-deleted objects until the soft delete retention period has passed.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.delete` IAM permission on the bucket.
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   String bucket = BucketName.of("[PROJECT]", "[BUCKET]").toString();
+   *   String object = "object-1023368385";
+   *   storageClient.deleteObject(bucket, object);
+   * }
+   * }</pre>
+   *
+   * @param bucket Required. Name of the bucket in which the object resides.
+   * @param object Required. The name of the finalized object to delete. Note: If you want to delete
+   *     an unfinalized resumable upload please use `CancelResumableWrite`.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
   public final void deleteObject(String bucket, String object) {
@@ -1958,7 +2288,18 @@ public class StorageClient implements BackgroundResource {
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
    * Deletes an object and its metadata. Deletions are permanent if versioning is not enabled for
-   * the bucket, or if the `generation` parameter is used.
+   * the bucket, or if the generation parameter is used, or if soft delete is not enabled for the
+   * bucket. When this API is used to delete an object from a bucket that has soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object. This API cannot be used to permanently delete soft-deleted
+   * objects. Soft-deleted objects are permanently deleted according to their `hardDeleteTime`.
+   *
+   * <p>You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject] API to restore
+   * soft-deleted objects until the soft delete retention period has passed.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.delete` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -1969,7 +2310,7 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   String bucket = "bucket-1378203158";
+   *   BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
    *   String object = "object-1023368385";
    *   long generation = 305703192;
    *   storageClient.deleteObject(bucket, object, generation);
@@ -1977,9 +2318,59 @@ public class StorageClient implements BackgroundResource {
    * }</pre>
    *
    * @param bucket Required. Name of the bucket in which the object resides.
-   * @param object Required. The name of the object to delete (when not using a resumable write).
-   * @param generation If present, permanently deletes a specific revision of this object (as
-   *     opposed to the latest version, the default).
+   * @param object Required. The name of the finalized object to delete. Note: If you want to delete
+   *     an unfinalized resumable upload please use `CancelResumableWrite`.
+   * @param generation Optional. If present, permanently deletes a specific revision of this object
+   *     (as opposed to the latest version, the default).
+   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
+   */
+  public final void deleteObject(BucketName bucket, String object, long generation) {
+    DeleteObjectRequest request =
+        DeleteObjectRequest.newBuilder()
+            .setBucket(bucket == null ? null : bucket.toString())
+            .setObject(object)
+            .setGeneration(generation)
+            .build();
+    deleteObject(request);
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Deletes an object and its metadata. Deletions are permanent if versioning is not enabled for
+   * the bucket, or if the generation parameter is used, or if soft delete is not enabled for the
+   * bucket. When this API is used to delete an object from a bucket that has soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object. This API cannot be used to permanently delete soft-deleted
+   * objects. Soft-deleted objects are permanently deleted according to their `hardDeleteTime`.
+   *
+   * <p>You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject] API to restore
+   * soft-deleted objects until the soft delete retention period has passed.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.delete` IAM permission on the bucket.
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   String bucket = BucketName.of("[PROJECT]", "[BUCKET]").toString();
+   *   String object = "object-1023368385";
+   *   long generation = 305703192;
+   *   storageClient.deleteObject(bucket, object, generation);
+   * }
+   * }</pre>
+   *
+   * @param bucket Required. Name of the bucket in which the object resides.
+   * @param object Required. The name of the finalized object to delete. Note: If you want to delete
+   *     an unfinalized resumable upload please use `CancelResumableWrite`.
+   * @param generation Optional. If present, permanently deletes a specific revision of this object
+   *     (as opposed to the latest version, the default).
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
   public final void deleteObject(String bucket, String object, long generation) {
@@ -1995,7 +2386,18 @@ public class StorageClient implements BackgroundResource {
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
    * Deletes an object and its metadata. Deletions are permanent if versioning is not enabled for
-   * the bucket, or if the `generation` parameter is used.
+   * the bucket, or if the generation parameter is used, or if soft delete is not enabled for the
+   * bucket. When this API is used to delete an object from a bucket that has soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object. This API cannot be used to permanently delete soft-deleted
+   * objects. Soft-deleted objects are permanently deleted according to their `hardDeleteTime`.
+   *
+   * <p>You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject] API to restore
+   * soft-deleted objects until the soft delete retention period has passed.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.delete` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2008,7 +2410,7 @@ public class StorageClient implements BackgroundResource {
    * try (StorageClient storageClient = StorageClient.create()) {
    *   DeleteObjectRequest request =
    *       DeleteObjectRequest.newBuilder()
-   *           .setBucket("bucket-1378203158")
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setObject("object-1023368385")
    *           .setGeneration(305703192)
    *           .setIfGenerationMatch(-1086241088)
@@ -2031,7 +2433,18 @@ public class StorageClient implements BackgroundResource {
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
    * Deletes an object and its metadata. Deletions are permanent if versioning is not enabled for
-   * the bucket, or if the `generation` parameter is used.
+   * the bucket, or if the generation parameter is used, or if soft delete is not enabled for the
+   * bucket. When this API is used to delete an object from a bucket that has soft delete policy
+   * enabled, the object becomes soft deleted, and the `softDeleteTime` and `hardDeleteTime`
+   * properties are set on the object. This API cannot be used to permanently delete soft-deleted
+   * objects. Soft-deleted objects are permanently deleted according to their `hardDeleteTime`.
+   *
+   * <p>You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject] API to restore
+   * soft-deleted objects until the soft delete retention period has passed.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.delete` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2044,7 +2457,7 @@ public class StorageClient implements BackgroundResource {
    * try (StorageClient storageClient = StorageClient.create()) {
    *   DeleteObjectRequest request =
    *       DeleteObjectRequest.newBuilder()
-   *           .setBucket("bucket-1378203158")
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setObject("object-1023368385")
    *           .setGeneration(305703192)
    *           .setIfGenerationMatch(-1086241088)
@@ -2065,7 +2478,247 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
+   * Restores a soft-deleted object. When a soft-deleted object is restored, a new copy of that
+   * object is created in the same bucket and inherits the same metadata as the soft-deleted object.
+   * The inherited metadata is the metadata that existed when the original object became soft
+   * deleted, with the following exceptions:
+   *
+   * <p>- The `createTime` of the new object is set to the time at which the soft-deleted object was
+   * restored. - The `softDeleteTime` and `hardDeleteTime` values are cleared. - A new generation is
+   * assigned and the metageneration is reset to 1. - If the soft-deleted object was in a bucket
+   * that had Autoclass enabled, the new object is restored to Standard storage. - The restored
+   * object inherits the bucket's default object ACL, unless `copySourceAcl` is `true`.
+   *
+   * <p>If a live object using the same name already exists in the bucket and becomes overwritten,
+   * the live object becomes a noncurrent object if Object Versioning is enabled on the bucket. If
+   * Object Versioning is not enabled, the live object becomes soft deleted.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the following IAM permissions to use this method:
+   *
+   * <p>- `storage.objects.restore` - `storage.objects.create` - `storage.objects.delete` (only
+   * required if overwriting an existing object) - `storage.objects.getIamPolicy` (only required if
+   * `projection` is `full` and the relevant bucket has uniform bucket-level access disabled) -
+   * `storage.objects.setIamPolicy` (only required if `copySourceAcl` is `true` and the relevant
+   * bucket has uniform bucket-level access disabled)
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+   *   String object = "object-1023368385";
+   *   long generation = 305703192;
+   *   Object response = storageClient.restoreObject(bucket, object, generation);
+   * }
+   * }</pre>
+   *
+   * @param bucket Required. Name of the bucket in which the object resides.
+   * @param object Required. The name of the object to restore.
+   * @param generation Required. The specific revision of the object to restore.
+   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
+   */
+  public final Object restoreObject(BucketName bucket, String object, long generation) {
+    RestoreObjectRequest request =
+        RestoreObjectRequest.newBuilder()
+            .setBucket(bucket == null ? null : bucket.toString())
+            .setObject(object)
+            .setGeneration(generation)
+            .build();
+    return restoreObject(request);
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Restores a soft-deleted object. When a soft-deleted object is restored, a new copy of that
+   * object is created in the same bucket and inherits the same metadata as the soft-deleted object.
+   * The inherited metadata is the metadata that existed when the original object became soft
+   * deleted, with the following exceptions:
+   *
+   * <p>- The `createTime` of the new object is set to the time at which the soft-deleted object was
+   * restored. - The `softDeleteTime` and `hardDeleteTime` values are cleared. - A new generation is
+   * assigned and the metageneration is reset to 1. - If the soft-deleted object was in a bucket
+   * that had Autoclass enabled, the new object is restored to Standard storage. - The restored
+   * object inherits the bucket's default object ACL, unless `copySourceAcl` is `true`.
+   *
+   * <p>If a live object using the same name already exists in the bucket and becomes overwritten,
+   * the live object becomes a noncurrent object if Object Versioning is enabled on the bucket. If
+   * Object Versioning is not enabled, the live object becomes soft deleted.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the following IAM permissions to use this method:
+   *
+   * <p>- `storage.objects.restore` - `storage.objects.create` - `storage.objects.delete` (only
+   * required if overwriting an existing object) - `storage.objects.getIamPolicy` (only required if
+   * `projection` is `full` and the relevant bucket has uniform bucket-level access disabled) -
+   * `storage.objects.setIamPolicy` (only required if `copySourceAcl` is `true` and the relevant
+   * bucket has uniform bucket-level access disabled)
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   String bucket = BucketName.of("[PROJECT]", "[BUCKET]").toString();
+   *   String object = "object-1023368385";
+   *   long generation = 305703192;
+   *   Object response = storageClient.restoreObject(bucket, object, generation);
+   * }
+   * }</pre>
+   *
+   * @param bucket Required. Name of the bucket in which the object resides.
+   * @param object Required. The name of the object to restore.
+   * @param generation Required. The specific revision of the object to restore.
+   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
+   */
+  public final Object restoreObject(String bucket, String object, long generation) {
+    RestoreObjectRequest request =
+        RestoreObjectRequest.newBuilder()
+            .setBucket(bucket)
+            .setObject(object)
+            .setGeneration(generation)
+            .build();
+    return restoreObject(request);
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Restores a soft-deleted object. When a soft-deleted object is restored, a new copy of that
+   * object is created in the same bucket and inherits the same metadata as the soft-deleted object.
+   * The inherited metadata is the metadata that existed when the original object became soft
+   * deleted, with the following exceptions:
+   *
+   * <p>- The `createTime` of the new object is set to the time at which the soft-deleted object was
+   * restored. - The `softDeleteTime` and `hardDeleteTime` values are cleared. - A new generation is
+   * assigned and the metageneration is reset to 1. - If the soft-deleted object was in a bucket
+   * that had Autoclass enabled, the new object is restored to Standard storage. - The restored
+   * object inherits the bucket's default object ACL, unless `copySourceAcl` is `true`.
+   *
+   * <p>If a live object using the same name already exists in the bucket and becomes overwritten,
+   * the live object becomes a noncurrent object if Object Versioning is enabled on the bucket. If
+   * Object Versioning is not enabled, the live object becomes soft deleted.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the following IAM permissions to use this method:
+   *
+   * <p>- `storage.objects.restore` - `storage.objects.create` - `storage.objects.delete` (only
+   * required if overwriting an existing object) - `storage.objects.getIamPolicy` (only required if
+   * `projection` is `full` and the relevant bucket has uniform bucket-level access disabled) -
+   * `storage.objects.setIamPolicy` (only required if `copySourceAcl` is `true` and the relevant
+   * bucket has uniform bucket-level access disabled)
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   RestoreObjectRequest request =
+   *       RestoreObjectRequest.newBuilder()
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+   *           .setObject("object-1023368385")
+   *           .setGeneration(305703192)
+   *           .setRestoreToken("restoreToken1638686731")
+   *           .setIfGenerationMatch(-1086241088)
+   *           .setIfGenerationNotMatch(1475720404)
+   *           .setIfMetagenerationMatch(1043427781)
+   *           .setIfMetagenerationNotMatch(1025430873)
+   *           .setCopySourceAcl(true)
+   *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .build();
+   *   Object response = storageClient.restoreObject(request);
+   * }
+   * }</pre>
+   *
+   * @param request The request object containing all of the parameters for the API call.
+   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
+   */
+  public final Object restoreObject(RestoreObjectRequest request) {
+    return restoreObjectCallable().call(request);
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Restores a soft-deleted object. When a soft-deleted object is restored, a new copy of that
+   * object is created in the same bucket and inherits the same metadata as the soft-deleted object.
+   * The inherited metadata is the metadata that existed when the original object became soft
+   * deleted, with the following exceptions:
+   *
+   * <p>- The `createTime` of the new object is set to the time at which the soft-deleted object was
+   * restored. - The `softDeleteTime` and `hardDeleteTime` values are cleared. - A new generation is
+   * assigned and the metageneration is reset to 1. - If the soft-deleted object was in a bucket
+   * that had Autoclass enabled, the new object is restored to Standard storage. - The restored
+   * object inherits the bucket's default object ACL, unless `copySourceAcl` is `true`.
+   *
+   * <p>If a live object using the same name already exists in the bucket and becomes overwritten,
+   * the live object becomes a noncurrent object if Object Versioning is enabled on the bucket. If
+   * Object Versioning is not enabled, the live object becomes soft deleted.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the following IAM permissions to use this method:
+   *
+   * <p>- `storage.objects.restore` - `storage.objects.create` - `storage.objects.delete` (only
+   * required if overwriting an existing object) - `storage.objects.getIamPolicy` (only required if
+   * `projection` is `full` and the relevant bucket has uniform bucket-level access disabled) -
+   * `storage.objects.setIamPolicy` (only required if `copySourceAcl` is `true` and the relevant
+   * bucket has uniform bucket-level access disabled)
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   RestoreObjectRequest request =
+   *       RestoreObjectRequest.newBuilder()
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+   *           .setObject("object-1023368385")
+   *           .setGeneration(305703192)
+   *           .setRestoreToken("restoreToken1638686731")
+   *           .setIfGenerationMatch(-1086241088)
+   *           .setIfGenerationNotMatch(1475720404)
+   *           .setIfMetagenerationMatch(1043427781)
+   *           .setIfMetagenerationNotMatch(1025430873)
+   *           .setCopySourceAcl(true)
+   *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .build();
+   *   ApiFuture<Object> future = storageClient.restoreObjectCallable().futureCall(request);
+   *   // Do something.
+   *   Object response = future.get();
+   * }
+   * }</pre>
+   */
+  public final UnaryCallable<RestoreObjectRequest, Object> restoreObjectCallable() {
+    return stub.restoreObjectCallable();
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
    * Cancels an in-progress resumable upload.
+   *
+   * <p>Any attempts to write to the resumable upload after cancelling the upload fail.
+   *
+   * <p>The behavior for any in-progress write operations is not guaranteed; they could either
+   * complete before the cancellation or fail if the cancellation completes first.
    *
    * <p>Sample code:
    *
@@ -2095,6 +2748,11 @@ public class StorageClient implements BackgroundResource {
   /**
    * Cancels an in-progress resumable upload.
    *
+   * <p>Any attempts to write to the resumable upload after cancelling the upload fail.
+   *
+   * <p>The behavior for any in-progress write operations is not guaranteed; they could either
+   * complete before the cancellation or fail if the cancellation completes first.
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -2122,6 +2780,11 @@ public class StorageClient implements BackgroundResource {
   /**
    * Cancels an in-progress resumable upload.
    *
+   * <p>Any attempts to write to the resumable upload after cancelling the upload fail.
+   *
+   * <p>The behavior for any in-progress write operations is not guaranteed; they could either
+   * complete before the cancellation or fail if the cancellation completes first.
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -2147,7 +2810,12 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves an object's metadata.
+   * Retrieves object metadata.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.get` IAM permission on the bucket. To return object ACLs, the
+   * authenticated user must also have the `storage.objects.getIamPolicy` permission.
    *
    * <p>Sample code:
    *
@@ -2158,7 +2826,44 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   String bucket = "bucket-1378203158";
+   *   BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+   *   String object = "object-1023368385";
+   *   Object response = storageClient.getObject(bucket, object);
+   * }
+   * }</pre>
+   *
+   * @param bucket Required. Name of the bucket in which the object resides.
+   * @param object Required. Name of the object.
+   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
+   */
+  public final Object getObject(BucketName bucket, String object) {
+    GetObjectRequest request =
+        GetObjectRequest.newBuilder()
+            .setBucket(bucket == null ? null : bucket.toString())
+            .setObject(object)
+            .build();
+    return getObject(request);
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Retrieves object metadata.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.get` IAM permission on the bucket. To return object ACLs, the
+   * authenticated user must also have the `storage.objects.getIamPolicy` permission.
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   String bucket = BucketName.of("[PROJECT]", "[BUCKET]").toString();
    *   String object = "object-1023368385";
    *   Object response = storageClient.getObject(bucket, object);
    * }
@@ -2176,7 +2881,12 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves an object's metadata.
+   * Retrieves object metadata.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.get` IAM permission on the bucket. To return object ACLs, the
+   * authenticated user must also have the `storage.objects.getIamPolicy` permission.
    *
    * <p>Sample code:
    *
@@ -2187,7 +2897,7 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   String bucket = "bucket-1378203158";
+   *   BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
    *   String object = "object-1023368385";
    *   long generation = 305703192;
    *   Object response = storageClient.getObject(bucket, object, generation);
@@ -2196,8 +2906,49 @@ public class StorageClient implements BackgroundResource {
    *
    * @param bucket Required. Name of the bucket in which the object resides.
    * @param object Required. Name of the object.
-   * @param generation If present, selects a specific revision of this object (as opposed to the
-   *     latest version, the default).
+   * @param generation Optional. If present, selects a specific revision of this object (as opposed
+   *     to the latest version, the default).
+   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
+   */
+  public final Object getObject(BucketName bucket, String object, long generation) {
+    GetObjectRequest request =
+        GetObjectRequest.newBuilder()
+            .setBucket(bucket == null ? null : bucket.toString())
+            .setObject(object)
+            .setGeneration(generation)
+            .build();
+    return getObject(request);
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Retrieves object metadata.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.get` IAM permission on the bucket. To return object ACLs, the
+   * authenticated user must also have the `storage.objects.getIamPolicy` permission.
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   String bucket = BucketName.of("[PROJECT]", "[BUCKET]").toString();
+   *   String object = "object-1023368385";
+   *   long generation = 305703192;
+   *   Object response = storageClient.getObject(bucket, object, generation);
+   * }
+   * }</pre>
+   *
+   * @param bucket Required. Name of the bucket in which the object resides.
+   * @param object Required. Name of the object.
+   * @param generation Optional. If present, selects a specific revision of this object (as opposed
+   *     to the latest version, the default).
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
   public final Object getObject(String bucket, String object, long generation) {
@@ -2212,7 +2963,12 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves an object's metadata.
+   * Retrieves object metadata.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.get` IAM permission on the bucket. To return object ACLs, the
+   * authenticated user must also have the `storage.objects.getIamPolicy` permission.
    *
    * <p>Sample code:
    *
@@ -2225,15 +2981,17 @@ public class StorageClient implements BackgroundResource {
    * try (StorageClient storageClient = StorageClient.create()) {
    *   GetObjectRequest request =
    *       GetObjectRequest.newBuilder()
-   *           .setBucket("bucket-1378203158")
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setObject("object-1023368385")
    *           .setGeneration(305703192)
+   *           .setSoftDeleted(true)
    *           .setIfGenerationMatch(-1086241088)
    *           .setIfGenerationNotMatch(1475720404)
    *           .setIfMetagenerationMatch(1043427781)
    *           .setIfMetagenerationNotMatch(1025430873)
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
    *           .setReadMask(FieldMask.newBuilder().build())
+   *           .setRestoreToken("restoreToken1638686731")
    *           .build();
    *   Object response = storageClient.getObject(request);
    * }
@@ -2248,7 +3006,12 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves an object's metadata.
+   * Retrieves object metadata.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.get` IAM permission on the bucket. To return object ACLs, the
+   * authenticated user must also have the `storage.objects.getIamPolicy` permission.
    *
    * <p>Sample code:
    *
@@ -2261,15 +3024,17 @@ public class StorageClient implements BackgroundResource {
    * try (StorageClient storageClient = StorageClient.create()) {
    *   GetObjectRequest request =
    *       GetObjectRequest.newBuilder()
-   *           .setBucket("bucket-1378203158")
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setObject("object-1023368385")
    *           .setGeneration(305703192)
+   *           .setSoftDeleted(true)
    *           .setIfGenerationMatch(-1086241088)
    *           .setIfGenerationNotMatch(1475720404)
    *           .setIfMetagenerationMatch(1043427781)
    *           .setIfMetagenerationNotMatch(1025430873)
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
    *           .setReadMask(FieldMask.newBuilder().build())
+   *           .setRestoreToken("restoreToken1638686731")
    *           .build();
    *   ApiFuture<Object> future = storageClient.getObjectCallable().futureCall(request);
    *   // Do something.
@@ -2283,7 +3048,11 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Reads an object's data.
+   * Retrieves object data.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.get` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2296,7 +3065,7 @@ public class StorageClient implements BackgroundResource {
    * try (StorageClient storageClient = StorageClient.create()) {
    *   ReadObjectRequest request =
    *       ReadObjectRequest.newBuilder()
-   *           .setBucket("bucket-1378203158")
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setObject("object-1023368385")
    *           .setGeneration(305703192)
    *           .setReadOffset(-715377828)
@@ -2321,7 +3090,53 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates an object's metadata. Equivalent to JSON API's storage.objects.patch.
+   * Reads an object's data.
+   *
+   * <p>This bi-directional API reads data from an object, allowing you to request multiple data
+   * ranges within a single stream, even across several messages. If an error occurs with any
+   * request, the stream closes with a relevant error code. Since you can have multiple outstanding
+   * requests, the error response includes a `BidiReadObjectError` proto in its `details` field,
+   * reporting the specific error, if any, for each pending `read_id`.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.get` IAM permission on the bucket.
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   BidiStream<BidiReadObjectRequest, BidiReadObjectResponse> bidiStream =
+   *       storageClient.bidiReadObjectCallable().call();
+   *   BidiReadObjectRequest request =
+   *       BidiReadObjectRequest.newBuilder()
+   *           .setReadObjectSpec(BidiReadObjectSpec.newBuilder().build())
+   *           .addAllReadRanges(new ArrayList<ReadRange>())
+   *           .build();
+   *   bidiStream.send(request);
+   *   for (BidiReadObjectResponse response : bidiStream) {
+   *     // Do something when a response is received.
+   *   }
+   * }
+   * }</pre>
+   */
+  public final BidiStreamingCallable<BidiReadObjectRequest, BidiReadObjectResponse>
+      bidiReadObjectCallable() {
+    return stub.bidiReadObjectCallable();
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Updates an object's metadata. Equivalent to JSON API's `storage.objects.patch` method.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.update` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2345,10 +3160,9 @@ public class StorageClient implements BackgroundResource {
    * @param updateMask Required. List of fields to be updated.
    *     <p>To specify ALL fields, equivalent to the JSON API's "update" function, specify a single
    *     field with the value `&#42;`. Note: not recommended. If a new field is introduced at a
-   *     later time, an older client updating with the `&#42;` may accidentally reset the new
+   *     later time, an older client updating with the `&#42;` might accidentally reset the new
    *     field's value.
-   *     <p>Not specifying any fields is an error. Not specifying a field while setting that field
-   *     to a non-default value is an error.
+   *     <p>Not specifying any fields is an error.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
   public final Object updateObject(Object object, FieldMask updateMask) {
@@ -2359,7 +3173,11 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates an object's metadata. Equivalent to JSON API's storage.objects.patch.
+   * Updates an object's metadata. Equivalent to JSON API's `storage.objects.patch` method.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.update` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2380,6 +3198,7 @@ public class StorageClient implements BackgroundResource {
    *           .setPredefinedAcl("predefinedAcl1207041188")
    *           .setUpdateMask(FieldMask.newBuilder().build())
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .setOverrideUnlockedRetention(true)
    *           .build();
    *   Object response = storageClient.updateObject(request);
    * }
@@ -2394,7 +3213,11 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Updates an object's metadata. Equivalent to JSON API's storage.objects.patch.
+   * Updates an object's metadata. Equivalent to JSON API's `storage.objects.patch` method.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.update` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2415,6 +3238,7 @@ public class StorageClient implements BackgroundResource {
    *           .setPredefinedAcl("predefinedAcl1207041188")
    *           .setUpdateMask(FieldMask.newBuilder().build())
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .setOverrideUnlockedRetention(true)
    *           .build();
    *   ApiFuture<Object> future = storageClient.updateObjectCallable().futureCall(request);
    *   // Do something.
@@ -2440,34 +3264,45 @@ public class StorageClient implements BackgroundResource {
    * `WriteObjectSpec` into that request. They should then attach the returned `upload_id` to the
    * first message of each following call to `WriteObject`. If the stream is closed before finishing
    * the upload (either explicitly by the client or due to a network error or an error response from
-   * the server), the client should do as follows: - Check the result Status of the stream, to
-   * determine if writing can be resumed on this stream or must be restarted from scratch (by
-   * calling `StartResumableWrite()`). The resumable errors are DEADLINE_EXCEEDED, INTERNAL, and
-   * UNAVAILABLE. For each case, the client should use binary exponential backoff before retrying.
-   * Additionally, writes can be resumed after RESOURCE_EXHAUSTED errors, but only after taking
-   * appropriate measures, which may include reducing aggregate send rate across clients and/or
-   * requesting a quota increase for your project. - If the call to `WriteObject` returns `ABORTED`,
-   * that indicates concurrent attempts to update the resumable write, caused either by multiple
-   * racing clients or by a single client where the previous request was timed out on the client
-   * side but nonetheless reached the server. In this case the client should take steps to prevent
-   * further concurrent writes (e.g., increase the timeouts, stop using more than one process to
-   * perform the upload, etc.), and then should follow the steps below for resuming the upload. -
-   * For resumable errors, the client should call `QueryWriteStatus()` and then continue writing
-   * from the returned `persisted_size`. This may be less than the amount of data the client
-   * previously sent. Note also that it is acceptable to send data starting at an offset earlier
-   * than the returned `persisted_size`; in this case, the service will skip data at offsets that
-   * were already persisted (without checking that it matches the previously written data), and
-   * write only the data starting from the persisted offset. This behavior can make client-side
-   * handling simpler in some cases.
+   * the server), the client should do as follows:
    *
-   * <p>The service will not view the object as complete until the client has sent a
+   * <p>- Check the result Status of the stream, to determine if writing can be resumed on this
+   * stream or must be restarted from scratch (by calling `StartResumableWrite()`). The resumable
+   * errors are `DEADLINE_EXCEEDED`, `INTERNAL`, and `UNAVAILABLE`. For each case, the client should
+   * use binary exponential backoff before retrying. Additionally, writes can be resumed after
+   * `RESOURCE_EXHAUSTED` errors, but only after taking appropriate measures, which might include
+   * reducing aggregate send rate across clients and/or requesting a quota increase for your
+   * project. - If the call to `WriteObject` returns `ABORTED`, that indicates concurrent attempts
+   * to update the resumable write, caused either by multiple racing clients or by a single client
+   * where the previous request was timed out on the client side but nonetheless reached the server.
+   * In this case the client should take steps to prevent further concurrent writes. For example,
+   * increase the timeouts and stop using more than one process to perform the upload. Follow the
+   * steps below for resuming the upload. - For resumable errors, the client should call
+   * `QueryWriteStatus()` and then continue writing from the returned `persisted_size`. This might
+   * be less than the amount of data the client previously sent. Note also that it is acceptable to
+   * send data starting at an offset earlier than the returned `persisted_size`; in this case, the
+   * service skips data at offsets that were already persisted (without checking that it matches the
+   * previously written data), and write only the data starting from the persisted offset. Even
+   * though the data isn't written, it might still incur a performance cost over resuming at the
+   * correct write offset. This behavior can make client-side handling simpler in some cases. -
+   * Clients must only send data that is a multiple of 256 KiB per message, unless the object is
+   * being finished with `finish_write` set to `true`.
+   *
+   * <p>The service does not view the object as complete until the client has sent a
    * `WriteObjectRequest` with `finish_write` set to `true`. Sending any requests on a stream after
-   * sending a request with `finish_write` set to `true` will cause an error. The client
-   * &#42;&#42;should&#42;&#42; check the response it receives to determine how much data the
-   * service was able to commit and whether the service views the object as complete.
+   * sending a request with `finish_write` set to `true` causes an error. The client must check the
+   * response it receives to determine how much data the service is able to commit and whether the
+   * service views the object as complete.
    *
-   * <p>Attempting to resume an already finalized object will result in an OK status, with a
-   * WriteObjectResponse containing the finalized object's metadata.
+   * <p>Attempting to resume an already finalized object results in an `OK` status, with a
+   * `WriteObjectResponse` containing the finalized object's metadata.
+   *
+   * <p>Alternatively, you can use the `BidiWriteObject` operation to write an object with controls
+   * over flushing and the ability to fetch the ability to determine the current persisted size.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.create` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2515,7 +3350,20 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves a list of objects matching the criteria.
+   * Stores a new object and metadata.
+   *
+   * <p>This is similar to the `WriteObject` call with the added support for manual flushing of
+   * persisted state, and the ability to determine current persisted size without closing the
+   * stream.
+   *
+   * <p>The client might specify one or both of the `state_lookup` and `flush` fields in each
+   * `BidiWriteObjectRequest`. If `flush` is specified, the data written so far is persisted to
+   * storage. If `state_lookup` is specified, the service responds with a `BidiWriteObjectResponse`
+   * that contains the persisted size. If both `flush` and `state_lookup` are specified, the flush
+   * always occurs before a `state_lookup`, so that both might be set in the same request and the
+   * returned state is the state of the object post-flush. When the stream is closed, a
+   * `BidiWriteObjectResponse` is always sent to the client, regardless of the value of
+   * `state_lookup`.
    *
    * <p>Sample code:
    *
@@ -2526,7 +3374,49 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   ProjectName parent = ProjectName.of("[PROJECT]");
+   *   BidiStream<BidiWriteObjectRequest, BidiWriteObjectResponse> bidiStream =
+   *       storageClient.bidiWriteObjectCallable().call();
+   *   BidiWriteObjectRequest request =
+   *       BidiWriteObjectRequest.newBuilder()
+   *           .setWriteOffset(-1559543565)
+   *           .setObjectChecksums(ObjectChecksums.newBuilder().build())
+   *           .setStateLookup(true)
+   *           .setFlush(true)
+   *           .setFinishWrite(true)
+   *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .build();
+   *   bidiStream.send(request);
+   *   for (BidiWriteObjectResponse response : bidiStream) {
+   *     // Do something when a response is received.
+   *   }
+   * }
+   * }</pre>
+   */
+  public final BidiStreamingCallable<BidiWriteObjectRequest, BidiWriteObjectResponse>
+      bidiWriteObjectCallable() {
+    return stub.bidiWriteObjectCallable();
+  }
+
+  // AUTO-GENERATED DOCUMENTATION AND METHOD.
+  /**
+   * Retrieves a list of objects matching the criteria.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>The authenticated user requires `storage.objects.list` IAM permission to use this method. To
+   * return object ACLs, the authenticated user must also have the `storage.objects.getIamPolicy`
+   * permission.
+   *
+   * <p>Sample code:
+   *
+   * <pre>{@code
+   * // This snippet has been automatically generated and should be regarded as a code template only.
+   * // It will require modifications to work:
+   * // - It may require correct/in-range values for request initialization.
+   * // - It may require specifying regional endpoints when creating the service client as shown in
+   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
+   * try (StorageClient storageClient = StorageClient.create()) {
+   *   BucketName parent = BucketName.of("[PROJECT]", "[BUCKET]");
    *   for (Object element : storageClient.listObjects(parent).iterateAll()) {
    *     // doThingsWith(element);
    *   }
@@ -2536,7 +3426,7 @@ public class StorageClient implements BackgroundResource {
    * @param parent Required. Name of the bucket in which to look for objects.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
-  public final ListObjectsPagedResponse listObjects(ProjectName parent) {
+  public final ListObjectsPagedResponse listObjects(BucketName parent) {
     ListObjectsRequest request =
         ListObjectsRequest.newBuilder()
             .setParent(parent == null ? null : parent.toString())
@@ -2548,6 +3438,12 @@ public class StorageClient implements BackgroundResource {
   /**
    * Retrieves a list of objects matching the criteria.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>The authenticated user requires `storage.objects.list` IAM permission to use this method. To
+   * return object ACLs, the authenticated user must also have the `storage.objects.getIamPolicy`
+   * permission.
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -2557,7 +3453,7 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   String parent = ProjectName.of("[PROJECT]").toString();
+   *   String parent = BucketName.of("[PROJECT]", "[BUCKET]").toString();
    *   for (Object element : storageClient.listObjects(parent).iterateAll()) {
    *     // doThingsWith(element);
    *   }
@@ -2576,6 +3472,12 @@ public class StorageClient implements BackgroundResource {
   /**
    * Retrieves a list of objects matching the criteria.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>The authenticated user requires `storage.objects.list` IAM permission to use this method. To
+   * return object ACLs, the authenticated user must also have the `storage.objects.getIamPolicy`
+   * permission.
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -2587,7 +3489,7 @@ public class StorageClient implements BackgroundResource {
    * try (StorageClient storageClient = StorageClient.create()) {
    *   ListObjectsRequest request =
    *       ListObjectsRequest.newBuilder()
-   *           .setParent(ProjectName.of("[PROJECT]").toString())
+   *           .setParent(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setPageSize(883849137)
    *           .setPageToken("pageToken873572522")
    *           .setDelimiter("delimiter-250518009")
@@ -2597,6 +3499,10 @@ public class StorageClient implements BackgroundResource {
    *           .setReadMask(FieldMask.newBuilder().build())
    *           .setLexicographicStart("lexicographicStart-2093413008")
    *           .setLexicographicEnd("lexicographicEnd1646968169")
+   *           .setSoftDeleted(true)
+   *           .setIncludeFoldersAsPrefixes(true)
+   *           .setMatchGlob("matchGlob613636317")
+   *           .setFilter("filter-1274492040")
    *           .build();
    *   for (Object element : storageClient.listObjects(request).iterateAll()) {
    *     // doThingsWith(element);
@@ -2615,6 +3521,12 @@ public class StorageClient implements BackgroundResource {
   /**
    * Retrieves a list of objects matching the criteria.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>The authenticated user requires `storage.objects.list` IAM permission to use this method. To
+   * return object ACLs, the authenticated user must also have the `storage.objects.getIamPolicy`
+   * permission.
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -2626,7 +3538,7 @@ public class StorageClient implements BackgroundResource {
    * try (StorageClient storageClient = StorageClient.create()) {
    *   ListObjectsRequest request =
    *       ListObjectsRequest.newBuilder()
-   *           .setParent(ProjectName.of("[PROJECT]").toString())
+   *           .setParent(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setPageSize(883849137)
    *           .setPageToken("pageToken873572522")
    *           .setDelimiter("delimiter-250518009")
@@ -2636,6 +3548,10 @@ public class StorageClient implements BackgroundResource {
    *           .setReadMask(FieldMask.newBuilder().build())
    *           .setLexicographicStart("lexicographicStart-2093413008")
    *           .setLexicographicEnd("lexicographicEnd1646968169")
+   *           .setSoftDeleted(true)
+   *           .setIncludeFoldersAsPrefixes(true)
+   *           .setMatchGlob("matchGlob613636317")
+   *           .setFilter("filter-1274492040")
    *           .build();
    *   ApiFuture<Object> future = storageClient.listObjectsPagedCallable().futureCall(request);
    *   // Do something.
@@ -2654,6 +3570,12 @@ public class StorageClient implements BackgroundResource {
   /**
    * Retrieves a list of objects matching the criteria.
    *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>The authenticated user requires `storage.objects.list` IAM permission to use this method. To
+   * return object ACLs, the authenticated user must also have the `storage.objects.getIamPolicy`
+   * permission.
+   *
    * <p>Sample code:
    *
    * <pre>{@code
@@ -2665,7 +3587,7 @@ public class StorageClient implements BackgroundResource {
    * try (StorageClient storageClient = StorageClient.create()) {
    *   ListObjectsRequest request =
    *       ListObjectsRequest.newBuilder()
-   *           .setParent(ProjectName.of("[PROJECT]").toString())
+   *           .setParent(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setPageSize(883849137)
    *           .setPageToken("pageToken873572522")
    *           .setDelimiter("delimiter-250518009")
@@ -2675,6 +3597,10 @@ public class StorageClient implements BackgroundResource {
    *           .setReadMask(FieldMask.newBuilder().build())
    *           .setLexicographicStart("lexicographicStart-2093413008")
    *           .setLexicographicEnd("lexicographicEnd1646968169")
+   *           .setSoftDeleted(true)
+   *           .setIncludeFoldersAsPrefixes(true)
+   *           .setMatchGlob("matchGlob613636317")
+   *           .setFilter("filter-1274492040")
    *           .build();
    *   while (true) {
    *     ListObjectsResponse response = storageClient.listObjectsCallable().call(request);
@@ -2716,7 +3642,7 @@ public class StorageClient implements BackgroundResource {
    *               CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
    *                   .toString())
    *           .setDestination(Object.newBuilder().build())
-   *           .setSourceBucket("sourceBucket841604581")
+   *           .setSourceBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setSourceObject("sourceObject1196439354")
    *           .setSourceGeneration(1232209852)
    *           .setRewriteToken("rewriteToken80654285")
@@ -2734,6 +3660,7 @@ public class StorageClient implements BackgroundResource {
    *           .setCopySourceEncryptionKeyBytes(ByteString.EMPTY)
    *           .setCopySourceEncryptionKeySha256Bytes(ByteString.EMPTY)
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .setObjectChecksums(ObjectChecksums.newBuilder().build())
    *           .build();
    *   RewriteResponse response = storageClient.rewriteObject(request);
    * }
@@ -2767,7 +3694,7 @@ public class StorageClient implements BackgroundResource {
    *               CryptoKeyName.of("[PROJECT]", "[LOCATION]", "[KEY_RING]", "[CRYPTO_KEY]")
    *                   .toString())
    *           .setDestination(Object.newBuilder().build())
-   *           .setSourceBucket("sourceBucket841604581")
+   *           .setSourceBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
    *           .setSourceObject("sourceObject1196439354")
    *           .setSourceGeneration(1232209852)
    *           .setRewriteToken("rewriteToken80654285")
@@ -2785,6 +3712,7 @@ public class StorageClient implements BackgroundResource {
    *           .setCopySourceEncryptionKeyBytes(ByteString.EMPTY)
    *           .setCopySourceEncryptionKeySha256Bytes(ByteString.EMPTY)
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .setObjectChecksums(ObjectChecksums.newBuilder().build())
    *           .build();
    *   ApiFuture<RewriteResponse> future = storageClient.rewriteObjectCallable().futureCall(request);
    *   // Do something.
@@ -2798,8 +3726,14 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Starts a resumable write. How long the write operation remains valid, and what happens when the
-   * write operation becomes invalid, are service-dependent.
+   * Starts a resumable write operation. This method is part of the Resumable upload feature. This
+   * allows you to upload large objects in multiple chunks, which is more resilient to network
+   * interruptions than a single upload. The validity duration of the write operation, and the
+   * consequences of it becoming invalid, are service-dependent.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.create` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2814,6 +3748,7 @@ public class StorageClient implements BackgroundResource {
    *       StartResumableWriteRequest.newBuilder()
    *           .setWriteObjectSpec(WriteObjectSpec.newBuilder().build())
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .setObjectChecksums(ObjectChecksums.newBuilder().build())
    *           .build();
    *   StartResumableWriteResponse response = storageClient.startResumableWrite(request);
    * }
@@ -2828,8 +3763,14 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Starts a resumable write. How long the write operation remains valid, and what happens when the
-   * write operation becomes invalid, are service-dependent.
+   * Starts a resumable write operation. This method is part of the Resumable upload feature. This
+   * allows you to upload large objects in multiple chunks, which is more resilient to network
+   * interruptions than a single upload. The validity duration of the write operation, and the
+   * consequences of it becoming invalid, are service-dependent.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires `storage.objects.create` IAM permission on the bucket.
    *
    * <p>Sample code:
    *
@@ -2844,6 +3785,7 @@ public class StorageClient implements BackgroundResource {
    *       StartResumableWriteRequest.newBuilder()
    *           .setWriteObjectSpec(WriteObjectSpec.newBuilder().build())
    *           .setCommonObjectRequestParams(CommonObjectRequestParams.newBuilder().build())
+   *           .setObjectChecksums(ObjectChecksums.newBuilder().build())
    *           .build();
    *   ApiFuture<StartResumableWriteResponse> future =
    *       storageClient.startResumableWriteCallable().futureCall(request);
@@ -2859,17 +3801,17 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Determines the `persisted_size` for an object that is being written, which can then be used as
-   * the `write_offset` for the next `Write()` call.
+   * Determines the `persisted_size` of an object that is being written. This method is part of the
+   * resumable upload feature. The returned value is the size of the object that has been persisted
+   * so far. The value can be used as the `write_offset` for the next `Write()` call.
    *
-   * <p>If the object does not exist (i.e., the object has been deleted, or the first `Write()` has
-   * not yet reached the service), this method returns the error `NOT_FOUND`.
+   * <p>If the object does not exist, meaning if it was deleted, or the first `Write()` has not yet
+   * reached the service, this method returns the error `NOT_FOUND`.
    *
-   * <p>The client &#42;&#42;may&#42;&#42; call `QueryWriteStatus()` at any time to determine how
-   * much data has been processed for this object. This is useful if the client is buffering data
-   * and needs to know which data can be safely evicted. For any sequence of `QueryWriteStatus()`
-   * calls for a given object name, the sequence of returned `persisted_size` values will be
-   * non-decreasing.
+   * <p>This method is useful for clients that buffer data and need to know which data can be safely
+   * evicted. The client can call `QueryWriteStatus()` at any time to determine how much data has
+   * been logged for this object. For any sequence of `QueryWriteStatus()` calls for a given object
+   * name, the sequence of returned `persisted_size` values are non-decreasing.
    *
    * <p>Sample code:
    *
@@ -2897,17 +3839,17 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Determines the `persisted_size` for an object that is being written, which can then be used as
-   * the `write_offset` for the next `Write()` call.
+   * Determines the `persisted_size` of an object that is being written. This method is part of the
+   * resumable upload feature. The returned value is the size of the object that has been persisted
+   * so far. The value can be used as the `write_offset` for the next `Write()` call.
    *
-   * <p>If the object does not exist (i.e., the object has been deleted, or the first `Write()` has
-   * not yet reached the service), this method returns the error `NOT_FOUND`.
+   * <p>If the object does not exist, meaning if it was deleted, or the first `Write()` has not yet
+   * reached the service, this method returns the error `NOT_FOUND`.
    *
-   * <p>The client &#42;&#42;may&#42;&#42; call `QueryWriteStatus()` at any time to determine how
-   * much data has been processed for this object. This is useful if the client is buffering data
-   * and needs to know which data can be safely evicted. For any sequence of `QueryWriteStatus()`
-   * calls for a given object name, the sequence of returned `persisted_size` values will be
-   * non-decreasing.
+   * <p>This method is useful for clients that buffer data and need to know which data can be safely
+   * evicted. The client can call `QueryWriteStatus()` at any time to determine how much data has
+   * been logged for this object. For any sequence of `QueryWriteStatus()` calls for a given object
+   * name, the sequence of returned `persisted_size` values are non-decreasing.
    *
    * <p>Sample code:
    *
@@ -2936,17 +3878,17 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Determines the `persisted_size` for an object that is being written, which can then be used as
-   * the `write_offset` for the next `Write()` call.
+   * Determines the `persisted_size` of an object that is being written. This method is part of the
+   * resumable upload feature. The returned value is the size of the object that has been persisted
+   * so far. The value can be used as the `write_offset` for the next `Write()` call.
    *
-   * <p>If the object does not exist (i.e., the object has been deleted, or the first `Write()` has
-   * not yet reached the service), this method returns the error `NOT_FOUND`.
+   * <p>If the object does not exist, meaning if it was deleted, or the first `Write()` has not yet
+   * reached the service, this method returns the error `NOT_FOUND`.
    *
-   * <p>The client &#42;&#42;may&#42;&#42; call `QueryWriteStatus()` at any time to determine how
-   * much data has been processed for this object. This is useful if the client is buffering data
-   * and needs to know which data can be safely evicted. For any sequence of `QueryWriteStatus()`
-   * calls for a given object name, the sequence of returned `persisted_size` values will be
-   * non-decreasing.
+   * <p>This method is useful for clients that buffer data and need to know which data can be safely
+   * evicted. The client can call `QueryWriteStatus()` at any time to determine how much data has
+   * been logged for this object. For any sequence of `QueryWriteStatus()` calls for a given object
+   * name, the sequence of returned `persisted_size` values are non-decreasing.
    *
    * <p>Sample code:
    *
@@ -2976,7 +3918,17 @@ public class StorageClient implements BackgroundResource {
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves the name of a project's Google Cloud Storage service account.
+   * Moves the source object to the destination object in the same bucket. This operation moves a
+   * source object to a destination object in the same bucket by renaming the object. The move
+   * itself is an atomic transaction, ensuring all steps either complete successfully or no changes
+   * are made.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the following IAM permissions to use this method:
+   *
+   * <p>- `storage.objects.move` - `storage.objects.create` - `storage.objects.delete` (only
+   * required if overwriting an existing object)
    *
    * <p>Sample code:
    *
@@ -2987,26 +3939,41 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   ProjectName project = ProjectName.of("[PROJECT]");
-   *   ServiceAccount response = storageClient.getServiceAccount(project);
+   *   BucketName bucket = BucketName.of("[PROJECT]", "[BUCKET]");
+   *   String sourceObject = "sourceObject1196439354";
+   *   String destinationObject = "destinationObject-1761603347";
+   *   Object response = storageClient.moveObject(bucket, sourceObject, destinationObject);
    * }
    * }</pre>
    *
-   * @param project Required. Project ID, in the format of "projects/&lt;projectIdentifier&gt;".
-   *     &lt;projectIdentifier&gt; can be the project ID or project number.
+   * @param bucket Required. Name of the bucket in which the object resides.
+   * @param sourceObject Required. Name of the source object.
+   * @param destinationObject Required. Name of the destination object.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
-  public final ServiceAccount getServiceAccount(ProjectName project) {
-    GetServiceAccountRequest request =
-        GetServiceAccountRequest.newBuilder()
-            .setProject(project == null ? null : project.toString())
+  public final Object moveObject(BucketName bucket, String sourceObject, String destinationObject) {
+    MoveObjectRequest request =
+        MoveObjectRequest.newBuilder()
+            .setBucket(bucket == null ? null : bucket.toString())
+            .setSourceObject(sourceObject)
+            .setDestinationObject(destinationObject)
             .build();
-    return getServiceAccount(request);
+    return moveObject(request);
   }
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves the name of a project's Google Cloud Storage service account.
+   * Moves the source object to the destination object in the same bucket. This operation moves a
+   * source object to a destination object in the same bucket by renaming the object. The move
+   * itself is an atomic transaction, ensuring all steps either complete successfully or no changes
+   * are made.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the following IAM permissions to use this method:
+   *
+   * <p>- `storage.objects.move` - `storage.objects.create` - `storage.objects.delete` (only
+   * required if overwriting an existing object)
    *
    * <p>Sample code:
    *
@@ -3017,24 +3984,41 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   String project = ProjectName.of("[PROJECT]").toString();
-   *   ServiceAccount response = storageClient.getServiceAccount(project);
+   *   String bucket = BucketName.of("[PROJECT]", "[BUCKET]").toString();
+   *   String sourceObject = "sourceObject1196439354";
+   *   String destinationObject = "destinationObject-1761603347";
+   *   Object response = storageClient.moveObject(bucket, sourceObject, destinationObject);
    * }
    * }</pre>
    *
-   * @param project Required. Project ID, in the format of "projects/&lt;projectIdentifier&gt;".
-   *     &lt;projectIdentifier&gt; can be the project ID or project number.
+   * @param bucket Required. Name of the bucket in which the object resides.
+   * @param sourceObject Required. Name of the source object.
+   * @param destinationObject Required. Name of the destination object.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
-  public final ServiceAccount getServiceAccount(String project) {
-    GetServiceAccountRequest request =
-        GetServiceAccountRequest.newBuilder().setProject(project).build();
-    return getServiceAccount(request);
+  public final Object moveObject(String bucket, String sourceObject, String destinationObject) {
+    MoveObjectRequest request =
+        MoveObjectRequest.newBuilder()
+            .setBucket(bucket)
+            .setSourceObject(sourceObject)
+            .setDestinationObject(destinationObject)
+            .build();
+    return moveObject(request);
   }
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves the name of a project's Google Cloud Storage service account.
+   * Moves the source object to the destination object in the same bucket. This operation moves a
+   * source object to a destination object in the same bucket by renaming the object. The move
+   * itself is an atomic transaction, ensuring all steps either complete successfully or no changes
+   * are made.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the following IAM permissions to use this method:
+   *
+   * <p>- `storage.objects.move` - `storage.objects.create` - `storage.objects.delete` (only
+   * required if overwriting an existing object)
    *
    * <p>Sample code:
    *
@@ -3045,24 +4029,44 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   GetServiceAccountRequest request =
-   *       GetServiceAccountRequest.newBuilder()
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
+   *   MoveObjectRequest request =
+   *       MoveObjectRequest.newBuilder()
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+   *           .setSourceObject("sourceObject1196439354")
+   *           .setDestinationObject("destinationObject-1761603347")
+   *           .setIfSourceGenerationMatch(-1427877280)
+   *           .setIfSourceGenerationNotMatch(1575612532)
+   *           .setIfSourceMetagenerationMatch(1143319909)
+   *           .setIfSourceMetagenerationNotMatch(1900822777)
+   *           .setIfGenerationMatch(-1086241088)
+   *           .setIfGenerationNotMatch(1475720404)
+   *           .setIfMetagenerationMatch(1043427781)
+   *           .setIfMetagenerationNotMatch(1025430873)
    *           .build();
-   *   ServiceAccount response = storageClient.getServiceAccount(request);
+   *   Object response = storageClient.moveObject(request);
    * }
    * }</pre>
    *
    * @param request The request object containing all of the parameters for the API call.
    * @throws com.google.api.gax.rpc.ApiException if the remote call fails
    */
-  public final ServiceAccount getServiceAccount(GetServiceAccountRequest request) {
-    return getServiceAccountCallable().call(request);
+  public final Object moveObject(MoveObjectRequest request) {
+    return moveObjectCallable().call(request);
   }
 
   // AUTO-GENERATED DOCUMENTATION AND METHOD.
   /**
-   * Retrieves the name of a project's Google Cloud Storage service account.
+   * Moves the source object to the destination object in the same bucket. This operation moves a
+   * source object to a destination object in the same bucket by renaming the object. The move
+   * itself is an atomic transaction, ensuring all steps either complete successfully or no changes
+   * are made.
+   *
+   * <p>&#42;&#42;IAM Permissions&#42;&#42;:
+   *
+   * <p>Requires the following IAM permissions to use this method:
+   *
+   * <p>- `storage.objects.move` - `storage.objects.create` - `storage.objects.delete` (only
+   * required if overwriting an existing object)
    *
    * <p>Sample code:
    *
@@ -3073,651 +4077,28 @@ public class StorageClient implements BackgroundResource {
    * // - It may require specifying regional endpoints when creating the service client as shown in
    * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
    * try (StorageClient storageClient = StorageClient.create()) {
-   *   GetServiceAccountRequest request =
-   *       GetServiceAccountRequest.newBuilder()
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
+   *   MoveObjectRequest request =
+   *       MoveObjectRequest.newBuilder()
+   *           .setBucket(BucketName.of("[PROJECT]", "[BUCKET]").toString())
+   *           .setSourceObject("sourceObject1196439354")
+   *           .setDestinationObject("destinationObject-1761603347")
+   *           .setIfSourceGenerationMatch(-1427877280)
+   *           .setIfSourceGenerationNotMatch(1575612532)
+   *           .setIfSourceMetagenerationMatch(1143319909)
+   *           .setIfSourceMetagenerationNotMatch(1900822777)
+   *           .setIfGenerationMatch(-1086241088)
+   *           .setIfGenerationNotMatch(1475720404)
+   *           .setIfMetagenerationMatch(1043427781)
+   *           .setIfMetagenerationNotMatch(1025430873)
    *           .build();
-   *   ApiFuture<ServiceAccount> future =
-   *       storageClient.getServiceAccountCallable().futureCall(request);
+   *   ApiFuture<Object> future = storageClient.moveObjectCallable().futureCall(request);
    *   // Do something.
-   *   ServiceAccount response = future.get();
+   *   Object response = future.get();
    * }
    * }</pre>
    */
-  public final UnaryCallable<GetServiceAccountRequest, ServiceAccount> getServiceAccountCallable() {
-    return stub.getServiceAccountCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Creates a new HMAC key for the given service account.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ProjectName project = ProjectName.of("[PROJECT]");
-   *   String serviceAccountEmail = "serviceAccountEmail1825953988";
-   *   CreateHmacKeyResponse response = storageClient.createHmacKey(project, serviceAccountEmail);
-   * }
-   * }</pre>
-   *
-   * @param project Required. The project that the HMAC-owning service account lives in, in the
-   *     format of "projects/&lt;projectIdentifier&gt;". &lt;projectIdentifier&gt; can be the
-   *     project ID or project number.
-   * @param serviceAccountEmail Required. The service account to create the HMAC for.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final CreateHmacKeyResponse createHmacKey(
-      ProjectName project, String serviceAccountEmail) {
-    CreateHmacKeyRequest request =
-        CreateHmacKeyRequest.newBuilder()
-            .setProject(project == null ? null : project.toString())
-            .setServiceAccountEmail(serviceAccountEmail)
-            .build();
-    return createHmacKey(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Creates a new HMAC key for the given service account.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String project = ProjectName.of("[PROJECT]").toString();
-   *   String serviceAccountEmail = "serviceAccountEmail1825953988";
-   *   CreateHmacKeyResponse response = storageClient.createHmacKey(project, serviceAccountEmail);
-   * }
-   * }</pre>
-   *
-   * @param project Required. The project that the HMAC-owning service account lives in, in the
-   *     format of "projects/&lt;projectIdentifier&gt;". &lt;projectIdentifier&gt; can be the
-   *     project ID or project number.
-   * @param serviceAccountEmail Required. The service account to create the HMAC for.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final CreateHmacKeyResponse createHmacKey(String project, String serviceAccountEmail) {
-    CreateHmacKeyRequest request =
-        CreateHmacKeyRequest.newBuilder()
-            .setProject(project)
-            .setServiceAccountEmail(serviceAccountEmail)
-            .build();
-    return createHmacKey(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Creates a new HMAC key for the given service account.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   CreateHmacKeyRequest request =
-   *       CreateHmacKeyRequest.newBuilder()
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .setServiceAccountEmail("serviceAccountEmail1825953988")
-   *           .build();
-   *   CreateHmacKeyResponse response = storageClient.createHmacKey(request);
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final CreateHmacKeyResponse createHmacKey(CreateHmacKeyRequest request) {
-    return createHmacKeyCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Creates a new HMAC key for the given service account.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   CreateHmacKeyRequest request =
-   *       CreateHmacKeyRequest.newBuilder()
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .setServiceAccountEmail("serviceAccountEmail1825953988")
-   *           .build();
-   *   ApiFuture<CreateHmacKeyResponse> future =
-   *       storageClient.createHmacKeyCallable().futureCall(request);
-   *   // Do something.
-   *   CreateHmacKeyResponse response = future.get();
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<CreateHmacKeyRequest, CreateHmacKeyResponse> createHmacKeyCallable() {
-    return stub.createHmacKeyCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Deletes a given HMAC key. Key must be in an INACTIVE state.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String accessId = "accessId-2146437729";
-   *   ProjectName project = ProjectName.of("[PROJECT]");
-   *   storageClient.deleteHmacKey(accessId, project);
-   * }
-   * }</pre>
-   *
-   * @param accessId Required. The identifying key for the HMAC to delete.
-   * @param project Required. The project that owns the HMAC key, in the format of
-   *     "projects/&lt;projectIdentifier&gt;". &lt;projectIdentifier&gt; can be the project ID or
-   *     project number.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final void deleteHmacKey(String accessId, ProjectName project) {
-    DeleteHmacKeyRequest request =
-        DeleteHmacKeyRequest.newBuilder()
-            .setAccessId(accessId)
-            .setProject(project == null ? null : project.toString())
-            .build();
-    deleteHmacKey(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Deletes a given HMAC key. Key must be in an INACTIVE state.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String accessId = "accessId-2146437729";
-   *   String project = ProjectName.of("[PROJECT]").toString();
-   *   storageClient.deleteHmacKey(accessId, project);
-   * }
-   * }</pre>
-   *
-   * @param accessId Required. The identifying key for the HMAC to delete.
-   * @param project Required. The project that owns the HMAC key, in the format of
-   *     "projects/&lt;projectIdentifier&gt;". &lt;projectIdentifier&gt; can be the project ID or
-   *     project number.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final void deleteHmacKey(String accessId, String project) {
-    DeleteHmacKeyRequest request =
-        DeleteHmacKeyRequest.newBuilder().setAccessId(accessId).setProject(project).build();
-    deleteHmacKey(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Deletes a given HMAC key. Key must be in an INACTIVE state.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   DeleteHmacKeyRequest request =
-   *       DeleteHmacKeyRequest.newBuilder()
-   *           .setAccessId("accessId-2146437729")
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .build();
-   *   storageClient.deleteHmacKey(request);
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final void deleteHmacKey(DeleteHmacKeyRequest request) {
-    deleteHmacKeyCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Deletes a given HMAC key. Key must be in an INACTIVE state.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   DeleteHmacKeyRequest request =
-   *       DeleteHmacKeyRequest.newBuilder()
-   *           .setAccessId("accessId-2146437729")
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .build();
-   *   ApiFuture<Empty> future = storageClient.deleteHmacKeyCallable().futureCall(request);
-   *   // Do something.
-   *   future.get();
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<DeleteHmacKeyRequest, Empty> deleteHmacKeyCallable() {
-    return stub.deleteHmacKeyCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Gets an existing HMAC key metadata for the given id.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String accessId = "accessId-2146437729";
-   *   ProjectName project = ProjectName.of("[PROJECT]");
-   *   HmacKeyMetadata response = storageClient.getHmacKey(accessId, project);
-   * }
-   * }</pre>
-   *
-   * @param accessId Required. The identifying key for the HMAC to delete.
-   * @param project Required. The project the HMAC key lies in, in the format of
-   *     "projects/&lt;projectIdentifier&gt;". &lt;projectIdentifier&gt; can be the project ID or
-   *     project number.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final HmacKeyMetadata getHmacKey(String accessId, ProjectName project) {
-    GetHmacKeyRequest request =
-        GetHmacKeyRequest.newBuilder()
-            .setAccessId(accessId)
-            .setProject(project == null ? null : project.toString())
-            .build();
-    return getHmacKey(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Gets an existing HMAC key metadata for the given id.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String accessId = "accessId-2146437729";
-   *   String project = ProjectName.of("[PROJECT]").toString();
-   *   HmacKeyMetadata response = storageClient.getHmacKey(accessId, project);
-   * }
-   * }</pre>
-   *
-   * @param accessId Required. The identifying key for the HMAC to delete.
-   * @param project Required. The project the HMAC key lies in, in the format of
-   *     "projects/&lt;projectIdentifier&gt;". &lt;projectIdentifier&gt; can be the project ID or
-   *     project number.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final HmacKeyMetadata getHmacKey(String accessId, String project) {
-    GetHmacKeyRequest request =
-        GetHmacKeyRequest.newBuilder().setAccessId(accessId).setProject(project).build();
-    return getHmacKey(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Gets an existing HMAC key metadata for the given id.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   GetHmacKeyRequest request =
-   *       GetHmacKeyRequest.newBuilder()
-   *           .setAccessId("accessId-2146437729")
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .build();
-   *   HmacKeyMetadata response = storageClient.getHmacKey(request);
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final HmacKeyMetadata getHmacKey(GetHmacKeyRequest request) {
-    return getHmacKeyCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Gets an existing HMAC key metadata for the given id.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   GetHmacKeyRequest request =
-   *       GetHmacKeyRequest.newBuilder()
-   *           .setAccessId("accessId-2146437729")
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .build();
-   *   ApiFuture<HmacKeyMetadata> future = storageClient.getHmacKeyCallable().futureCall(request);
-   *   // Do something.
-   *   HmacKeyMetadata response = future.get();
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<GetHmacKeyRequest, HmacKeyMetadata> getHmacKeyCallable() {
-    return stub.getHmacKeyCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Lists HMAC keys under a given project with the additional filters provided.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ProjectName project = ProjectName.of("[PROJECT]");
-   *   for (HmacKeyMetadata element : storageClient.listHmacKeys(project).iterateAll()) {
-   *     // doThingsWith(element);
-   *   }
-   * }
-   * }</pre>
-   *
-   * @param project Required. The project to list HMAC keys for, in the format of
-   *     "projects/&lt;projectIdentifier&gt;". &lt;projectIdentifier&gt; can be the project ID or
-   *     project number.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final ListHmacKeysPagedResponse listHmacKeys(ProjectName project) {
-    ListHmacKeysRequest request =
-        ListHmacKeysRequest.newBuilder()
-            .setProject(project == null ? null : project.toString())
-            .build();
-    return listHmacKeys(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Lists HMAC keys under a given project with the additional filters provided.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   String project = ProjectName.of("[PROJECT]").toString();
-   *   for (HmacKeyMetadata element : storageClient.listHmacKeys(project).iterateAll()) {
-   *     // doThingsWith(element);
-   *   }
-   * }
-   * }</pre>
-   *
-   * @param project Required. The project to list HMAC keys for, in the format of
-   *     "projects/&lt;projectIdentifier&gt;". &lt;projectIdentifier&gt; can be the project ID or
-   *     project number.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final ListHmacKeysPagedResponse listHmacKeys(String project) {
-    ListHmacKeysRequest request = ListHmacKeysRequest.newBuilder().setProject(project).build();
-    return listHmacKeys(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Lists HMAC keys under a given project with the additional filters provided.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ListHmacKeysRequest request =
-   *       ListHmacKeysRequest.newBuilder()
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .setPageSize(883849137)
-   *           .setPageToken("pageToken873572522")
-   *           .setServiceAccountEmail("serviceAccountEmail1825953988")
-   *           .setShowDeletedKeys(true)
-   *           .build();
-   *   for (HmacKeyMetadata element : storageClient.listHmacKeys(request).iterateAll()) {
-   *     // doThingsWith(element);
-   *   }
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final ListHmacKeysPagedResponse listHmacKeys(ListHmacKeysRequest request) {
-    return listHmacKeysPagedCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Lists HMAC keys under a given project with the additional filters provided.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ListHmacKeysRequest request =
-   *       ListHmacKeysRequest.newBuilder()
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .setPageSize(883849137)
-   *           .setPageToken("pageToken873572522")
-   *           .setServiceAccountEmail("serviceAccountEmail1825953988")
-   *           .setShowDeletedKeys(true)
-   *           .build();
-   *   ApiFuture<HmacKeyMetadata> future =
-   *       storageClient.listHmacKeysPagedCallable().futureCall(request);
-   *   // Do something.
-   *   for (HmacKeyMetadata element : future.get().iterateAll()) {
-   *     // doThingsWith(element);
-   *   }
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<ListHmacKeysRequest, ListHmacKeysPagedResponse>
-      listHmacKeysPagedCallable() {
-    return stub.listHmacKeysPagedCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Lists HMAC keys under a given project with the additional filters provided.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   ListHmacKeysRequest request =
-   *       ListHmacKeysRequest.newBuilder()
-   *           .setProject(ProjectName.of("[PROJECT]").toString())
-   *           .setPageSize(883849137)
-   *           .setPageToken("pageToken873572522")
-   *           .setServiceAccountEmail("serviceAccountEmail1825953988")
-   *           .setShowDeletedKeys(true)
-   *           .build();
-   *   while (true) {
-   *     ListHmacKeysResponse response = storageClient.listHmacKeysCallable().call(request);
-   *     for (HmacKeyMetadata element : response.getHmacKeysList()) {
-   *       // doThingsWith(element);
-   *     }
-   *     String nextPageToken = response.getNextPageToken();
-   *     if (!Strings.isNullOrEmpty(nextPageToken)) {
-   *       request = request.toBuilder().setPageToken(nextPageToken).build();
-   *     } else {
-   *       break;
-   *     }
-   *   }
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<ListHmacKeysRequest, ListHmacKeysResponse> listHmacKeysCallable() {
-    return stub.listHmacKeysCallable();
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Updates a given HMAC key state between ACTIVE and INACTIVE.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   HmacKeyMetadata hmacKey = HmacKeyMetadata.newBuilder().build();
-   *   FieldMask updateMask = FieldMask.newBuilder().build();
-   *   HmacKeyMetadata response = storageClient.updateHmacKey(hmacKey, updateMask);
-   * }
-   * }</pre>
-   *
-   * @param hmacKey Required. The HMAC key to update. If present, the hmac_key's `id` field will be
-   *     used to identify the key. Otherwise, the hmac_key's access_id and project fields will be
-   *     used to identify the key.
-   * @param updateMask Update mask for hmac_key. Not specifying any fields will mean only the
-   *     `state` field is updated to the value specified in `hmac_key`.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final HmacKeyMetadata updateHmacKey(HmacKeyMetadata hmacKey, FieldMask updateMask) {
-    UpdateHmacKeyRequest request =
-        UpdateHmacKeyRequest.newBuilder().setHmacKey(hmacKey).setUpdateMask(updateMask).build();
-    return updateHmacKey(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Updates a given HMAC key state between ACTIVE and INACTIVE.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   UpdateHmacKeyRequest request =
-   *       UpdateHmacKeyRequest.newBuilder()
-   *           .setHmacKey(HmacKeyMetadata.newBuilder().build())
-   *           .setUpdateMask(FieldMask.newBuilder().build())
-   *           .build();
-   *   HmacKeyMetadata response = storageClient.updateHmacKey(request);
-   * }
-   * }</pre>
-   *
-   * @param request The request object containing all of the parameters for the API call.
-   * @throws com.google.api.gax.rpc.ApiException if the remote call fails
-   */
-  public final HmacKeyMetadata updateHmacKey(UpdateHmacKeyRequest request) {
-    return updateHmacKeyCallable().call(request);
-  }
-
-  // AUTO-GENERATED DOCUMENTATION AND METHOD.
-  /**
-   * Updates a given HMAC key state between ACTIVE and INACTIVE.
-   *
-   * <p>Sample code:
-   *
-   * <pre>{@code
-   * // This snippet has been automatically generated and should be regarded as a code template only.
-   * // It will require modifications to work:
-   * // - It may require correct/in-range values for request initialization.
-   * // - It may require specifying regional endpoints when creating the service client as shown in
-   * // https://cloud.google.com/java/docs/setup#configure_endpoints_for_the_client_library
-   * try (StorageClient storageClient = StorageClient.create()) {
-   *   UpdateHmacKeyRequest request =
-   *       UpdateHmacKeyRequest.newBuilder()
-   *           .setHmacKey(HmacKeyMetadata.newBuilder().build())
-   *           .setUpdateMask(FieldMask.newBuilder().build())
-   *           .build();
-   *   ApiFuture<HmacKeyMetadata> future = storageClient.updateHmacKeyCallable().futureCall(request);
-   *   // Do something.
-   *   HmacKeyMetadata response = future.get();
-   * }
-   * }</pre>
-   */
-  public final UnaryCallable<UpdateHmacKeyRequest, HmacKeyMetadata> updateHmacKeyCallable() {
-    return stub.updateHmacKeyCallable();
+  public final UnaryCallable<MoveObjectRequest, Object> moveObjectCallable() {
+    return stub.moveObjectCallable();
   }
 
   @Override
@@ -3823,86 +4204,6 @@ public class StorageClient implements BackgroundResource {
     }
   }
 
-  public static class ListNotificationsPagedResponse
-      extends AbstractPagedListResponse<
-          ListNotificationsRequest,
-          ListNotificationsResponse,
-          Notification,
-          ListNotificationsPage,
-          ListNotificationsFixedSizeCollection> {
-
-    public static ApiFuture<ListNotificationsPagedResponse> createAsync(
-        PageContext<ListNotificationsRequest, ListNotificationsResponse, Notification> context,
-        ApiFuture<ListNotificationsResponse> futureResponse) {
-      ApiFuture<ListNotificationsPage> futurePage =
-          ListNotificationsPage.createEmptyPage().createPageAsync(context, futureResponse);
-      return ApiFutures.transform(
-          futurePage,
-          input -> new ListNotificationsPagedResponse(input),
-          MoreExecutors.directExecutor());
-    }
-
-    private ListNotificationsPagedResponse(ListNotificationsPage page) {
-      super(page, ListNotificationsFixedSizeCollection.createEmptyCollection());
-    }
-  }
-
-  public static class ListNotificationsPage
-      extends AbstractPage<
-          ListNotificationsRequest,
-          ListNotificationsResponse,
-          Notification,
-          ListNotificationsPage> {
-
-    private ListNotificationsPage(
-        PageContext<ListNotificationsRequest, ListNotificationsResponse, Notification> context,
-        ListNotificationsResponse response) {
-      super(context, response);
-    }
-
-    private static ListNotificationsPage createEmptyPage() {
-      return new ListNotificationsPage(null, null);
-    }
-
-    @Override
-    protected ListNotificationsPage createPage(
-        PageContext<ListNotificationsRequest, ListNotificationsResponse, Notification> context,
-        ListNotificationsResponse response) {
-      return new ListNotificationsPage(context, response);
-    }
-
-    @Override
-    public ApiFuture<ListNotificationsPage> createPageAsync(
-        PageContext<ListNotificationsRequest, ListNotificationsResponse, Notification> context,
-        ApiFuture<ListNotificationsResponse> futureResponse) {
-      return super.createPageAsync(context, futureResponse);
-    }
-  }
-
-  public static class ListNotificationsFixedSizeCollection
-      extends AbstractFixedSizeCollection<
-          ListNotificationsRequest,
-          ListNotificationsResponse,
-          Notification,
-          ListNotificationsPage,
-          ListNotificationsFixedSizeCollection> {
-
-    private ListNotificationsFixedSizeCollection(
-        List<ListNotificationsPage> pages, int collectionSize) {
-      super(pages, collectionSize);
-    }
-
-    private static ListNotificationsFixedSizeCollection createEmptyCollection() {
-      return new ListNotificationsFixedSizeCollection(null, 0);
-    }
-
-    @Override
-    protected ListNotificationsFixedSizeCollection createCollection(
-        List<ListNotificationsPage> pages, int collectionSize) {
-      return new ListNotificationsFixedSizeCollection(pages, collectionSize);
-    }
-  }
-
   public static class ListObjectsPagedResponse
       extends AbstractPagedListResponse<
           ListObjectsRequest,
@@ -3973,82 +4274,6 @@ public class StorageClient implements BackgroundResource {
     protected ListObjectsFixedSizeCollection createCollection(
         List<ListObjectsPage> pages, int collectionSize) {
       return new ListObjectsFixedSizeCollection(pages, collectionSize);
-    }
-  }
-
-  public static class ListHmacKeysPagedResponse
-      extends AbstractPagedListResponse<
-          ListHmacKeysRequest,
-          ListHmacKeysResponse,
-          HmacKeyMetadata,
-          ListHmacKeysPage,
-          ListHmacKeysFixedSizeCollection> {
-
-    public static ApiFuture<ListHmacKeysPagedResponse> createAsync(
-        PageContext<ListHmacKeysRequest, ListHmacKeysResponse, HmacKeyMetadata> context,
-        ApiFuture<ListHmacKeysResponse> futureResponse) {
-      ApiFuture<ListHmacKeysPage> futurePage =
-          ListHmacKeysPage.createEmptyPage().createPageAsync(context, futureResponse);
-      return ApiFutures.transform(
-          futurePage,
-          input -> new ListHmacKeysPagedResponse(input),
-          MoreExecutors.directExecutor());
-    }
-
-    private ListHmacKeysPagedResponse(ListHmacKeysPage page) {
-      super(page, ListHmacKeysFixedSizeCollection.createEmptyCollection());
-    }
-  }
-
-  public static class ListHmacKeysPage
-      extends AbstractPage<
-          ListHmacKeysRequest, ListHmacKeysResponse, HmacKeyMetadata, ListHmacKeysPage> {
-
-    private ListHmacKeysPage(
-        PageContext<ListHmacKeysRequest, ListHmacKeysResponse, HmacKeyMetadata> context,
-        ListHmacKeysResponse response) {
-      super(context, response);
-    }
-
-    private static ListHmacKeysPage createEmptyPage() {
-      return new ListHmacKeysPage(null, null);
-    }
-
-    @Override
-    protected ListHmacKeysPage createPage(
-        PageContext<ListHmacKeysRequest, ListHmacKeysResponse, HmacKeyMetadata> context,
-        ListHmacKeysResponse response) {
-      return new ListHmacKeysPage(context, response);
-    }
-
-    @Override
-    public ApiFuture<ListHmacKeysPage> createPageAsync(
-        PageContext<ListHmacKeysRequest, ListHmacKeysResponse, HmacKeyMetadata> context,
-        ApiFuture<ListHmacKeysResponse> futureResponse) {
-      return super.createPageAsync(context, futureResponse);
-    }
-  }
-
-  public static class ListHmacKeysFixedSizeCollection
-      extends AbstractFixedSizeCollection<
-          ListHmacKeysRequest,
-          ListHmacKeysResponse,
-          HmacKeyMetadata,
-          ListHmacKeysPage,
-          ListHmacKeysFixedSizeCollection> {
-
-    private ListHmacKeysFixedSizeCollection(List<ListHmacKeysPage> pages, int collectionSize) {
-      super(pages, collectionSize);
-    }
-
-    private static ListHmacKeysFixedSizeCollection createEmptyCollection() {
-      return new ListHmacKeysFixedSizeCollection(null, 0);
-    }
-
-    @Override
-    protected ListHmacKeysFixedSizeCollection createCollection(
-        List<ListHmacKeysPage> pages, int collectionSize) {
-      return new ListHmacKeysFixedSizeCollection(pages, collectionSize);
     }
   }
 }

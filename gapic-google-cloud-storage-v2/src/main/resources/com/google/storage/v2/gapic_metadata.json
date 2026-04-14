@@ -10,6 +10,12 @@
         "grpc": {
           "libraryClient": "StorageClient",
           "rpcs": {
+            "BidiReadObject": {
+              "methods": ["bidiReadObjectCallable"]
+            },
+            "BidiWriteObject": {
+              "methods": ["bidiWriteObjectCallable"]
+            },
             "CancelResumableWrite": {
               "methods": ["cancelResumableWrite", "cancelResumableWrite", "cancelResumableWriteCallable"]
             },
@@ -19,50 +25,23 @@
             "CreateBucket": {
               "methods": ["createBucket", "createBucket", "createBucket", "createBucketCallable"]
             },
-            "CreateHmacKey": {
-              "methods": ["createHmacKey", "createHmacKey", "createHmacKey", "createHmacKeyCallable"]
-            },
-            "CreateNotification": {
-              "methods": ["createNotification", "createNotification", "createNotification", "createNotificationCallable"]
-            },
             "DeleteBucket": {
               "methods": ["deleteBucket", "deleteBucket", "deleteBucket", "deleteBucketCallable"]
             },
-            "DeleteHmacKey": {
-              "methods": ["deleteHmacKey", "deleteHmacKey", "deleteHmacKey", "deleteHmacKeyCallable"]
-            },
-            "DeleteNotification": {
-              "methods": ["deleteNotification", "deleteNotification", "deleteNotification", "deleteNotificationCallable"]
-            },
             "DeleteObject": {
-              "methods": ["deleteObject", "deleteObject", "deleteObject", "deleteObjectCallable"]
+              "methods": ["deleteObject", "deleteObject", "deleteObject", "deleteObject", "deleteObject", "deleteObjectCallable"]
             },
             "GetBucket": {
               "methods": ["getBucket", "getBucket", "getBucket", "getBucketCallable"]
             },
-            "GetHmacKey": {
-              "methods": ["getHmacKey", "getHmacKey", "getHmacKey", "getHmacKeyCallable"]
-            },
             "GetIamPolicy": {
               "methods": ["getIamPolicy", "getIamPolicy", "getIamPolicy", "getIamPolicyCallable"]
             },
-            "GetNotification": {
-              "methods": ["getNotification", "getNotification", "getNotification", "getNotificationCallable"]
-            },
             "GetObject": {
-              "methods": ["getObject", "getObject", "getObject", "getObjectCallable"]
-            },
-            "GetServiceAccount": {
-              "methods": ["getServiceAccount", "getServiceAccount", "getServiceAccount", "getServiceAccountCallable"]
+              "methods": ["getObject", "getObject", "getObject", "getObject", "getObject", "getObjectCallable"]
             },
             "ListBuckets": {
               "methods": ["listBuckets", "listBuckets", "listBuckets", "listBucketsPagedCallable", "listBucketsCallable"]
-            },
-            "ListHmacKeys": {
-              "methods": ["listHmacKeys", "listHmacKeys", "listHmacKeys", "listHmacKeysPagedCallable", "listHmacKeysCallable"]
-            },
-            "ListNotifications": {
-              "methods": ["listNotifications", "listNotifications", "listNotifications", "listNotificationsPagedCallable", "listNotificationsCallable"]
             },
             "ListObjects": {
               "methods": ["listObjects", "listObjects", "listObjects", "listObjectsPagedCallable", "listObjectsCallable"]
@@ -70,11 +49,17 @@
             "LockBucketRetentionPolicy": {
               "methods": ["lockBucketRetentionPolicy", "lockBucketRetentionPolicy", "lockBucketRetentionPolicy", "lockBucketRetentionPolicyCallable"]
             },
+            "MoveObject": {
+              "methods": ["moveObject", "moveObject", "moveObject", "moveObjectCallable"]
+            },
             "QueryWriteStatus": {
               "methods": ["queryWriteStatus", "queryWriteStatus", "queryWriteStatusCallable"]
             },
             "ReadObject": {
               "methods": ["readObjectCallable"]
+            },
+            "RestoreObject": {
+              "methods": ["restoreObject", "restoreObject", "restoreObject", "restoreObjectCallable"]
             },
             "RewriteObject": {
               "methods": ["rewriteObject", "rewriteObjectCallable"]
@@ -90,9 +75,6 @@
             },
             "UpdateBucket": {
               "methods": ["updateBucket", "updateBucket", "updateBucketCallable"]
-            },
-            "UpdateHmacKey": {
-              "methods": ["updateHmacKey", "updateHmacKey", "updateHmacKeyCallable"]
             },
             "UpdateObject": {
               "methods": ["updateObject", "updateObject", "updateObjectCallable"]

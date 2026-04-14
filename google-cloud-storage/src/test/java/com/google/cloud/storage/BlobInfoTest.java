@@ -19,6 +19,8 @@ package com.google.cloud.storage;
 import static com.google.cloud.storage.Acl.Project.ProjectRole.VIEWERS;
 import static com.google.cloud.storage.Acl.Role.READER;
 import static com.google.cloud.storage.Acl.Role.WRITER;
+import static com.google.cloud.storage.TestUtils.hashMapOf;
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -28,11 +30,18 @@ import com.google.api.services.storage.model.StorageObject;
 import com.google.cloud.storage.Acl.Project;
 import com.google.cloud.storage.Acl.User;
 import com.google.cloud.storage.BlobInfo.CustomerEncryption;
+import com.google.cloud.storage.BlobInfo.ObjectContexts;
+import com.google.cloud.storage.BlobInfo.ObjectCustomContextPayload;
+import com.google.cloud.storage.UnifiedOpts.NamedField;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class BlobInfoTest {
@@ -79,6 +88,12 @@ public class BlobInfoTest {
   private static final Boolean EVENT_BASED_HOLD = true;
   private static final Boolean TEMPORARY_HOLD = true;
   private static final Long RETENTION_EXPIRATION_TIME = 10L;
+  private static final ObjectCustomContextPayload payload =
+      ObjectCustomContextPayload.newBuilder().setValue("contextValue").build();
+  private static final Map<String, ObjectCustomContextPayload> customContexts =
+      Collections.singletonMap("contextKey", payload);
+  private static final ObjectContexts OBJECT_CONTEXTS =
+      ObjectContexts.newBuilder().setCustom(customContexts).build();
 
   private static final BlobInfo BLOB_INFO =
       BlobInfo.newBuilder("b", "n", GENERATION)
@@ -110,6 +125,7 @@ public class BlobInfoTest {
           .setEventBasedHold(EVENT_BASED_HOLD)
           .setTemporaryHold(TEMPORARY_HOLD)
           .setRetentionExpirationTime(RETENTION_EXPIRATION_TIME)
+          .setContexts(OBJECT_CONTEXTS)
           .build();
   private static final BlobInfo DIRECTORY_INFO =
       BlobInfo.newBuilder("b", "n/").setSize(0L).setIsDirectory(true).build();
@@ -284,17 +300,24 @@ public class BlobInfoTest {
   @Test
   public void testToPbAndFromPb() {
     compareCustomerEncryptions(
-        CUSTOMER_ENCRYPTION, CustomerEncryption.fromPb(CUSTOMER_ENCRYPTION.toPb()));
-    compareBlobs(BLOB_INFO, BlobInfo.fromPb(BLOB_INFO.toPb()));
+        CUSTOMER_ENCRYPTION,
+        Conversions.json()
+            .customerEncryption()
+            .decode(Conversions.json().customerEncryption().encode(CUSTOMER_ENCRYPTION)));
+    compareBlobs(
+        BLOB_INFO,
+        Conversions.json().blobInfo().decode(Conversions.json().blobInfo().encode(BLOB_INFO)));
     BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of("b", "n")).build();
-    compareBlobs(blobInfo, BlobInfo.fromPb(blobInfo.toPb()));
+    compareBlobs(
+        blobInfo,
+        Conversions.json().blobInfo().decode(Conversions.json().blobInfo().encode(blobInfo)));
     StorageObject object =
         new StorageObject()
             .setName("n/")
             .setBucket("b")
             .setSize(BigInteger.ZERO)
             .set("isDirectory", true);
-    blobInfo = BlobInfo.fromPb(object);
+    blobInfo = Conversions.json().blobInfo().decode(object);
     assertEquals("b", blobInfo.getBucket());
     assertEquals("n/", blobInfo.getName());
     assertNull(blobInfo.getAcl());
@@ -334,5 +357,50 @@ public class BlobInfoTest {
   @Test
   public void testBlobId() {
     assertEquals(BlobId.of("b", "n", GENERATION), BLOB_INFO.getBlobId());
+  }
+
+  @Test
+  public void deepFieldDiffDetectionWorksCorrectly_mutateRetrievedObject() {
+    BlobInfo info =
+        BlobInfo.newBuilder("bucket", "object")
+            .setContexts(
+                ObjectContexts.newBuilder()
+                    .setCustom(
+                        hashMapOf(
+                            "c1", ObjectCustomContextPayload.newBuilder().setValue("C1").build(),
+                            "c2", ObjectCustomContextPayload.newBuilder().setValue("C2").build()))
+                    .build())
+            .setMetadata(
+                hashMapOf(
+                    "m1", "M1",
+                    "m2", "M2"))
+            .build();
+
+    BlobInfo modified =
+        info.toBuilder()
+            .setMetadata(hashMapOf("m2", null))
+            .setContexts(ObjectContexts.newBuilder().setCustom(hashMapOf("k2", null)).build())
+            .build();
+    Set<String> modifiedFields =
+        modified.getModifiedFields().stream()
+            .map(NamedField::getGrpcName)
+            .collect(Collectors.toSet());
+
+    assertThat(modifiedFields).isEqualTo(ImmutableSet.of("contexts.custom.k2", "metadata.m2"));
+  }
+
+  @Test
+  public void deepFieldDiffDetectionWorksCorrectly_declaredDiff() {
+    BlobInfo modified =
+        BlobInfo.newBuilder("bucket", "object")
+            .setMetadata(hashMapOf("m2", null))
+            .setContexts(ObjectContexts.newBuilder().setCustom(hashMapOf("k2", null)).build())
+            .build();
+    Set<String> modifiedFields =
+        modified.getModifiedFields().stream()
+            .map(UnifiedOpts.NamedField::getGrpcName)
+            .collect(Collectors.toSet());
+
+    assertThat(modifiedFields).isEqualTo(ImmutableSet.of("contexts.custom.k2", "metadata.m2"));
   }
 }

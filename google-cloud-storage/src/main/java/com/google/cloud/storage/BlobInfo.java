@@ -16,32 +16,37 @@
 
 package com.google.cloud.storage;
 
+import static com.google.cloud.storage.BackwardCompatibilityUtils.millisOffsetDateTimeCodec;
+import static com.google.cloud.storage.Utils.diffMaps;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.api.client.util.Data;
-import com.google.api.client.util.DateTime;
+import com.google.api.core.ApiFunction;
 import com.google.api.core.BetaApi;
-import com.google.api.services.storage.model.ObjectAccessControl;
-import com.google.api.services.storage.model.StorageObject;
-import com.google.api.services.storage.model.StorageObject.Owner;
-import com.google.common.base.Function;
+import com.google.cloud.StringEnumType;
+import com.google.cloud.StringEnumValue;
+import com.google.cloud.storage.Storage.BlobField;
+import com.google.cloud.storage.TransportCompatibility.Transport;
+import com.google.cloud.storage.UnifiedOpts.NamedField;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.io.BaseEncoding;
 import java.io.Serializable;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.time.OffsetDateTime;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Information about an object in Google Cloud Storage. A {@code BlobInfo} object includes the
@@ -63,16 +68,10 @@ import java.util.Set;
  * @see <a href="https://cloud.google.com/storage/docs/concepts-techniques#concepts">Concepts and
  *     Terminology</a>
  */
+@TransportCompatibility({Transport.HTTP, Transport.GRPC})
 public class BlobInfo implements Serializable {
 
-  static final Function<BlobInfo, StorageObject> INFO_TO_PB_FUNCTION =
-      new Function<BlobInfo, StorageObject>() {
-        @Override
-        public StorageObject apply(BlobInfo blobInfo) {
-          return blobInfo.toPb();
-        }
-      };
-  private static final long serialVersionUID = -5625857076205028976L;
+  private static final long serialVersionUID = -2490471217826624578L;
   private final BlobId blobId;
   private final String generatedId;
   private final String selfLink;
@@ -83,26 +82,39 @@ public class BlobInfo implements Serializable {
   private final String etag;
   private final String md5;
   private final String crc32c;
-  private final Long customTime;
+  private final OffsetDateTime customTime;
   private final String mediaLink;
-  private final Map<String, String> metadata;
+
+  /**
+   * The getter for this property never returns null, however null awareness is critical for
+   * encoding
+   *
+   * @see JsonConversions#blobInfo() encoder
+   */
+  final Map<String, String> metadata;
+
   private final Long metageneration;
-  private final Long deleteTime;
-  private final Long updateTime;
-  private final Long createTime;
+  private final OffsetDateTime deleteTime;
+  private final OffsetDateTime updateTime;
+  private final OffsetDateTime createTime;
   private final String contentType;
   private final String contentEncoding;
   private final String contentDisposition;
   private final String contentLanguage;
   private final StorageClass storageClass;
-  private final Long timeStorageClassUpdated;
+  private final OffsetDateTime timeStorageClassUpdated;
   private final Integer componentCount;
   private final boolean isDirectory;
   private final CustomerEncryption customerEncryption;
   private final String kmsKeyName;
   private final Boolean eventBasedHold;
   private final Boolean temporaryHold;
-  private final Long retentionExpirationTime;
+  private final OffsetDateTime retentionExpirationTime;
+  private final Retention retention;
+  private final OffsetDateTime softDeleteTime;
+  private final OffsetDateTime hardDeleteTime;
+  private final ObjectContexts contexts;
+  private final transient ImmutableSet<NamedField> modifiedFields;
 
   /** This class is meant for internal use only. Users are discouraged from using this class. */
   public static final class ImmutableEmptyMap<K, V> extends AbstractMap<K, V> {
@@ -119,7 +131,7 @@ public class BlobInfo implements Serializable {
    */
   public static class CustomerEncryption implements Serializable {
 
-    private static final long serialVersionUID = -2133042982786959351L;
+    private static final long serialVersionUID = -7427738060808591323L;
 
     private final String encryptionAlgorithm;
     private final String keySha256;
@@ -153,22 +165,291 @@ public class BlobInfo implements Serializable {
     }
 
     @Override
-    public final boolean equals(Object obj) {
-      return obj == this
-          || obj != null
-              && obj.getClass().equals(CustomerEncryption.class)
-              && Objects.equals(toPb(), ((CustomerEncryption) obj).toPb());
+    public final boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof CustomerEncryption)) {
+        return false;
+      }
+      CustomerEncryption that = (CustomerEncryption) o;
+      return Objects.equals(encryptionAlgorithm, that.encryptionAlgorithm)
+          && Objects.equals(keySha256, that.keySha256);
+    }
+  }
+
+  /**
+   * Defines a blob's Retention policy. Can only be used on objects in a retention-enabled bucket.
+   */
+  public static final class Retention implements Serializable {
+
+    private static final long serialVersionUID = 5046718464542688444L;
+
+    private Mode mode;
+
+    private OffsetDateTime retainUntilTime;
+
+    /** Returns the retention policy's Mode. Can be Locked or Unlocked. */
+    public Mode getMode() {
+      return mode;
     }
 
-    StorageObject.CustomerEncryption toPb() {
-      return new StorageObject.CustomerEncryption()
-          .setEncryptionAlgorithm(encryptionAlgorithm)
-          .setKeySha256(keySha256);
+    /** Returns what time this object will be retained until, if the mode is Locked. */
+    public OffsetDateTime getRetainUntilTime() {
+      return retainUntilTime;
     }
 
-    static CustomerEncryption fromPb(StorageObject.CustomerEncryption customerEncryptionPb) {
-      return new CustomerEncryption(
-          customerEncryptionPb.getEncryptionAlgorithm(), customerEncryptionPb.getKeySha256());
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof Retention)) {
+        return false;
+      }
+      Retention that = (Retention) o;
+      return Objects.equals(mode, that.mode)
+          && Objects.equals(retainUntilTime, that.retainUntilTime);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(mode, retainUntilTime);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("mode", mode)
+          .add("retainUntilTime", retainUntilTime)
+          .toString();
+    }
+
+    public static Builder newBuilder() {
+      return new Builder();
+    }
+
+    public Builder toBuilder() {
+      return new Builder().setMode(this.mode).setRetainUntilTime(this.retainUntilTime);
+    }
+
+    private Retention() {}
+
+    public Retention(Builder builder) {
+      this.mode = builder.mode;
+      this.retainUntilTime = builder.retainUntilTime;
+    }
+
+    public static final class Builder {
+      private Mode mode;
+      private OffsetDateTime retainUntilTime;
+
+      /** Sets the retention policy's Mode. Can be Locked or Unlocked. */
+      public Builder setMode(Mode mode) {
+        this.mode = mode;
+        return this;
+      }
+
+      /** Sets what time this object will be retained until, if the mode is Locked. */
+      public Builder setRetainUntilTime(OffsetDateTime retainUntilTime) {
+        this.retainUntilTime = retainUntilTime;
+        return this;
+      }
+
+      public Retention build() {
+        return new Retention(this);
+      }
+    }
+
+    public static final class Mode extends StringEnumValue {
+      private static final long serialVersionUID = 1973143582659557184L;
+
+      private Mode(String constant) {
+        super(constant);
+      }
+
+      private static final ApiFunction<String, Mode> CONSTRUCTOR = Mode::new;
+
+      private static final StringEnumType<Mode> type =
+          new StringEnumType<>(Mode.class, CONSTRUCTOR);
+
+      public static final Mode UNLOCKED = type.createAndRegister("Unlocked");
+
+      public static final Mode LOCKED = type.createAndRegister("Locked");
+
+      public static Mode valueOfStrict(String constant) {
+        return type.valueOfStrict(constant);
+      }
+
+      public static Mode valueOf(String constant) {
+        return type.valueOf(constant);
+      }
+
+      public static Mode[] values() {
+        return type.values();
+      }
+    }
+  }
+
+  public static final class ObjectContexts implements Serializable {
+
+    private static final long serialVersionUID = -5993852233545224424L;
+
+    private final Map<String, ObjectCustomContextPayload> custom;
+
+    private ObjectContexts(Builder builder) {
+      this.custom = builder.custom;
+    }
+
+    public static Builder newBuilder() {
+      return new Builder();
+    }
+
+    public Builder toBuilder() {
+      return new Builder().setCustom(this.custom);
+    }
+
+    /** Returns the map of user-defined object contexts. */
+    public Map<String, ObjectCustomContextPayload> getCustom() {
+      return custom;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(custom);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      final ObjectContexts other = (ObjectContexts) obj;
+      return Objects.equals(this.custom, other.custom);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this).add("custom", custom).toString();
+    }
+
+    public static final class Builder {
+
+      private Map<String, ObjectCustomContextPayload> custom;
+
+      private Builder() {}
+
+      public Builder setCustom(Map<String, ObjectCustomContextPayload> custom) {
+        this.custom =
+            custom == null ? ImmutableMap.of() : Collections.unmodifiableMap(new HashMap<>(custom));
+        return this;
+      }
+
+      public ObjectContexts build() {
+        return new ObjectContexts(this);
+      }
+    }
+  }
+
+  /** Represents the payload of a user-defined object context. */
+  public static final class ObjectCustomContextPayload implements Serializable {
+
+    private static final long serialVersionUID = 557621132294323214L;
+
+    private final String value;
+    private final OffsetDateTime createTime;
+    private final OffsetDateTime updateTime;
+
+    private ObjectCustomContextPayload(Builder builder) {
+      this.value = builder.value;
+      this.createTime = builder.createTime;
+      this.updateTime = builder.updateTime;
+    }
+
+    public static Builder newBuilder() {
+      return new Builder();
+    }
+
+    public Builder toBuilder() {
+      return new Builder()
+          .setValue(this.value)
+          .setCreateTime(this.createTime)
+          .setUpdateTime(this.updateTime);
+    }
+
+    public String getValue() {
+      return value;
+    }
+
+    public OffsetDateTime getCreateTime() {
+      return createTime;
+    }
+
+    public OffsetDateTime getUpdateTime() {
+      return updateTime;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(value, createTime, updateTime);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      ObjectCustomContextPayload other = (ObjectCustomContextPayload) obj;
+      return Objects.equals(value, other.value)
+          && Objects.equals(createTime, other.createTime)
+          && Objects.equals(updateTime, other.updateTime);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("value", value)
+          .add("createTime", createTime)
+          .add("updateTime", updateTime)
+          .toString();
+    }
+
+    public static final class Builder {
+
+      private String value;
+      private OffsetDateTime createTime;
+      private OffsetDateTime updateTime;
+
+      private Builder() {}
+
+      public Builder(String value) {
+        setValue(value);
+      }
+
+      public Builder setValue(String value) {
+        this.value = value;
+        return this;
+      }
+
+      public Builder setCreateTime(OffsetDateTime createTime) {
+        this.createTime = createTime;
+        return this;
+      }
+
+      public Builder setUpdateTime(OffsetDateTime updateTime) {
+        this.updateTime = updateTime;
+        return this;
+      }
+
+      public ObjectCustomContextPayload build() {
+        return new ObjectCustomContextPayload(this);
+      }
     }
   }
 
@@ -274,11 +555,33 @@ public class BlobInfo implements Serializable {
      * long customTime = 1598423868301L;
      * BlobInfo blob = BlobInfo.newBuilder(bucketName, blobName).setCustomTime(customTime).build();
      * }</pre>
+     *
+     * @deprecated Use {@link #setCustomTimeOffsetDateTime(OffsetDateTime)}
      */
+    @Deprecated
     public Builder setCustomTime(Long customTime) {
       throw new UnsupportedOperationException(
           "Override setCustomTime with your own implementation,"
               + " or use com.google.cloud.storage.Blob.");
+    }
+
+    /**
+     * Sets the custom time for an object. Once set it can't be unset and only changed to a custom
+     * datetime in the future. To unset the custom time, you must either perform a rewrite operation
+     * or upload the data again.
+     *
+     * <p>Example of setting the custom time.
+     *
+     * <pre>{@code
+     * String bucketName = "my-unique-bucket";
+     * String blobName = "my-blob-name";
+     * OffsetDateTime customTime = Instant.ofEpochMilli(1598423868301L).atOffset(0); // UTC
+     * BlobInfo blob = BlobInfo.newBuilder(bucketName, blobName).setCustomTime(customTime).build();
+     * }</pre>
+     */
+    public Builder setCustomTimeOffsetDateTime(OffsetDateTime customTime) {
+      // provide an implementation for source and binary compatibility which we override ourselves
+      return setCustomTime(millisOffsetDateTimeCodec.decode(customTime));
     }
 
     /**
@@ -300,23 +603,59 @@ public class BlobInfo implements Serializable {
     /**
      * Sets the modification time of an object's storage class. Once set it can't be unset directly,
      * the only way is to rewrite the object with the desired storage class.
+     *
+     * @deprecated Use {@link #setTimeStorageClassUpdatedOffsetDateTime(OffsetDateTime)}
      */
+    @Deprecated
     public Builder setTimeStorageClassUpdated(Long timeStorageClassUpdated) {
       throw new UnsupportedOperationException(
           "Override setTimeStorageClassUpdated with your own implementation,"
               + " or use com.google.cloud.storage.Blob.");
     }
 
+    public Builder setTimeStorageClassUpdatedOffsetDateTime(
+        OffsetDateTime timeStorageClassUpdated) {
+      // provide an implementation for source and binary compatibility which we override ourselves
+      return setTimeStorageClassUpdated(millisOffsetDateTimeCodec.decode(timeStorageClassUpdated));
+    }
+
     /** Sets the blob's user provided metadata. */
-    public abstract Builder setMetadata(Map<String, String> metadata);
+    public abstract Builder setMetadata(@Nullable Map<@NonNull String, @Nullable String> metadata);
 
     abstract Builder setMetageneration(Long metageneration);
 
+    /**
+     * @deprecated Use {@link #setDeleteTimeOffsetDateTime(OffsetDateTime)}
+     */
+    @Deprecated
     abstract Builder setDeleteTime(Long deleteTime);
 
+    Builder setDeleteTimeOffsetDateTime(OffsetDateTime deleteTime) {
+      // provide an implementation for source and binary compatibility which we override ourselves
+      return setDeleteTime(millisOffsetDateTimeCodec.decode(deleteTime));
+    }
+
+    /**
+     * @deprecated Use {@link #setUpdateTimeOffsetDateTime(OffsetDateTime)}
+     */
+    @Deprecated
     abstract Builder setUpdateTime(Long updateTime);
 
+    Builder setUpdateTimeOffsetDateTime(OffsetDateTime updateTime) {
+      // provide an implementation for source and binary compatibility which we override ourselves
+      return setUpdateTime(millisOffsetDateTimeCodec.decode(updateTime));
+    }
+
+    /**
+     * @deprecated Use {@link #setCreateTimeOffsetDateTime(OffsetDateTime)}
+     */
+    @Deprecated
     abstract Builder setCreateTime(Long createTime);
+
+    Builder setCreateTimeOffsetDateTime(OffsetDateTime createTime) {
+      // provide an implementation for source and binary compatibility which we override ourselves
+      return setCreateTime(millisOffsetDateTimeCodec.decode(createTime));
+    }
 
     abstract Builder setIsDirectory(boolean isDirectory);
 
@@ -349,15 +688,98 @@ public class BlobInfo implements Serializable {
     @BetaApi
     public abstract Builder setTemporaryHold(Boolean temporaryHold);
 
+    /**
+     * @deprecated {@link #setRetentionExpirationTimeOffsetDateTime(OffsetDateTime)}
+     */
     @BetaApi
+    @Deprecated
     abstract Builder setRetentionExpirationTime(Long retentionExpirationTime);
+
+    @BetaApi
+    Builder setRetentionExpirationTimeOffsetDateTime(OffsetDateTime retentionExpirationTime) {
+      // provide an implementation for source and binary compatibility which we override ourselves
+      return setRetentionExpirationTime(millisOffsetDateTimeCodec.decode(retentionExpirationTime));
+    }
+
+    abstract Builder setSoftDeleteTime(OffsetDateTime offsetDateTime);
+
+    abstract Builder setHardDeleteTime(OffsetDateTime hardDeleteTIme);
+
+    public abstract Builder setRetention(Retention retention);
+
+    public abstract Builder setContexts(ObjectContexts contexts);
 
     /** Creates a {@code BlobInfo} object. */
     public abstract BlobInfo build();
+
+    abstract BlobId getBlobId();
+
+    abstract Builder clearBlobId();
+
+    abstract Builder clearGeneratedId();
+
+    abstract Builder clearContentType();
+
+    abstract Builder clearContentEncoding();
+
+    abstract Builder clearContentDisposition();
+
+    abstract Builder clearContentLanguage();
+
+    abstract Builder clearComponentCount();
+
+    abstract Builder clearCacheControl();
+
+    abstract Builder clearAcl();
+
+    abstract Builder clearOwner();
+
+    abstract Builder clearSize();
+
+    abstract Builder clearEtag();
+
+    abstract Builder clearSelfLink();
+
+    abstract Builder clearMd5();
+
+    abstract Builder clearCrc32c();
+
+    abstract Builder clearCustomTime();
+
+    abstract Builder clearMediaLink();
+
+    abstract Builder clearMetadata();
+
+    abstract Builder clearMetageneration();
+
+    abstract Builder clearDeleteTime();
+
+    abstract Builder clearUpdateTime();
+
+    abstract Builder clearCreateTime();
+
+    abstract Builder clearIsDirectory();
+
+    abstract Builder clearCustomerEncryption();
+
+    abstract Builder clearStorageClass();
+
+    abstract Builder clearTimeStorageClassUpdated();
+
+    abstract Builder clearKmsKeyName();
+
+    abstract Builder clearEventBasedHold();
+
+    abstract Builder clearTemporaryHold();
+
+    abstract Builder clearRetentionExpirationTime();
+
+    abstract Builder clearContexts();
   }
 
   static final class BuilderImpl extends Builder {
-    private final String hexDecimalValues = "0123456789abcdef";
+    private static final String hexDecimalValues = "0123456789abcdef";
+    public static final NamedField NAMED_FIELD_LITERAL_VALUE = NamedField.literal("value");
     private BlobId blobId;
     private String generatedId;
     private String contentType;
@@ -373,21 +795,26 @@ public class BlobInfo implements Serializable {
     private String selfLink;
     private String md5;
     private String crc32c;
-    private Long customTime;
+    private OffsetDateTime customTime;
     private String mediaLink;
     private Map<String, String> metadata;
     private Long metageneration;
-    private Long deleteTime;
-    private Long updateTime;
-    private Long createTime;
+    private OffsetDateTime deleteTime;
+    private OffsetDateTime updateTime;
+    private OffsetDateTime createTime;
     private Boolean isDirectory;
     private CustomerEncryption customerEncryption;
     private StorageClass storageClass;
-    private Long timeStorageClassUpdated;
+    private OffsetDateTime timeStorageClassUpdated;
     private String kmsKeyName;
     private Boolean eventBasedHold;
     private Boolean temporaryHold;
-    private Long retentionExpirationTime;
+    private OffsetDateTime retentionExpirationTime;
+    private Retention retention;
+    private OffsetDateTime softDeleteTime;
+    private OffsetDateTime hardDeleteTime;
+    private ObjectContexts contexts;
+    private final ImmutableSet.Builder<NamedField> modifiedFields = ImmutableSet.builder();
 
     BuilderImpl(BlobId blobId) {
       this.blobId = blobId;
@@ -424,11 +851,27 @@ public class BlobInfo implements Serializable {
       eventBasedHold = blobInfo.eventBasedHold;
       temporaryHold = blobInfo.temporaryHold;
       retentionExpirationTime = blobInfo.retentionExpirationTime;
+      retention = blobInfo.retention;
+      softDeleteTime = blobInfo.softDeleteTime;
+      hardDeleteTime = blobInfo.hardDeleteTime;
+      contexts = blobInfo.contexts;
     }
 
     @Override
     public Builder setBlobId(BlobId blobId) {
-      this.blobId = checkNotNull(blobId);
+      checkNotNull(blobId);
+      if (!Objects.equals(this.blobId, blobId)) {
+        if (!Objects.equals(this.blobId.getBucket(), blobId.getBucket())) {
+          modifiedFields.add(BlobField.BUCKET);
+        }
+        if (!Objects.equals(this.blobId.getName(), blobId.getName())) {
+          modifiedFields.add(BlobField.NAME);
+        }
+        if (!Objects.equals(this.blobId.getGeneration(), blobId.getGeneration())) {
+          modifiedFields.add(BlobField.GENERATION);
+        }
+      }
+      this.blobId = blobId;
       return this;
     }
 
@@ -440,25 +883,41 @@ public class BlobInfo implements Serializable {
 
     @Override
     public Builder setContentType(String contentType) {
-      this.contentType = firstNonNull(contentType, Data.<String>nullOf(String.class));
+      String tmp = firstNonNull(contentType, Data.nullOf(String.class));
+      if (!Objects.equals(this.contentType, tmp)) {
+        modifiedFields.add(BlobField.CONTENT_TYPE);
+      }
+      this.contentType = tmp;
       return this;
     }
 
     @Override
     public Builder setContentDisposition(String contentDisposition) {
-      this.contentDisposition = firstNonNull(contentDisposition, Data.<String>nullOf(String.class));
+      String tmp = firstNonNull(contentDisposition, Data.nullOf(String.class));
+      if (!Objects.equals(this.contentDisposition, tmp)) {
+        modifiedFields.add(BlobField.CONTENT_DISPOSITION);
+      }
+      this.contentDisposition = tmp;
       return this;
     }
 
     @Override
     public Builder setContentLanguage(String contentLanguage) {
-      this.contentLanguage = firstNonNull(contentLanguage, Data.<String>nullOf(String.class));
+      String tmp = firstNonNull(contentLanguage, Data.nullOf(String.class));
+      if (!Objects.equals(this.contentLanguage, tmp)) {
+        modifiedFields.add(BlobField.CONTENT_LANGUAGE);
+      }
+      this.contentLanguage = tmp;
       return this;
     }
 
     @Override
     public Builder setContentEncoding(String contentEncoding) {
-      this.contentEncoding = firstNonNull(contentEncoding, Data.<String>nullOf(String.class));
+      String tmp = firstNonNull(contentEncoding, Data.nullOf(String.class));
+      if (!Objects.equals(this.contentEncoding, tmp)) {
+        modifiedFields.add(BlobField.CONTENT_ENCODING);
+      }
+      this.contentEncoding = tmp;
       return this;
     }
 
@@ -470,18 +929,36 @@ public class BlobInfo implements Serializable {
 
     @Override
     public Builder setCacheControl(String cacheControl) {
-      this.cacheControl = firstNonNull(cacheControl, Data.<String>nullOf(String.class));
+      String tmp = firstNonNull(cacheControl, Data.nullOf(String.class));
+      if (!Objects.equals(this.cacheControl, tmp)) {
+        modifiedFields.add(BlobField.CACHE_CONTROL);
+      }
+      this.cacheControl = tmp;
       return this;
     }
 
     @Override
     public Builder setAcl(List<Acl> acl) {
-      this.acl = acl != null ? ImmutableList.copyOf(acl) : null;
+      if (!Objects.equals(this.acl, acl)) {
+        modifiedFields.add(BlobField.ACL);
+      }
+      if (acl != null) {
+        if (acl instanceof ImmutableList) {
+          this.acl = acl;
+        } else {
+          this.acl = ImmutableList.copyOf(acl);
+        }
+      } else {
+        this.acl = null;
+      }
       return this;
     }
 
     @Override
     Builder setOwner(Acl.Entity owner) {
+      if (!Objects.equals(this.owner, owner)) {
+        modifiedFields.add(BlobField.OWNER);
+      }
       this.owner = owner;
       return this;
     }
@@ -494,6 +971,9 @@ public class BlobInfo implements Serializable {
 
     @Override
     Builder setEtag(String etag) {
+      if (!Objects.equals(this.etag, etag)) {
+        modifiedFields.add(BlobField.ETAG);
+      }
       this.etag = etag;
       return this;
     }
@@ -506,7 +986,11 @@ public class BlobInfo implements Serializable {
 
     @Override
     public Builder setMd5(String md5) {
-      this.md5 = firstNonNull(md5, Data.<String>nullOf(String.class));
+      String tmp = firstNonNull(md5, Data.nullOf(String.class));
+      if (!Objects.equals(this.md5, tmp)) {
+        modifiedFields.add(BlobField.MD5HASH);
+      }
+      this.md5 = tmp;
       return this;
     }
 
@@ -530,18 +1014,33 @@ public class BlobInfo implements Serializable {
         }
         md5ByteBuffer.put((byte) (higherOrderBits << 4 | lowerOrderBits));
       }
-      this.md5 = BaseEncoding.base64().encode(md5ByteBuffer.array());
-      return this;
+      return setMd5(BaseEncoding.base64().encode(md5ByteBuffer.array()));
     }
 
     @Override
     public Builder setCrc32c(String crc32c) {
-      this.crc32c = firstNonNull(crc32c, Data.<String>nullOf(String.class));
+      String tmp = firstNonNull(crc32c, Data.nullOf(String.class));
+      if (!Objects.equals(this.crc32c, tmp)) {
+        modifiedFields.add(BlobField.CRC32C);
+      }
+      this.crc32c = tmp;
       return this;
     }
 
+    /**
+     * @deprecated {@link #setCustomTimeOffsetDateTime(OffsetDateTime)}
+     */
     @Override
+    @Deprecated
     public Builder setCustomTime(Long customTime) {
+      return setCustomTimeOffsetDateTime(millisOffsetDateTimeCodec.encode(customTime));
+    }
+
+    @Override
+    public Builder setCustomTimeOffsetDateTime(OffsetDateTime customTime) {
+      if (!Objects.equals(this.customTime, customTime)) {
+        modifiedFields.add(BlobField.CUSTOM_TIME);
+      }
       this.customTime = customTime;
       return this;
     }
@@ -567,8 +1066,7 @@ public class BlobInfo implements Serializable {
         }
         crc32cByteBuffer.put((byte) (higherOrderBits << 4 | lowerOrderBits));
       }
-      this.crc32c = BaseEncoding.base64().encode(crc32cByteBuffer.array());
-      return this;
+      return setCrc32c(BaseEncoding.base64().encode(crc32cByteBuffer.array()));
     }
 
     @Override
@@ -577,24 +1075,47 @@ public class BlobInfo implements Serializable {
       return this;
     }
 
+    @SuppressWarnings({"UnnecessaryLocalVariable"})
     @Override
-    public Builder setMetadata(Map<String, String> metadata) {
-      if (metadata != null) {
-        this.metadata = new HashMap<>(metadata);
-      } else {
-        this.metadata = (Map<String, String>) Data.nullOf(ImmutableEmptyMap.class);
+    public Builder setMetadata(@Nullable Map<@NonNull String, @Nullable String> metadata) {
+      Map<String, String> left = this.metadata;
+      Map<String, String> right = metadata;
+      if (!Objects.equals(left, right)) {
+        diffMaps(BlobField.METADATA, left, right, modifiedFields::add);
+        if (right != null) {
+          this.metadata = new HashMap<>(right);
+        } else {
+          this.metadata = (Map<String, String>) Data.nullOf(ImmutableEmptyMap.class);
+        }
       }
       return this;
     }
 
     @Override
     public Builder setStorageClass(StorageClass storageClass) {
+      if (!Objects.equals(this.storageClass, storageClass)) {
+        modifiedFields.add(BlobField.STORAGE_CLASS);
+      }
       this.storageClass = storageClass;
       return this;
     }
 
+    /**
+     * @deprecated Use {@link #setTimeStorageClassUpdatedOffsetDateTime(OffsetDateTime)}
+     */
+    @Deprecated
     @Override
     public Builder setTimeStorageClassUpdated(Long timeStorageClassUpdated) {
+      return setTimeStorageClassUpdatedOffsetDateTime(
+          millisOffsetDateTimeCodec.encode(timeStorageClassUpdated));
+    }
+
+    @Override
+    public Builder setTimeStorageClassUpdatedOffsetDateTime(
+        OffsetDateTime timeStorageClassUpdated) {
+      if (!Objects.equals(this.timeStorageClassUpdated, timeStorageClassUpdated)) {
+        modifiedFields.add(BlobField.TIME_STORAGE_CLASS_UPDATED);
+      }
       this.timeStorageClassUpdated = timeStorageClassUpdated;
       return this;
     }
@@ -605,20 +1126,55 @@ public class BlobInfo implements Serializable {
       return this;
     }
 
+    /**
+     * @deprecated Use {@link #setDeleteTimeOffsetDateTime(OffsetDateTime)}
+     */
+    @Deprecated
     @Override
     Builder setDeleteTime(Long deleteTime) {
+      return setDeleteTimeOffsetDateTime(millisOffsetDateTimeCodec.encode(deleteTime));
+    }
+
+    @Override
+    Builder setDeleteTimeOffsetDateTime(OffsetDateTime deleteTime) {
+      if (!Objects.equals(this.deleteTime, deleteTime)) {
+        modifiedFields.add(BlobField.TIME_DELETED);
+      }
       this.deleteTime = deleteTime;
       return this;
     }
 
+    /**
+     * @deprecated Use {@link #setUpdateTimeOffsetDateTime(OffsetDateTime)}
+     */
     @Override
     Builder setUpdateTime(Long updateTime) {
+      return setUpdateTimeOffsetDateTime(millisOffsetDateTimeCodec.encode(updateTime));
+    }
+
+    @Override
+    Builder setUpdateTimeOffsetDateTime(OffsetDateTime updateTime) {
+      if (!Objects.equals(this.updateTime, updateTime)) {
+        modifiedFields.add(BlobField.UPDATED);
+      }
       this.updateTime = updateTime;
       return this;
     }
 
+    /**
+     * @deprecated Use {@link #setCreateTimeOffsetDateTime(OffsetDateTime)}
+     */
+    @Deprecated
     @Override
     Builder setCreateTime(Long createTime) {
+      return setCreateTimeOffsetDateTime(millisOffsetDateTimeCodec.encode(createTime));
+    }
+
+    @Override
+    Builder setCreateTimeOffsetDateTime(OffsetDateTime createTime) {
+      if (!Objects.equals(this.createTime, createTime)) {
+        modifiedFields.add(BlobField.TIME_CREATED);
+      }
       this.createTime = createTime;
       return this;
     }
@@ -631,31 +1187,107 @@ public class BlobInfo implements Serializable {
 
     @Override
     Builder setCustomerEncryption(CustomerEncryption customerEncryption) {
+      if (!Objects.equals(this.customerEncryption, customerEncryption)) {
+        modifiedFields.add(BlobField.CUSTOMER_ENCRYPTION);
+      }
       this.customerEncryption = customerEncryption;
       return this;
     }
 
     @Override
     Builder setKmsKeyName(String kmsKeyName) {
+      if (!Objects.equals(this.kmsKeyName, kmsKeyName)) {
+        modifiedFields.add(BlobField.KMS_KEY_NAME);
+      }
       this.kmsKeyName = kmsKeyName;
       return this;
     }
 
     @Override
     public Builder setEventBasedHold(Boolean eventBasedHold) {
+      if (!Objects.equals(this.eventBasedHold, eventBasedHold)) {
+        modifiedFields.add(BlobField.EVENT_BASED_HOLD);
+      }
       this.eventBasedHold = eventBasedHold;
       return this;
     }
 
     @Override
     public Builder setTemporaryHold(Boolean temporaryHold) {
+      if (!Objects.equals(this.temporaryHold, temporaryHold)) {
+        modifiedFields.add(BlobField.TEMPORARY_HOLD);
+      }
       this.temporaryHold = temporaryHold;
       return this;
     }
 
+    /**
+     * @deprecated {@link #setRetentionExpirationTimeOffsetDateTime(OffsetDateTime)}
+     */
     @Override
+    @Deprecated
     Builder setRetentionExpirationTime(Long retentionExpirationTime) {
+      return setRetentionExpirationTimeOffsetDateTime(
+          millisOffsetDateTimeCodec.encode(retentionExpirationTime));
+    }
+
+    @Override
+    Builder setRetentionExpirationTimeOffsetDateTime(OffsetDateTime retentionExpirationTime) {
+      if (!Objects.equals(this.retentionExpirationTime, retentionExpirationTime)) {
+        modifiedFields.add(BlobField.RETENTION_EXPIRATION_TIME);
+      }
       this.retentionExpirationTime = retentionExpirationTime;
+      return this;
+    }
+
+    @Override
+    Builder setSoftDeleteTime(OffsetDateTime softDeleteTime) {
+      if (!Objects.equals(this.softDeleteTime, softDeleteTime)) {
+        modifiedFields.add(BlobField.SOFT_DELETE_TIME);
+      }
+      this.softDeleteTime = softDeleteTime;
+      return this;
+    }
+
+    @Override
+    Builder setHardDeleteTime(OffsetDateTime hardDeleteTime) {
+      if (!Objects.equals(this.hardDeleteTime, hardDeleteTime)) {
+        modifiedFields.add(BlobField.HARD_DELETE_TIME);
+      }
+      this.hardDeleteTime = hardDeleteTime;
+      return this;
+    }
+
+    @Override
+    public Builder setRetention(Retention retention) {
+      // todo: b/308194853
+      modifiedFields.add(BlobField.RETENTION);
+      this.retention = retention;
+      return this;
+    }
+
+    @Override
+    public Builder setContexts(ObjectContexts contexts) {
+      // Maps.difference uses object equality to determine if a value is the same. We don't care
+      // about the timestamps when determining if a value needs to be patched. Create a new map
+      // where we remove the timestamps so equals is usable.
+      Map<String, ObjectCustomContextPayload> left =
+          this.contexts == null ? null : this.contexts.getCustom();
+      Map<String, ObjectCustomContextPayload> right =
+          contexts == null ? null : contexts.getCustom();
+      if (!Objects.equals(left, right)) {
+        if (right != null) {
+          diffMaps(
+              NamedField.nested(BlobField.OBJECT_CONTEXTS, NamedField.literal("custom")),
+              left,
+              right,
+              modifiedFields::add);
+          this.contexts = contexts;
+        } else {
+          modifiedFields.add(BlobField.OBJECT_CONTEXTS);
+          this.contexts = null;
+        }
+      }
       return this;
     }
 
@@ -663,6 +1295,197 @@ public class BlobInfo implements Serializable {
     public BlobInfo build() {
       checkNotNull(blobId);
       return new BlobInfo(this);
+    }
+
+    @Override
+    BlobId getBlobId() {
+      return blobId;
+    }
+
+    @Override
+    Builder clearBlobId() {
+      this.blobId = null;
+      return this;
+    }
+
+    @Override
+    Builder clearGeneratedId() {
+      this.generatedId = null;
+      return this;
+    }
+
+    @Override
+    Builder clearContentType() {
+      this.contentType = null;
+      return this;
+    }
+
+    @Override
+    Builder clearContentEncoding() {
+      this.contentEncoding = null;
+      return this;
+    }
+
+    @Override
+    Builder clearContentDisposition() {
+      this.contentDisposition = null;
+      return this;
+    }
+
+    @Override
+    Builder clearContentLanguage() {
+      this.contentLanguage = null;
+      return this;
+    }
+
+    @Override
+    Builder clearComponentCount() {
+      this.componentCount = null;
+      return this;
+    }
+
+    @Override
+    Builder clearCacheControl() {
+      this.cacheControl = null;
+      return this;
+    }
+
+    @Override
+    Builder clearAcl() {
+      this.acl = null;
+      return this;
+    }
+
+    @Override
+    Builder clearOwner() {
+      this.owner = null;
+      return this;
+    }
+
+    @Override
+    Builder clearSize() {
+      this.size = null;
+      return this;
+    }
+
+    @Override
+    Builder clearEtag() {
+      this.etag = null;
+      return this;
+    }
+
+    @Override
+    Builder clearSelfLink() {
+      this.selfLink = null;
+      return this;
+    }
+
+    @Override
+    Builder clearMd5() {
+      this.md5 = null;
+      return this;
+    }
+
+    @Override
+    Builder clearCrc32c() {
+      this.crc32c = null;
+      return this;
+    }
+
+    @Override
+    Builder clearCustomTime() {
+      this.customTime = null;
+      return this;
+    }
+
+    @Override
+    Builder clearMediaLink() {
+      this.mediaLink = null;
+      return this;
+    }
+
+    @Override
+    Builder clearMetadata() {
+      this.metadata = null;
+      return this;
+    }
+
+    @Override
+    Builder clearMetageneration() {
+      this.metageneration = null;
+      return this;
+    }
+
+    @Override
+    Builder clearDeleteTime() {
+      this.deleteTime = null;
+      return this;
+    }
+
+    @Override
+    Builder clearUpdateTime() {
+      this.updateTime = null;
+      return this;
+    }
+
+    @Override
+    Builder clearCreateTime() {
+      this.createTime = null;
+      return this;
+    }
+
+    @Override
+    Builder clearIsDirectory() {
+      this.isDirectory = null;
+      return this;
+    }
+
+    @Override
+    Builder clearCustomerEncryption() {
+      this.customerEncryption = null;
+      return this;
+    }
+
+    @Override
+    Builder clearStorageClass() {
+      this.storageClass = null;
+      return this;
+    }
+
+    @Override
+    Builder clearTimeStorageClassUpdated() {
+      this.timeStorageClassUpdated = null;
+      return this;
+    }
+
+    @Override
+    Builder clearKmsKeyName() {
+      this.kmsKeyName = null;
+      return this;
+    }
+
+    @Override
+    Builder clearEventBasedHold() {
+      this.eventBasedHold = null;
+      return this;
+    }
+
+    @Override
+    Builder clearTemporaryHold() {
+      this.temporaryHold = null;
+      return this;
+    }
+
+    @Override
+    Builder clearRetentionExpirationTime() {
+      this.retentionExpirationTime = null;
+      return this;
+    }
+
+    @Override
+    Builder clearContexts() {
+      this.contexts = null;
+      return this;
     }
   }
 
@@ -697,6 +1520,11 @@ public class BlobInfo implements Serializable {
     eventBasedHold = builder.eventBasedHold;
     temporaryHold = builder.temporaryHold;
     retentionExpirationTime = builder.retentionExpirationTime;
+    retention = builder.retention;
+    softDeleteTime = builder.softDeleteTime;
+    hardDeleteTime = builder.hardDeleteTime;
+    contexts = builder.contexts;
+    modifiedFields = builder.modifiedFields.build();
   }
 
   /** Returns the blob's identity. */
@@ -838,7 +1666,7 @@ public class BlobInfo implements Serializable {
     byte[] decodedMd5 = BaseEncoding.base64().decode(md5);
     StringBuilder stringBuilder = new StringBuilder();
     for (byte b : decodedMd5) {
-      stringBuilder.append(String.format("%02x", b & 0xff));
+      stringBuilder.append(String.format(Locale.US, "%02x", b & 0xff));
     }
     return stringBuilder.toString();
   }
@@ -870,7 +1698,7 @@ public class BlobInfo implements Serializable {
     byte[] decodeCrc32c = BaseEncoding.base64().decode(crc32c);
     StringBuilder stringBuilder = new StringBuilder();
     for (byte b : decodeCrc32c) {
-      stringBuilder.append(String.format("%02x", b & 0xff));
+      stringBuilder.append(String.format(Locale.US, "%02x", b & 0xff));
     }
     return stringBuilder.toString();
   }
@@ -881,7 +1709,8 @@ public class BlobInfo implements Serializable {
   }
 
   /** Returns blob's user provided metadata. */
-  public Map<String, String> getMetadata() {
+  @Nullable
+  public Map<@NonNull String, @Nullable String> getMetadata() {
     return metadata == null || Data.isNull(metadata) ? null : Collections.unmodifiableMap(metadata);
   }
 
@@ -902,29 +1731,63 @@ public class BlobInfo implements Serializable {
   /**
    * Returns the deletion time of the blob expressed as the number of milliseconds since the Unix
    * epoch.
+   *
+   * @deprecated Use {@link #getDeleteTimeOffsetDateTime()}
    */
+  @Deprecated
   public Long getDeleteTime() {
+    return millisOffsetDateTimeCodec.decode(deleteTime);
+  }
+
+  /** Returns the deletion time of the blob. */
+  public OffsetDateTime getDeleteTimeOffsetDateTime() {
     return deleteTime;
   }
 
   /**
    * Returns the last modification time of the blob's metadata expressed as the number of
    * milliseconds since the Unix epoch.
+   *
+   * @deprecated Use {@link #getUpdateTimeOffsetDateTime()}
    */
+  @Deprecated
   public Long getUpdateTime() {
+    return millisOffsetDateTimeCodec.decode(updateTime);
+  }
+
+  /** Returns the last modification time of the blob's metadata. */
+  public OffsetDateTime getUpdateTimeOffsetDateTime() {
     return updateTime;
   }
 
   /**
    * Returns the creation time of the blob expressed as the number of milliseconds since the Unix
    * epoch.
+   *
+   * @deprecated Use {@link #getCreateTimeOffsetDateTime()}
    */
+  @Deprecated
   public Long getCreateTime() {
+    return millisOffsetDateTimeCodec.decode(createTime);
+  }
+
+  /** Returns the creation time of the blob. */
+  public OffsetDateTime getCreateTimeOffsetDateTime() {
     return createTime;
   }
 
-  /** Returns the custom time specified by the user for an object. */
+  /**
+   * Returns the custom time specified by the user for an object.
+   *
+   * @deprecated Use {@link #getCustomTimeOffsetDateTime()}
+   */
+  @Deprecated
   public Long getCustomTime() {
+    return millisOffsetDateTimeCodec.decode(customTime);
+  }
+
+  /** Returns the custom time specified by the user for an object. */
+  public OffsetDateTime getCustomTimeOffsetDateTime() {
     return customTime;
   }
 
@@ -956,8 +1819,19 @@ public class BlobInfo implements Serializable {
   /**
    * Returns the time that the object's storage class was last changed or the time of the object
    * creation.
+   *
+   * @deprecated Use {@link #getTimeStorageClassUpdatedOffsetDateTime()}
    */
+  @Deprecated
   public Long getTimeStorageClassUpdated() {
+    return millisOffsetDateTimeCodec.decode(timeStorageClassUpdated);
+  }
+
+  /**
+   * Returns the time that the object's storage class was last changed or the time of the object
+   * creation.
+   */
+  public OffsetDateTime getTimeStorageClassUpdatedOffsetDateTime() {
     return timeStorageClassUpdated;
   }
 
@@ -990,7 +1864,7 @@ public class BlobInfo implements Serializable {
    */
   @BetaApi
   public Boolean getEventBasedHold() {
-    return Data.<Boolean>isNull(eventBasedHold) ? null : eventBasedHold;
+    return Data.isNull(eventBasedHold) ? null : eventBasedHold;
   }
 
   /**
@@ -1017,16 +1891,51 @@ public class BlobInfo implements Serializable {
    */
   @BetaApi
   public Boolean getTemporaryHold() {
-    return Data.<Boolean>isNull(temporaryHold) ? null : temporaryHold;
+    return Data.isNull(temporaryHold) ? null : temporaryHold;
   }
 
   /**
    * Returns the retention expiration time of the blob as {@code Long}, if a retention period is
    * defined. If retention period is not defined this value returns {@code null}
+   *
+   * @deprecated Use {@link #getRetentionExpirationTimeOffsetDateTime()}
    */
   @BetaApi
+  @Deprecated
   public Long getRetentionExpirationTime() {
-    return Data.<Long>isNull(retentionExpirationTime) ? null : retentionExpirationTime;
+    return Data.isNull(retentionExpirationTime)
+        ? null
+        : millisOffsetDateTimeCodec.decode(retentionExpirationTime);
+  }
+
+  /**
+   * Returns the retention expiration time of the blob, if a retention period is defined. If
+   * retention period is not defined this value returns {@code null}
+   */
+  @BetaApi
+  public OffsetDateTime getRetentionExpirationTimeOffsetDateTime() {
+    return retentionExpirationTime;
+  }
+
+  /** If this object has been soft-deleted, returns the time it was soft-deleted. */
+  public OffsetDateTime getSoftDeleteTime() {
+    return softDeleteTime;
+  }
+
+  /**
+   * If this object has been soft-deleted, returns the time at which it will be permanently deleted.
+   */
+  public OffsetDateTime getHardDeleteTime() {
+    return hardDeleteTime;
+  }
+
+  /** Returns the object's Retention policy. */
+  public Retention getRetention() {
+    return retention;
+  }
+
+  public ObjectContexts getContexts() {
+    return contexts;
   }
 
   /** Returns a builder for the current blob. */
@@ -1043,92 +1952,104 @@ public class BlobInfo implements Serializable {
         .add("size", getSize())
         .add("content-type", getContentType())
         .add("metadata", getMetadata())
+        .add("contexts", getContexts())
         .toString();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(blobId);
+    return Objects.hash(
+        blobId,
+        generatedId,
+        selfLink,
+        cacheControl,
+        acl,
+        owner,
+        size,
+        etag,
+        md5,
+        crc32c,
+        customTime,
+        mediaLink,
+        metadata,
+        metageneration,
+        deleteTime,
+        updateTime,
+        createTime,
+        contentType,
+        contentEncoding,
+        contentDisposition,
+        contentLanguage,
+        storageClass,
+        timeStorageClassUpdated,
+        componentCount,
+        isDirectory,
+        customerEncryption,
+        kmsKeyName,
+        eventBasedHold,
+        temporaryHold,
+        retention,
+        retentionExpirationTime,
+        softDeleteTime,
+        hardDeleteTime,
+        contexts);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return obj == this
-        || obj != null
-            && obj.getClass().equals(BlobInfo.class)
-            && Objects.equals(toPb(), ((BlobInfo) obj).toPb());
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof BlobInfo)) {
+      return false;
+    }
+    BlobInfo blobInfo = (BlobInfo) o;
+    return isDirectory == blobInfo.isDirectory
+        && Objects.equals(blobId, blobInfo.blobId)
+        && Objects.equals(generatedId, blobInfo.generatedId)
+        && Objects.equals(selfLink, blobInfo.selfLink)
+        && Objects.equals(cacheControl, blobInfo.cacheControl)
+        && Objects.equals(acl, blobInfo.acl)
+        && Objects.equals(owner, blobInfo.owner)
+        && Objects.equals(size, blobInfo.size)
+        && Objects.equals(etag, blobInfo.etag)
+        && Objects.equals(md5, blobInfo.md5)
+        && Objects.equals(crc32c, blobInfo.crc32c)
+        && Objects.equals(customTime, blobInfo.customTime)
+        && Objects.equals(mediaLink, blobInfo.mediaLink)
+        && Objects.equals(metadata, blobInfo.metadata)
+        && Objects.equals(metageneration, blobInfo.metageneration)
+        && Objects.equals(deleteTime, blobInfo.deleteTime)
+        && Objects.equals(updateTime, blobInfo.updateTime)
+        && Objects.equals(createTime, blobInfo.createTime)
+        && Objects.equals(contentType, blobInfo.contentType)
+        && Objects.equals(contentEncoding, blobInfo.contentEncoding)
+        && Objects.equals(contentDisposition, blobInfo.contentDisposition)
+        && Objects.equals(contentLanguage, blobInfo.contentLanguage)
+        && Objects.equals(storageClass, blobInfo.storageClass)
+        && Objects.equals(timeStorageClassUpdated, blobInfo.timeStorageClassUpdated)
+        && Objects.equals(componentCount, blobInfo.componentCount)
+        && Objects.equals(customerEncryption, blobInfo.customerEncryption)
+        && Objects.equals(kmsKeyName, blobInfo.kmsKeyName)
+        && Objects.equals(eventBasedHold, blobInfo.eventBasedHold)
+        && Objects.equals(temporaryHold, blobInfo.temporaryHold)
+        && Objects.equals(retentionExpirationTime, blobInfo.retentionExpirationTime)
+        && Objects.equals(retention, blobInfo.retention)
+        && Objects.equals(softDeleteTime, blobInfo.softDeleteTime)
+        && Objects.equals(hardDeleteTime, blobInfo.hardDeleteTime)
+        && Objects.equals(contexts, blobInfo.contexts);
   }
 
-  StorageObject toPb() {
-    StorageObject storageObject = blobId.toPb();
-    if (acl != null) {
-      storageObject.setAcl(
-          Lists.transform(
-              acl,
-              new Function<Acl, ObjectAccessControl>() {
-                @Override
-                public ObjectAccessControl apply(Acl acl) {
-                  return acl.toObjectPb();
-                }
-              }));
-    }
-    if (deleteTime != null) {
-      storageObject.setTimeDeleted(new DateTime(deleteTime));
-    }
-    if (updateTime != null) {
-      storageObject.setUpdated(new DateTime(updateTime));
-    }
-    if (createTime != null) {
-      storageObject.setTimeCreated(new DateTime(createTime));
-    }
-    if (customTime != null) {
-      storageObject.setCustomTime(new DateTime(customTime));
-    }
-    if (size != null) {
-      storageObject.setSize(BigInteger.valueOf(size));
-    }
-    if (owner != null) {
-      storageObject.setOwner(new Owner().setEntity(owner.toPb()));
-    }
-    if (storageClass != null) {
-      storageObject.setStorageClass(storageClass.toString());
-    }
-    if (timeStorageClassUpdated != null) {
-      storageObject.setTimeStorageClassUpdated(new DateTime(timeStorageClassUpdated));
-    }
+  ImmutableSet<NamedField> getModifiedFields() {
+    return modifiedFields;
+  }
 
-    Map<String, String> pbMetadata = metadata;
-    if (metadata != null && !Data.isNull(metadata)) {
-      pbMetadata = Maps.newHashMapWithExpectedSize(metadata.size());
-      for (Map.Entry<String, String> entry : metadata.entrySet()) {
-        pbMetadata.put(
-            entry.getKey(), firstNonNull(entry.getValue(), Data.<String>nullOf(String.class)));
-      }
-    }
-    if (customerEncryption != null) {
-      storageObject.setCustomerEncryption(customerEncryption.toPb());
-    }
-    if (retentionExpirationTime != null) {
-      storageObject.setRetentionExpirationTime(new DateTime(retentionExpirationTime));
-    }
-    storageObject.setKmsKeyName(kmsKeyName);
-    storageObject.setEventBasedHold(eventBasedHold);
-    storageObject.setTemporaryHold(temporaryHold);
-    storageObject.setMetadata(pbMetadata);
-    storageObject.setCacheControl(cacheControl);
-    storageObject.setContentEncoding(contentEncoding);
-    storageObject.setCrc32c(crc32c);
-    storageObject.setContentType(contentType);
-    storageObject.setMd5Hash(md5);
-    storageObject.setMediaLink(mediaLink);
-    storageObject.setMetageneration(metageneration);
-    storageObject.setContentDisposition(contentDisposition);
-    storageObject.setComponentCount(componentCount);
-    storageObject.setContentLanguage(contentLanguage);
-    storageObject.setEtag(etag);
-    storageObject.setId(generatedId);
-    storageObject.setSelfLink(selfLink);
-    return storageObject;
+  /**
+   * Attach this instance to an instance of {@link Storage} thereby allowing RPCs to be performed
+   * using the methods from the resulting {@link Blob}
+   */
+  Blob asBlob(Storage storage) {
+    return new Blob(storage, new BuilderImpl(this));
   }
 
   /** Returns a {@code BlobInfo} builder where blob identity is set using the provided values. */
@@ -1154,106 +2075,5 @@ public class BlobInfo implements Serializable {
   /** Returns a {@code BlobInfo} builder where blob identity is set using the provided value. */
   public static Builder newBuilder(BlobId blobId) {
     return new BuilderImpl(blobId);
-  }
-
-  static BlobInfo fromPb(StorageObject storageObject) {
-    Builder builder = newBuilder(BlobId.fromPb(storageObject));
-    if (storageObject.getCacheControl() != null) {
-      builder.setCacheControl(storageObject.getCacheControl());
-    }
-    if (storageObject.getContentEncoding() != null) {
-      builder.setContentEncoding(storageObject.getContentEncoding());
-    }
-    if (storageObject.getCrc32c() != null) {
-      builder.setCrc32c(storageObject.getCrc32c());
-    }
-    if (storageObject.getContentType() != null) {
-      builder.setContentType(storageObject.getContentType());
-    }
-    if (storageObject.getMd5Hash() != null) {
-      builder.setMd5(storageObject.getMd5Hash());
-    }
-    if (storageObject.getMediaLink() != null) {
-      builder.setMediaLink(storageObject.getMediaLink());
-    }
-    if (storageObject.getMetageneration() != null) {
-      builder.setMetageneration(storageObject.getMetageneration());
-    }
-    if (storageObject.getContentDisposition() != null) {
-      builder.setContentDisposition(storageObject.getContentDisposition());
-    }
-    if (storageObject.getComponentCount() != null) {
-      builder.setComponentCount(storageObject.getComponentCount());
-    }
-    if (storageObject.getContentLanguage() != null) {
-      builder.setContentLanguage(storageObject.getContentLanguage());
-    }
-    if (storageObject.getEtag() != null) {
-      builder.setEtag(storageObject.getEtag());
-    }
-    if (storageObject.getId() != null) {
-      builder.setGeneratedId(storageObject.getId());
-    }
-    if (storageObject.getSelfLink() != null) {
-      builder.setSelfLink(storageObject.getSelfLink());
-    }
-    if (storageObject.getMetadata() != null) {
-      builder.setMetadata(storageObject.getMetadata());
-    }
-    if (storageObject.getTimeDeleted() != null) {
-      builder.setDeleteTime(storageObject.getTimeDeleted().getValue());
-    }
-    if (storageObject.getUpdated() != null) {
-      builder.setUpdateTime(storageObject.getUpdated().getValue());
-    }
-    if (storageObject.getTimeCreated() != null) {
-      builder.setCreateTime(storageObject.getTimeCreated().getValue());
-    }
-    if (storageObject.getCustomTime() != null) {
-      builder.setCustomTime(storageObject.getCustomTime().getValue());
-    }
-    if (storageObject.getSize() != null) {
-      builder.setSize(storageObject.getSize().longValue());
-    }
-    if (storageObject.getOwner() != null) {
-      builder.setOwner(Acl.Entity.fromPb(storageObject.getOwner().getEntity()));
-    }
-    if (storageObject.getAcl() != null) {
-      builder.setAcl(
-          Lists.transform(
-              storageObject.getAcl(),
-              new Function<ObjectAccessControl, Acl>() {
-                @Override
-                public Acl apply(ObjectAccessControl objectAccessControl) {
-                  return Acl.fromPb(objectAccessControl);
-                }
-              }));
-    }
-    if (storageObject.containsKey("isDirectory")) {
-      builder.setIsDirectory(Boolean.TRUE);
-    }
-    if (storageObject.getCustomerEncryption() != null) {
-      builder.setCustomerEncryption(
-          CustomerEncryption.fromPb(storageObject.getCustomerEncryption()));
-    }
-    if (storageObject.getStorageClass() != null) {
-      builder.setStorageClass(StorageClass.valueOf(storageObject.getStorageClass()));
-    }
-    if (storageObject.getTimeStorageClassUpdated() != null) {
-      builder.setTimeStorageClassUpdated(storageObject.getTimeStorageClassUpdated().getValue());
-    }
-    if (storageObject.getKmsKeyName() != null) {
-      builder.setKmsKeyName(storageObject.getKmsKeyName());
-    }
-    if (storageObject.getEventBasedHold() != null) {
-      builder.setEventBasedHold(storageObject.getEventBasedHold());
-    }
-    if (storageObject.getTemporaryHold() != null) {
-      builder.setTemporaryHold(storageObject.getTemporaryHold());
-    }
-    if (storageObject.getRetentionExpirationTime() != null) {
-      builder.setRetentionExpirationTime(storageObject.getRetentionExpirationTime().getValue());
-    }
-    return builder.build();
   }
 }

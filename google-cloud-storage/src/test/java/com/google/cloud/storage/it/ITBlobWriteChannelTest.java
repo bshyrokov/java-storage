@@ -16,15 +16,19 @@
 
 package com.google.cloud.storage.it;
 
+import static com.google.cloud.storage.TestUtils.xxd;
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.google.api.client.json.JsonParser;
 import com.google.api.gax.rpc.FixedHeaderProvider;
-import com.google.api.services.storage.model.StorageObject;
 import com.google.cloud.NoCredentials;
+import com.google.cloud.RestorableState;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.conformance.storage.v1.InstructionList;
 import com.google.cloud.conformance.storage.v1.Method;
@@ -32,35 +36,42 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.BucketInfo;
-import com.google.cloud.storage.DataGeneration;
+import com.google.cloud.storage.DataGenerator;
+import com.google.cloud.storage.HttpStorageOptions;
 import com.google.cloud.storage.PackagePrivateMethodWorkarounds;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobWriteOption;
 import com.google.cloud.storage.StorageOptions;
-import com.google.cloud.storage.conformance.retry.TestBench;
-import com.google.cloud.storage.conformance.retry.TestBench.RetryTestResource;
-import com.google.cloud.storage.spi.v1.StorageRpc;
+import com.google.cloud.storage.TransportCompatibility.Transport;
+import com.google.cloud.storage.it.runner.StorageITRunner;
+import com.google.cloud.storage.it.runner.annotations.Backend;
+import com.google.cloud.storage.it.runner.annotations.Inject;
+import com.google.cloud.storage.it.runner.annotations.SingleBackend;
+import com.google.cloud.storage.it.runner.annotations.StorageFixture;
+import com.google.cloud.storage.it.runner.registry.Generator;
+import com.google.cloud.storage.it.runner.registry.TestBench;
+import com.google.cloud.storage.it.runner.registry.TestBench.RetryTestResource;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.reflect.Reflection;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
-import java.util.Random;
-import java.util.logging.Logger;
-import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
-import org.threeten.bp.Clock;
-import org.threeten.bp.Instant;
-import org.threeten.bp.ZoneId;
-import org.threeten.bp.ZoneOffset;
-import org.threeten.bp.format.DateTimeFormatter;
+import org.junit.runner.RunWith;
 
+@RunWith(StorageITRunner.class)
+@SingleBackend(Backend.TEST_BENCH)
 public final class ITBlobWriteChannelTest {
-  private static final Logger LOGGER = Logger.getLogger(ITBlobWriteChannelTest.class.getName());
+
   private static final String NOW_STRING;
+  private static final String BLOB_STRING_CONTENT = "Hello Google Cloud Storage!";
 
   static {
     Instant now = Clock.systemUTC().instant();
@@ -69,13 +80,14 @@ public final class ITBlobWriteChannelTest {
     NOW_STRING = formatter.format(now);
   }
 
-  @ClassRule
-  public static final TestBench testBench =
-      TestBench.newBuilder().setContainerName("blob-write-channel-test").build();
+  @Inject public TestBench testBench;
 
-  @Rule public final TestName testName = new TestName();
+  @Inject
+  @StorageFixture(Transport.HTTP)
+  public Storage storage;
 
-  @Rule public final DataGeneration dataGeneration = new DataGeneration(new Random(1234567890));
+  @Inject public BucketInfo bucket;
+  @Inject public Generator generator;
 
   /**
    * Test for unexpected EOF at the beginning of trying to read the json response.
@@ -101,10 +113,86 @@ public final class ITBlobWriteChannelTest {
     doJsonUnexpectedEOFTest(contentSize, cappedByteCount);
   }
 
-  private void doJsonUnexpectedEOFTest(int contentSize, int cappedByteCount) throws IOException {
-    String blobPath = String.format("%s/%s/blob", testName.getMethodName(), NOW_STRING);
+  @Test
+  public void testWriteChannelExistingBlob() throws IOException {
+    HttpStorageOptions baseStorageOptions =
+        StorageOptions.http()
+            .setCredentials(NoCredentials.getInstance())
+            .setHost(testBench.getBaseUri())
+            .setProjectId("test-project-id")
+            .build();
+    Storage storage = baseStorageOptions.getService();
+    Instant now = Clock.systemUTC().instant();
+    DateTimeFormatter formatter =
+        DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
+    String nowString = formatter.format(now);
+    BucketInfo bucketInfo = BucketInfo.of(generator.randomBucketName());
+    String blobPath =
+        String.format(Locale.US, "%s/%s/blob", generator.randomObjectName(), nowString);
+    BlobId blobId = BlobId.of(bucketInfo.getName(), blobPath);
+    BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+    storage.create(bucketInfo);
+    storage.create(blobInfo);
+    byte[] stringBytes;
+    try (WriteChannel writer = storage.writer(blobInfo)) {
+      stringBytes = BLOB_STRING_CONTENT.getBytes(UTF_8);
+      writer.write(ByteBuffer.wrap(stringBytes));
+    }
+    assertArrayEquals(stringBytes, storage.readAllBytes(blobInfo.getBlobId()));
+    assertTrue(storage.delete(bucketInfo.getName(), blobInfo.getName()));
+  }
 
-    BucketInfo bucketInfo = BucketInfo.of(dataGeneration.getBucketName());
+  @Test
+  public void changeChunkSizeAfterWrite() throws IOException {
+    BlobInfo info = BlobInfo.newBuilder(bucket, generator.randomObjectName()).build();
+
+    int _512KiB = 512 * 1024;
+    byte[] bytes = DataGenerator.base64Characters().genBytes(_512KiB + 13);
+    try (WriteChannel writer = storage.writer(info, BlobWriteOption.doesNotExist())) {
+      writer.setChunkSize(2 * 1024 * 1024);
+      writer.write(ByteBuffer.wrap(bytes, 0, _512KiB));
+      assertThrows(IllegalStateException.class, () -> writer.setChunkSize(768 * 1024));
+    }
+  }
+
+  @Test
+  public void restoreProperlyPlumbsBeginOffset() throws IOException {
+    BlobInfo info = BlobInfo.newBuilder(bucket, generator.randomObjectName()).build();
+    int _256KiB = 256 * 1024;
+
+    byte[] bytes1 = DataGenerator.base64Characters().genBytes(_256KiB);
+    byte[] bytes2 = DataGenerator.base64Characters().genBytes(73);
+
+    int allLength = bytes1.length + bytes2.length;
+    byte[] expected = Arrays.copyOf(bytes1, allLength);
+    System.arraycopy(bytes2, 0, expected, bytes1.length, bytes2.length);
+    String xxdExpected = xxd(expected);
+
+    RestorableState<WriteChannel> capture;
+    {
+      WriteChannel writer = storage.writer(info, BlobWriteOption.doesNotExist());
+      writer.setChunkSize(_256KiB);
+      writer.write(ByteBuffer.wrap(bytes1));
+      // explicitly do not close writer, it will finalize the session
+      capture = writer.capture();
+    }
+
+    assertThat(capture).isNotNull();
+    WriteChannel restored = capture.restore();
+    restored.write(ByteBuffer.wrap(bytes2));
+    restored.close();
+
+    byte[] readAllBytes = storage.readAllBytes(info.getBlobId());
+    assertThat(readAllBytes).hasLength(expected.length);
+    String xxdActual = xxd(readAllBytes);
+    assertThat(xxdActual).isEqualTo(xxdExpected);
+  }
+
+  private void doJsonUnexpectedEOFTest(int contentSize, int cappedByteCount) throws IOException {
+    String blobPath =
+        String.format(Locale.US, "%s/%s/blob", generator.randomObjectName(), NOW_STRING);
+
+    BucketInfo bucketInfo = BucketInfo.of(generator.randomBucketName());
     BlobInfo blobInfoGen0 = BlobInfo.newBuilder(bucketInfo, blobPath, 0L).build();
 
     RetryTestResource retryTestResource =
@@ -112,60 +200,26 @@ public final class ITBlobWriteChannelTest {
             Method.newBuilder().setName("storage.objects.insert").build(),
             InstructionList.newBuilder()
                 .addInstructions(
-                    String.format("return-broken-stream-final-chunk-after-%dB", cappedByteCount))
-                .build());
+                    String.format(
+                        Locale.US, "return-broken-stream-final-chunk-after-%dB", cappedByteCount))
+                .build(),
+            Transport.HTTP.name());
     RetryTestResource retryTest = testBench.createRetryTest(retryTestResource);
 
     StorageOptions baseOptions =
-        StorageOptions.newBuilder()
+        StorageOptions.http()
             .setCredentials(NoCredentials.getInstance())
             .setHost(testBench.getBaseUri())
             .setProjectId("project-id")
-            .build();
-    StorageRpc noHeader = (StorageRpc) baseOptions.getRpc();
-    StorageRpc yesHeader =
-        (StorageRpc)
-            baseOptions
-                .toBuilder()
-                .setHeaderProvider(
-                    FixedHeaderProvider.create(ImmutableMap.of("x-retry-test-id", retryTest.id)))
-                .build()
-                .getRpc();
-    //noinspection UnstableApiUsage
-    StorageOptions storageOptions =
-        baseOptions
-            .toBuilder()
-            .setServiceRpcFactory(
-                options ->
-                    Reflection.newProxy(
-                        StorageRpc.class,
-                        (proxy, method, args) -> {
-                          try {
-                            if ("writeWithResponse".equals(method.getName())) {
-                              boolean lastChunk = (boolean) args[5];
-                              LOGGER.info(
-                                  String.format(
-                                      "writeWithResponse called. (lastChunk = %b)", lastChunk));
-                              if (lastChunk) {
-                                return method.invoke(yesHeader, args);
-                              }
-                            }
-                            return method.invoke(noHeader, args);
-                          } catch (Exception e) {
-                            if (e.getCause() != null) {
-                              throw e.getCause();
-                            } else {
-                              throw e;
-                            }
-                          }
-                        }))
+            .setHeaderProvider(
+                FixedHeaderProvider.create(ImmutableMap.of("x-retry-test-id", retryTest.id)))
             .build();
 
-    Storage testStorage = storageOptions.getService();
+    Storage testStorage = baseOptions.getService();
 
     testStorage.create(bucketInfo);
 
-    ByteBuffer content = dataGeneration.randByteBuffer(contentSize);
+    ByteBuffer content = DataGenerator.base64Characters().genByteBuffer(contentSize);
     // create a duplicate to preserve the initial offset and limit for assertion later
     ByteBuffer expected = content.duplicate();
 
@@ -176,15 +230,15 @@ public final class ITBlobWriteChannelTest {
     RetryTestResource postRunState = testBench.getRetryTest(retryTest);
     assertTrue(postRunState.completed);
 
-    Optional<StorageObject> optionalStorageObject =
-        PackagePrivateMethodWorkarounds.maybeGetStorageObjectFunction().apply(w);
+    Optional<BlobInfo> optionalStorageObject =
+        PackagePrivateMethodWorkarounds.maybeGetBlobInfoFunction().apply(w);
 
-    assertTrue(optionalStorageObject.isPresent());
-    StorageObject storageObject = optionalStorageObject.get();
-    assertThat(storageObject.getName()).isEqualTo(blobInfoGen0.getName());
+    assertThat(optionalStorageObject.isPresent()).isTrue();
+    BlobInfo internalInfo = optionalStorageObject.get();
+    assertThat(internalInfo.getName()).isEqualTo(blobInfoGen0.getName());
 
     // construct a new blob id, without a generation, so we get the latest when we perform a get
-    BlobId blobIdGen1 = BlobId.of(storageObject.getBucket(), storageObject.getName());
+    BlobId blobIdGen1 = BlobId.of(internalInfo.getBucket(), internalInfo.getName());
     Blob blobGen2 = testStorage.get(blobIdGen1);
     assertEquals(contentSize, (long) blobGen2.getSize());
     assertNotEquals(blobInfoGen0.getGeneration(), blobGen2.getGeneration());

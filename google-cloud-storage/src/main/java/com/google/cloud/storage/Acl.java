@@ -19,11 +19,8 @@ package com.google.cloud.storage;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.api.core.ApiFunction;
-import com.google.api.services.storage.model.BucketAccessControl;
-import com.google.api.services.storage.model.ObjectAccessControl;
 import com.google.cloud.StringEnumType;
 import com.google.cloud.StringEnumValue;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import java.io.Serializable;
 import java.util.Objects;
@@ -36,21 +33,7 @@ import java.util.Objects;
  */
 public final class Acl implements Serializable {
 
-  private static final long serialVersionUID = 7516713233557576082L;
-  static final Function<ObjectAccessControl, Acl> FROM_OBJECT_PB_FUNCTION =
-      new Function<ObjectAccessControl, Acl>() {
-        @Override
-        public Acl apply(ObjectAccessControl aclPb) {
-          return Acl.fromPb(aclPb);
-        }
-      };
-  static final Function<BucketAccessControl, Acl> FROM_BUCKET_PB_FUNCTION =
-      new Function<BucketAccessControl, Acl>() {
-        @Override
-        public Acl apply(BucketAccessControl aclPb) {
-          return Acl.fromPb(aclPb);
-        }
-      };
+  private static final long serialVersionUID = -1000021464049679956L;
 
   private final Entity entity;
   private final Role role;
@@ -58,21 +41,15 @@ public final class Acl implements Serializable {
   private final String etag;
 
   public static final class Role extends StringEnumValue {
-    private static final long serialVersionUID = 123037132067643600L;
+    private static final long serialVersionUID = 2067949416720207403L;
 
     private Role(String constant) {
       super(constant);
     }
 
-    private static final ApiFunction<String, Role> CONSTRUCTOR =
-        new ApiFunction<String, Role>() {
-          @Override
-          public Role apply(String constant) {
-            return new Role(constant);
-          }
-        };
+    private static final ApiFunction<String, Role> CONSTRUCTOR = Role::new;
 
-    private static final StringEnumType<Role> type = new StringEnumType(Role.class, CONSTRUCTOR);
+    private static final StringEnumType<Role> type = new StringEnumType<>(Role.class, CONSTRUCTOR);
 
     public static final Role OWNER = type.createAndRegister("OWNER");
     public static final Role READER = type.createAndRegister("READER");
@@ -148,7 +125,7 @@ public final class Acl implements Serializable {
   /** Base class for Access Control List entities. */
   public abstract static class Entity implements Serializable {
 
-    private static final long serialVersionUID = -2707407252771255840L;
+    private static final long serialVersionUID = 2321254094152522444L;
 
     private final Type type;
     private final String value;
@@ -195,43 +172,14 @@ public final class Acl implements Serializable {
 
     @Override
     public String toString() {
-      return toPb();
-    }
-
-    String toPb() {
-      return type.name().toLowerCase() + "-" + getValue();
-    }
-
-    static Entity fromPb(String entity) {
-      if (entity.startsWith("user-")) {
-        return new User(entity.substring(5));
-      }
-      if (entity.equals(User.ALL_USERS)) {
-        return User.ofAllUsers();
-      }
-      if (entity.equals(User.ALL_AUTHENTICATED_USERS)) {
-        return User.ofAllAuthenticatedUsers();
-      }
-      if (entity.startsWith("group-")) {
-        return new Group(entity.substring(6));
-      }
-      if (entity.startsWith("domain-")) {
-        return new Domain(entity.substring(7));
-      }
-      if (entity.startsWith("project-")) {
-        int idx = entity.indexOf('-', 8);
-        String team = entity.substring(8, idx);
-        String projectId = entity.substring(idx + 1);
-        return new Project(Project.ProjectRole.valueOf(team.toUpperCase()), projectId);
-      }
-      return new RawEntity(entity);
+      return Conversions.json().entity().encode(this);
     }
   }
 
   /** Class for ACL Domain entities. */
   public static final class Domain extends Entity {
 
-    private static final long serialVersionUID = -3033025857280447253L;
+    private static final long serialVersionUID = 6852649665598880139L;
 
     /**
      * Creates a domain entity.
@@ -251,7 +199,7 @@ public final class Acl implements Serializable {
   /** Class for ACL Group entities. */
   public static final class Group extends Entity {
 
-    private static final long serialVersionUID = -1660987136294408826L;
+    private static final long serialVersionUID = 5642929747944714384L;
 
     /**
      * Creates a group entity.
@@ -271,9 +219,9 @@ public final class Acl implements Serializable {
   /** Class for ACL User entities. */
   public static final class User extends Entity {
 
-    private static final long serialVersionUID = 3076518036392737008L;
-    private static final String ALL_USERS = "allUsers";
-    private static final String ALL_AUTHENTICATED_USERS = "allAuthenticatedUsers";
+    private static final long serialVersionUID = -4113630416489429660L;
+    static final String ALL_USERS = "allUsers";
+    static final String ALL_AUTHENTICATED_USERS = "allAuthenticatedUsers";
 
     /**
      * Creates a user entity.
@@ -289,19 +237,6 @@ public final class Acl implements Serializable {
       return getValue();
     }
 
-    @Override
-    String toPb() {
-      switch (getValue()) {
-        case ALL_AUTHENTICATED_USERS:
-          return ALL_AUTHENTICATED_USERS;
-        case ALL_USERS:
-          return ALL_USERS;
-        default:
-          break;
-      }
-      return super.toPb();
-    }
-
     public static User ofAllUsers() {
       return new User(ALL_USERS);
     }
@@ -314,28 +249,22 @@ public final class Acl implements Serializable {
   /** Class for ACL Project entities. */
   public static final class Project extends Entity {
 
-    private static final long serialVersionUID = 7933776866530023027L;
+    private static final long serialVersionUID = -743189540406339074L;
 
     private final ProjectRole projectRole;
     private final String projectId;
 
     public static final class ProjectRole extends StringEnumValue {
-      private static final long serialVersionUID = -8360324311187914382L;
+      private static final long serialVersionUID = 1284991422168016498L;
 
       private ProjectRole(String constant) {
         super(constant);
       }
 
-      private static final ApiFunction<String, ProjectRole> CONSTRUCTOR =
-          new ApiFunction<String, ProjectRole>() {
-            @Override
-            public ProjectRole apply(String constant) {
-              return new ProjectRole(constant);
-            }
-          };
+      private static final ApiFunction<String, ProjectRole> CONSTRUCTOR = ProjectRole::new;
 
       private static final StringEnumType<ProjectRole> type =
-          new StringEnumType(ProjectRole.class, CONSTRUCTOR);
+          new StringEnumType<>(ProjectRole.class, CONSTRUCTOR);
 
       public static final ProjectRole OWNERS = type.createAndRegister("OWNERS");
       public static final ProjectRole EDITORS = type.createAndRegister("EDITORS");
@@ -381,19 +310,35 @@ public final class Acl implements Serializable {
     public String getProjectId() {
       return projectId;
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof Project)) {
+        return false;
+      }
+      if (!super.equals(o)) {
+        return false;
+      }
+      Project project = (Project) o;
+      return Objects.equals(projectRole, project.projectRole)
+          && Objects.equals(projectId, project.projectId);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(super.hashCode(), projectRole, projectId);
+    }
   }
 
   public static final class RawEntity extends Entity {
 
-    private static final long serialVersionUID = 3966205614223053950L;
+    private static final long serialVersionUID = -3049252571732490102L;
 
     RawEntity(String entity) {
       super(Type.UNKNOWN, entity);
-    }
-
-    @Override
-    String toPb() {
-      return getValue();
     }
   }
 
@@ -481,41 +426,5 @@ public final class Acl implements Serializable {
         && Objects.equals(this.role, other.role)
         && Objects.equals(this.etag, other.etag)
         && Objects.equals(this.id, other.id);
-  }
-
-  BucketAccessControl toBucketPb() {
-    BucketAccessControl bucketPb = new BucketAccessControl();
-    bucketPb.setEntity(getEntity().toString());
-    bucketPb.setRole(getRole().toString());
-    bucketPb.setId(getId());
-    bucketPb.setEtag(getEtag());
-    return bucketPb;
-  }
-
-  ObjectAccessControl toObjectPb() {
-    ObjectAccessControl objectPb = new ObjectAccessControl();
-    objectPb.setEntity(getEntity().toPb());
-    objectPb.setRole(getRole().name());
-    objectPb.setId(getId());
-    objectPb.setEtag(getEtag());
-    return objectPb;
-  }
-
-  static Acl fromPb(ObjectAccessControl objectAccessControl) {
-    Role role = Role.valueOf(objectAccessControl.getRole());
-    Entity entity = Entity.fromPb(objectAccessControl.getEntity());
-    return newBuilder(entity, role)
-        .setEtag(objectAccessControl.getEtag())
-        .setId(objectAccessControl.getId())
-        .build();
-  }
-
-  static Acl fromPb(BucketAccessControl bucketAccessControl) {
-    Role role = Role.valueOf(bucketAccessControl.getRole());
-    Entity entity = Entity.fromPb(bucketAccessControl.getEntity());
-    return newBuilder(entity, role)
-        .setEtag(bucketAccessControl.getEtag())
-        .setId(bucketAccessControl.getId())
-        .build();
   }
 }

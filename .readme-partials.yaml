@@ -1,4 +1,4 @@
-custom_content: |
+custom_content: | 
   #### Creating an authorized service object
 
   To make authenticated requests to Google Cloud Storage, you must create a service object with credentials. You can

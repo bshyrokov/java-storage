@@ -16,39 +16,62 @@
 
 package com.google.cloud.storage;
 
+import static com.google.cloud.storage.CrossTransportUtils.fmtMethodName;
+import static com.google.cloud.storage.CrossTransportUtils.throwGrpcOnly;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
+import com.google.api.core.ApiFuture;
+import com.google.api.core.BetaApi;
+import com.google.api.core.InternalApi;
 import com.google.api.core.InternalExtensionOnly;
 import com.google.api.gax.paging.Page;
 import com.google.auth.ServiceAccountSigner;
 import com.google.auth.ServiceAccountSigner.SigningException;
 import com.google.cloud.FieldSelector;
-import com.google.cloud.FieldSelector.Helper;
 import com.google.cloud.Policy;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.Service;
-import com.google.cloud.Tuple;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Acl.Entity;
-import com.google.cloud.storage.Blob.BlobSourceOption;
 import com.google.cloud.storage.HmacKey.HmacKeyMetadata;
 import com.google.cloud.storage.PostPolicyV4.PostConditionsV4;
 import com.google.cloud.storage.PostPolicyV4.PostFieldsV4;
-import com.google.cloud.storage.spi.v1.StorageRpc;
+import com.google.cloud.storage.TransportCompatibility.Transport;
+import com.google.cloud.storage.UnifiedOpts.BucketListOpt;
+import com.google.cloud.storage.UnifiedOpts.BucketSourceOpt;
+import com.google.cloud.storage.UnifiedOpts.BucketTargetOpt;
+import com.google.cloud.storage.UnifiedOpts.HmacKeyListOpt;
+import com.google.cloud.storage.UnifiedOpts.HmacKeySourceOpt;
+import com.google.cloud.storage.UnifiedOpts.HmacKeyTargetOpt;
+import com.google.cloud.storage.UnifiedOpts.NamedField;
+import com.google.cloud.storage.UnifiedOpts.NestedNamedField;
+import com.google.cloud.storage.UnifiedOpts.ObjectListOpt;
+import com.google.cloud.storage.UnifiedOpts.ObjectSourceOpt;
+import com.google.cloud.storage.UnifiedOpts.ObjectTargetOpt;
+import com.google.cloud.storage.UnifiedOpts.Opts;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.io.BaseEncoding;
+import com.google.common.collect.Streams;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Path;
 import java.security.Key;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,6 +79,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * An interface for Google Cloud Storage.
@@ -63,113 +89,320 @@ import java.util.concurrent.TimeUnit;
  * @see <a href="https://cloud.google.com/storage/docs">Google Cloud Storage</a>
  */
 @InternalExtensionOnly
-public interface Storage extends Service<StorageOptions> {
+public interface Storage extends Service<StorageOptions>, AutoCloseable {
 
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   enum PredefinedAcl {
-    AUTHENTICATED_READ("authenticatedRead"),
-    ALL_AUTHENTICATED_USERS("allAuthenticatedUsers"),
-    PRIVATE("private"),
-    PROJECT_PRIVATE("projectPrivate"),
-    PUBLIC_READ("publicRead"),
-    PUBLIC_READ_WRITE("publicReadWrite"),
-    BUCKET_OWNER_READ("bucketOwnerRead"),
-    BUCKET_OWNER_FULL_CONTROL("bucketOwnerFullControl");
+    AUTHENTICATED_READ("authenticatedRead", "authenticated-read"),
+    ALL_AUTHENTICATED_USERS("allAuthenticatedUsers", "all-authenticated-users"),
+    PRIVATE("private", "private"),
+    PROJECT_PRIVATE("projectPrivate", "project-private"),
+    PUBLIC_READ("publicRead", "public-read"),
+    PUBLIC_READ_WRITE("publicReadWrite", "public-read-write"),
+    BUCKET_OWNER_READ("bucketOwnerRead", "bucket-owner-read"),
+    BUCKET_OWNER_FULL_CONTROL("bucketOwnerFullControl", "bucket-owner-full-control");
 
     private final String entry;
+    private final String xmlEntry;
 
-    PredefinedAcl(String entry) {
+    PredefinedAcl(String entry, String xmlEntry) {
       this.entry = entry;
+      this.xmlEntry = xmlEntry;
     }
 
     String getEntry() {
       return entry;
     }
+
+    String getXmlEntry() {
+      return xmlEntry;
+    }
   }
 
-  enum BucketField implements FieldSelector {
-    ID("id"),
-    SELF_LINK("selfLink"),
-    NAME("name"),
-    TIME_CREATED("timeCreated"),
-    METAGENERATION("metageneration"),
-    ACL("acl"),
-    DEFAULT_OBJECT_ACL("defaultObjectAcl"),
-    OWNER("owner"),
-    LABELS("labels"),
-    LOCATION("location"),
-    LOCATION_TYPE("locationType"),
-    WEBSITE("website"),
-    VERSIONING("versioning"),
-    CORS("cors"),
-    LIFECYCLE("lifecycle"),
-    STORAGE_CLASS("storageClass"),
-    ETAG("etag"),
-    ENCRYPTION("encryption"),
-    BILLING("billing"),
-    DEFAULT_EVENT_BASED_HOLD("defaultEventBasedHold"),
-    RETENTION_POLICY("retentionPolicy"),
-    IAMCONFIGURATION("iamConfiguration"),
-    LOGGING("logging"),
-    UPDATED("updated");
+  enum BucketField implements FieldSelector, NamedField {
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    ID("id", "bucket_id", String.class),
+    @TransportCompatibility(Transport.HTTP)
+    SELF_LINK("selfLink", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    NAME("name", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    TIME_CREATED("timeCreated", "create_time", com.google.api.client.util.DateTime.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    METAGENERATION("metageneration", Long.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    ACL("acl", ArrayList.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    DEFAULT_OBJECT_ACL("defaultObjectAcl", "default_object_acl", ArrayList.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    OWNER("owner", com.google.api.services.storage.model.Bucket.Owner.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    LABELS("labels", HashMap.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    LOCATION("location", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    LOCATION_TYPE("locationType", "location_type", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    WEBSITE("website", com.google.api.services.storage.model.Bucket.Website.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    VERSIONING("versioning", com.google.api.services.storage.model.Bucket.Versioning.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CORS("cors", ArrayList.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    LIFECYCLE("lifecycle", com.google.api.services.storage.model.Bucket.Lifecycle.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    STORAGE_CLASS("storageClass", "storage_class", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    ETAG("etag", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    ENCRYPTION("encryption", com.google.api.services.storage.model.Bucket.Encryption.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    BILLING("billing", com.google.api.services.storage.model.Bucket.Billing.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    DEFAULT_EVENT_BASED_HOLD("defaultEventBasedHold", "default_event_based_hold", Boolean.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    RETENTION_POLICY(
+        "retentionPolicy",
+        "retention_policy",
+        com.google.api.services.storage.model.Bucket.RetentionPolicy.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    IAMCONFIGURATION(
+        "iamConfiguration",
+        "iam_config",
+        com.google.api.services.storage.model.Bucket.IamConfiguration.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    LOGGING("logging", com.google.api.services.storage.model.Bucket.Logging.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    UPDATED("updated", "update_time", com.google.api.client.util.DateTime.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    RPO("rpo", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CUSTOM_PLACEMENT_CONFIG(
+        "customPlacementConfig",
+        "custom_placement_config",
+        com.google.api.services.storage.model.Bucket.CustomPlacementConfig.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    AUTOCLASS("autoclass", com.google.api.services.storage.model.Bucket.Autoclass.class),
 
-    static final List<? extends FieldSelector> REQUIRED_FIELDS = ImmutableList.of(NAME);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    HIERARCHICAL_NAMESPACE(
+        "hierarchicalNamespace",
+        "hierarchical_namespace",
+        com.google.api.services.storage.model.Bucket.HierarchicalNamespace.class),
+    @TransportCompatibility({Transport.HTTP})
+    OBJECT_RETENTION(
+        "objectRetention", com.google.api.services.storage.model.Bucket.ObjectRetention.class),
+
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    SOFT_DELETE_POLICY(
+        "softDeletePolicy",
+        "soft_delete_policy",
+        com.google.api.services.storage.model.Bucket.SoftDeletePolicy.class),
+
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    PROJECT("projectNumber", "project", BigInteger.class),
+    /**
+     * @since 2.54.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    IP_FILTER("ipFilter", "ip_filter", com.google.api.services.storage.model.Bucket.IpFilter.class),
+    ;
+
+    static final List<BucketField> REQUIRED_FIELDS = ImmutableList.of(NAME);
+    private static final Map<String, BucketField> JSON_FIELD_NAME_INDEX;
+
+    static {
+      ImmutableMap.Builder<String, BucketField> tmp = ImmutableMap.builder();
+      for (BucketField field : values()) {
+        tmp.put(field.selector, field);
+      }
+      JSON_FIELD_NAME_INDEX = Utils.mapBuild(tmp);
+    }
 
     private final String selector;
+    private final String grpcFieldName;
+    private final Class<?> jsonClass;
 
-    BucketField(String selector) {
+    BucketField(String selector, Class<?> jsonClass) {
+      this(selector, selector, jsonClass);
+    }
+
+    BucketField(String selector, String grpcFieldName, Class<?> jsonClass) {
       this.selector = selector;
+      this.grpcFieldName = grpcFieldName;
+      this.jsonClass = jsonClass;
     }
 
     @Override
     public String getSelector() {
       return selector;
     }
+
+    @Override
+    public String getApiaryName() {
+      return selector;
+    }
+
+    @Override
+    public String getGrpcName() {
+      return grpcFieldName;
+    }
+
+    Class<?> getJsonClass() {
+      return jsonClass;
+    }
+
+    @Nullable
+    static BucketField lookup(NamedField nf) {
+      NamedField lookup = nf;
+      if (nf instanceof NestedNamedField) {
+        NestedNamedField nested = (NestedNamedField) nf;
+        lookup = nested.getParent();
+      }
+      return JSON_FIELD_NAME_INDEX.get(lookup.getApiaryName());
+    }
   }
 
-  enum BlobField implements FieldSelector {
-    ACL("acl"),
-    BUCKET("bucket"),
-    CACHE_CONTROL("cacheControl"),
-    COMPONENT_COUNT("componentCount"),
-    CONTENT_DISPOSITION("contentDisposition"),
-    CONTENT_ENCODING("contentEncoding"),
-    CONTENT_LANGUAGE("contentLanguage"),
-    CONTENT_TYPE("contentType"),
-    CRC32C("crc32c"),
-    ETAG("etag"),
-    GENERATION("generation"),
-    ID("id"),
-    KIND("kind"),
-    MD5HASH("md5Hash"),
-    MEDIA_LINK("mediaLink"),
-    METADATA("metadata"),
-    METAGENERATION("metageneration"),
-    NAME("name"),
-    OWNER("owner"),
-    SELF_LINK("selfLink"),
-    SIZE("size"),
-    STORAGE_CLASS("storageClass"),
-    TIME_DELETED("timeDeleted"),
-    TIME_CREATED("timeCreated"),
-    KMS_KEY_NAME("kmsKeyName"),
-    EVENT_BASED_HOLD("eventBasedHold"),
-    TEMPORARY_HOLD("temporaryHold"),
-    RETENTION_EXPIRATION_TIME("retentionExpirationTime"),
-    UPDATED("updated"),
-    CUSTOM_TIME("customTime"),
-    TIME_STORAGE_CLASS_UPDATED("timeStorageClassUpdated");
+  enum BlobField implements FieldSelector, NamedField {
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    ACL("acl", com.google.api.services.storage.model.ObjectAccessControl.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    BUCKET("bucket", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CACHE_CONTROL("cacheControl", "cache_control", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    COMPONENT_COUNT("componentCount", "component_count", Integer.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CONTENT_DISPOSITION("contentDisposition", "content_disposition", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CONTENT_ENCODING("contentEncoding", "content_encoding", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CONTENT_LANGUAGE("contentLanguage", "content_language", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CONTENT_TYPE("contentType", "content_type", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CRC32C("crc32c", "checksums.crc32c", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    ETAG("etag", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    GENERATION("generation", Long.class),
+    @TransportCompatibility(Transport.HTTP)
+    ID("id", String.class),
+    /** {@code kind} is not exposed in {@link BlobInfo} or {@link Blob} no need to select it */
+    @Deprecated
+    @TransportCompatibility(Transport.HTTP)
+    KIND("kind", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    MD5HASH("md5Hash", "checksums.md5_hash", String.class),
+    @TransportCompatibility(Transport.HTTP)
+    MEDIA_LINK("mediaLink", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    METADATA("metadata", HashMap.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    METAGENERATION("metageneration", Long.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    NAME("name", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    OWNER("owner", com.google.api.services.storage.model.StorageObject.Owner.class),
+    @TransportCompatibility(Transport.HTTP)
+    SELF_LINK("selfLink", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    SIZE("size", java.math.BigInteger.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    STORAGE_CLASS("storageClass", "storage_class", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    TIME_DELETED("timeDeleted", "delete_time", com.google.api.client.util.DateTime.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    TIME_CREATED("timeCreated", "create_time", com.google.api.client.util.DateTime.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    KMS_KEY_NAME("kmsKeyName", "kms_key", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    EVENT_BASED_HOLD("eventBasedHold", "event_based_hold", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    TEMPORARY_HOLD("temporaryHold", "temporary_hold", String.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    RETENTION_EXPIRATION_TIME(
+        "retentionExpirationTime",
+        "retention_expire_time",
+        com.google.api.client.util.DateTime.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    UPDATED("updated", "update_time", com.google.api.client.util.DateTime.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CUSTOM_TIME("customTime", "custom_time", com.google.api.client.util.DateTime.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    TIME_STORAGE_CLASS_UPDATED(
+        "timeStorageClassUpdated",
+        "update_storage_class_time",
+        com.google.api.client.util.DateTime.class),
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    CUSTOMER_ENCRYPTION("customerEncryption", "customer_encryption", String.class),
+    @TransportCompatibility({Transport.HTTP})
+    RETENTION("retention", com.google.api.services.storage.model.StorageObject.Retention.class),
 
-    static final List<? extends FieldSelector> REQUIRED_FIELDS = ImmutableList.of(BUCKET, NAME);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    SOFT_DELETE_TIME(
+        "softDeleteTime", "soft_delete_time", com.google.api.client.util.DateTime.class),
+
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    HARD_DELETE_TIME(
+        "hardDeleteTime", "hard_delete_time", com.google.api.client.util.DateTime.class),
+
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    OBJECT_CONTEXTS(
+        "contexts", "contexts", com.google.api.services.storage.model.StorageObject.Contexts.class);
+
+    static final List<NamedField> REQUIRED_FIELDS = ImmutableList.of(BUCKET, NAME);
+    private static final Map<String, BlobField> JSON_FIELD_NAME_INDEX;
+
+    static {
+      ImmutableMap.Builder<String, BlobField> tmp = ImmutableMap.builder();
+      for (BlobField field : values()) {
+        tmp.put(field.selector, field);
+      }
+      JSON_FIELD_NAME_INDEX = Utils.mapBuild(tmp);
+    }
 
     private final String selector;
+    private final String grpcFieldName;
+    private final Class<?> jsonClass;
 
-    BlobField(String selector) {
+    BlobField(String selector, Class<?> jsonClass) {
+      this(selector, selector, jsonClass);
+    }
+
+    BlobField(String selector, String grpcFieldName, Class<?> jsonClass) {
       this.selector = selector;
+      this.grpcFieldName = grpcFieldName;
+      this.jsonClass = jsonClass;
     }
 
     @Override
     public String getSelector() {
       return selector;
+    }
+
+    @Override
+    public String getApiaryName() {
+      return selector;
+    }
+
+    @Override
+    public String getGrpcName() {
+      return grpcFieldName;
+    }
+
+    Class<?> getJsonClass() {
+      return jsonClass;
+    }
+
+    @Nullable
+    static BlobField lookup(NamedField nf) {
+      NamedField lookup = nf;
+      if (nf instanceof NestedNamedField) {
+        NestedNamedField nested = (NestedNamedField) nf;
+        lookup = nested.getParent();
+      }
+      return JSON_FIELD_NAME_INDEX.get(lookup.getApiaryName());
     }
   }
 
@@ -189,51 +422,61 @@ public interface Storage extends Service<StorageOptions> {
   }
 
   /** Class for specifying bucket target options. */
-  class BucketTargetOption extends Option {
+  class BucketTargetOption extends Option<BucketTargetOpt> {
 
-    private static final long serialVersionUID = -5880204616982900975L;
+    private static final long serialVersionUID = 6699243191830059404L;
 
-    private BucketTargetOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
-    }
-
-    private BucketTargetOption(StorageRpc.Option rpcOption) {
-      this(rpcOption, null);
+    private BucketTargetOption(BucketTargetOpt opt) {
+      super(opt);
     }
 
     /** Returns an option for specifying bucket's predefined ACL configuration. */
-    public static BucketTargetOption predefinedAcl(PredefinedAcl acl) {
-      return new BucketTargetOption(StorageRpc.Option.PREDEFINED_ACL, acl.getEntry());
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketTargetOption predefinedAcl(@NonNull PredefinedAcl acl) {
+      return new BucketTargetOption(UnifiedOpts.predefinedAcl(acl));
     }
 
     /** Returns an option for specifying bucket's default ACL configuration for blobs. */
-    public static BucketTargetOption predefinedDefaultObjectAcl(PredefinedAcl acl) {
-      return new BucketTargetOption(
-          StorageRpc.Option.PREDEFINED_DEFAULT_OBJECT_ACL, acl.getEntry());
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketTargetOption predefinedDefaultObjectAcl(@NonNull PredefinedAcl acl) {
+      return new BucketTargetOption(UnifiedOpts.predefinedDefaultObjectAcl(acl));
+    }
+
+    /**
+     * Returns an option for enabling Object Retention on this bucket. Enabling this will create an
+     * ObjectRetention object in the created bucket (You must use this option, creating your own
+     * ObjectRetention object in the request won't work).
+     */
+    @TransportCompatibility({Transport.HTTP})
+    public static BucketTargetOption enableObjectRetention(boolean enable) {
+      return new BucketTargetOption(UnifiedOpts.enableObjectRetention(enable));
     }
 
     /**
      * Returns an option for bucket's metageneration match. If this option is used the request will
      * fail if metageneration does not match.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketTargetOption metagenerationMatch() {
-      return new BucketTargetOption(StorageRpc.Option.IF_METAGENERATION_MATCH);
+      return new BucketTargetOption(UnifiedOpts.metagenerationMatchExtractor());
     }
 
     /**
      * Returns an option for bucket's metageneration mismatch. If this option is used the request
      * will fail if metageneration matches.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketTargetOption metagenerationNotMatch() {
-      return new BucketTargetOption(StorageRpc.Option.IF_METAGENERATION_NOT_MATCH);
+      return new BucketTargetOption(UnifiedOpts.metagenerationNotMatchExtractor());
     }
 
     /**
      * Returns an option to define the billing user project. This option is required by buckets with
      * `requester_pays` flag enabled to assign operation costs.
      */
-    public static BucketTargetOption userProject(String userProject) {
-      return new BucketTargetOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketTargetOption userProject(@NonNull String userProject) {
+      return new BucketTargetOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
@@ -244,210 +487,824 @@ public interface Storage extends Service<StorageOptions> {
      * @see <a href="https://cloud.google.com/storage/docs/json_api/v1/buckets/patch">Buckets:
      *     patch</a>
      */
-    public static BucketTargetOption projection(String projection) {
-      return new BucketTargetOption(StorageRpc.Option.PROJECTION, projection);
+    @TransportCompatibility({Transport.HTTP})
+    public static BucketTargetOption projection(@NonNull String projection) {
+      return new BucketTargetOption(UnifiedOpts.projection(projection));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketTargetOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BucketTargetOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BucketTargetOption[] dedupe(BucketTargetOption... os) {
+      return Option.dedupe(BucketTargetOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BucketTargetOption[] dedupe(
+        Collection<BucketTargetOption> collection, BucketTargetOption... os) {
+      return Option.dedupe(BucketTargetOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BucketTargetOption[] dedupe(
+        BucketTargetOption[] array, BucketTargetOption... os) {
+      return Option.dedupe(BucketTargetOption[]::new, array, os);
     }
   }
 
   /** Class for specifying bucket source options. */
-  class BucketSourceOption extends Option {
+  class BucketSourceOption extends Option<BucketSourceOpt> {
 
-    private static final long serialVersionUID = 5185657617120212117L;
+    private static final long serialVersionUID = 3808812145390746748L;
 
-    private BucketSourceOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
+    BucketSourceOption(BucketSourceOpt opt) {
+      super(opt);
     }
 
     /**
      * Returns an option for bucket's metageneration match. If this option is used the request will
      * fail if bucket's metageneration does not match the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketSourceOption metagenerationMatch(long metageneration) {
-      return new BucketSourceOption(StorageRpc.Option.IF_METAGENERATION_MATCH, metageneration);
+      return new BucketSourceOption(UnifiedOpts.metagenerationMatch(metageneration));
     }
 
     /**
      * Returns an option for bucket's metageneration mismatch. If this option is used the request
      * will fail if bucket's metageneration matches the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketSourceOption metagenerationNotMatch(long metageneration) {
-      return new BucketSourceOption(StorageRpc.Option.IF_METAGENERATION_NOT_MATCH, metageneration);
+      return new BucketSourceOption(UnifiedOpts.metagenerationNotMatch(metageneration));
     }
 
     /**
      * Returns an option for bucket's billing user project. This option is only used by the buckets
      * with 'requester_pays' flag.
      */
-    public static BucketSourceOption userProject(String userProject) {
-      return new BucketSourceOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketSourceOption userProject(@NonNull String userProject) {
+      return new BucketSourceOption(UnifiedOpts.userProject(userProject));
     }
 
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketSourceOption requestedPolicyVersion(long version) {
-      return new BucketSourceOption(StorageRpc.Option.REQUESTED_POLICY_VERSION, version);
+      return new BucketSourceOption(UnifiedOpts.requestedPolicyVersion(version));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketSourceOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BucketSourceOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BucketSourceOption[] dedupe(BucketSourceOption... os) {
+      return Option.dedupe(BucketSourceOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BucketSourceOption[] dedupe(
+        Collection<BucketSourceOption> collection, BucketSourceOption... os) {
+      return Option.dedupe(BucketSourceOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BucketSourceOption[] dedupe(
+        BucketSourceOption[] array, BucketSourceOption... os) {
+      return Option.dedupe(BucketSourceOption[]::new, array, os);
     }
   }
 
   /** Class for specifying listHmacKeys options */
-  class ListHmacKeysOption extends Option {
-    private ListHmacKeysOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
+  class ListHmacKeysOption extends Option<HmacKeyListOpt> {
+
+    private ListHmacKeysOption(HmacKeyListOpt opt) {
+      super(opt);
     }
 
     /**
      * Returns an option for the Service Account whose keys to list. If this option is not used,
      * keys for all accounts will be listed.
      */
-    public static ListHmacKeysOption serviceAccount(ServiceAccount serviceAccount) {
-      return new ListHmacKeysOption(
-          StorageRpc.Option.SERVICE_ACCOUNT_EMAIL, serviceAccount.getEmail());
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static ListHmacKeysOption serviceAccount(@NonNull ServiceAccount serviceAccount) {
+      return new ListHmacKeysOption(UnifiedOpts.serviceAccount(serviceAccount));
     }
 
     /** Returns an option for the maximum amount of HMAC keys returned per page. */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static ListHmacKeysOption maxResults(long pageSize) {
-      return new ListHmacKeysOption(StorageRpc.Option.MAX_RESULTS, pageSize);
+      return new ListHmacKeysOption(UnifiedOpts.pageSize(pageSize));
     }
 
     /** Returns an option to specify the page token from which to start listing HMAC keys. */
-    public static ListHmacKeysOption pageToken(String pageToken) {
-      return new ListHmacKeysOption(StorageRpc.Option.PAGE_TOKEN, pageToken);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static ListHmacKeysOption pageToken(@NonNull String pageToken) {
+      return new ListHmacKeysOption(UnifiedOpts.pageToken(pageToken));
     }
 
     /**
      * Returns an option to specify whether to show deleted keys in the result. This option is false
      * by default.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static ListHmacKeysOption showDeletedKeys(boolean showDeletedKeys) {
-      return new ListHmacKeysOption(StorageRpc.Option.SHOW_DELETED_KEYS, showDeletedKeys);
+      return new ListHmacKeysOption(UnifiedOpts.showDeletedKeys(showDeletedKeys));
     }
 
     /**
      * Returns an option to specify the project to be billed for this request. Required for
      * Requester Pays buckets.
      */
-    public static ListHmacKeysOption userProject(String userProject) {
-      return new ListHmacKeysOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static ListHmacKeysOption userProject(@NonNull String userProject) {
+      return new ListHmacKeysOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
      * Returns an option to specify the Project ID for this request. If not specified, defaults to
      * Application Default Credentials.
      */
-    public static ListHmacKeysOption projectId(String projectId) {
-      return new ListHmacKeysOption(StorageRpc.Option.PROJECT_ID, projectId);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static ListHmacKeysOption projectId(@NonNull String projectId) {
+      return new ListHmacKeysOption(UnifiedOpts.projectId(projectId));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static ListHmacKeysOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new ListHmacKeysOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static ListHmacKeysOption[] dedupe(ListHmacKeysOption... os) {
+      return Option.dedupe(ListHmacKeysOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static ListHmacKeysOption[] dedupe(
+        Collection<ListHmacKeysOption> collection, ListHmacKeysOption... os) {
+      return Option.dedupe(ListHmacKeysOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static ListHmacKeysOption[] dedupe(
+        ListHmacKeysOption[] array, ListHmacKeysOption... os) {
+      return Option.dedupe(ListHmacKeysOption[]::new, array, os);
     }
   }
 
   /** Class for specifying createHmacKey options */
-  class CreateHmacKeyOption extends Option {
-    private CreateHmacKeyOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
+  class CreateHmacKeyOption extends Option<HmacKeyTargetOpt> {
+
+    private CreateHmacKeyOption(HmacKeyTargetOpt opt) {
+      super(opt);
     }
 
     /**
      * Returns an option to specify the project to be billed for this request. Required for
      * Requester Pays buckets.
      */
-    public static CreateHmacKeyOption userProject(String userProject) {
-      return new CreateHmacKeyOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static CreateHmacKeyOption userProject(@NonNull String userProject) {
+      return new CreateHmacKeyOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
      * Returns an option to specify the Project ID for this request. If not specified, defaults to
      * Application Default Credentials.
      */
-    public static CreateHmacKeyOption projectId(String projectId) {
-      return new CreateHmacKeyOption(StorageRpc.Option.PROJECT_ID, projectId);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static CreateHmacKeyOption projectId(@NonNull String projectId) {
+      return new CreateHmacKeyOption(UnifiedOpts.projectId(projectId));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static CreateHmacKeyOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new CreateHmacKeyOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static CreateHmacKeyOption[] dedupe(CreateHmacKeyOption... os) {
+      return Option.dedupe(CreateHmacKeyOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static CreateHmacKeyOption[] dedupe(
+        Collection<CreateHmacKeyOption> collection, CreateHmacKeyOption... os) {
+      return Option.dedupe(CreateHmacKeyOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static CreateHmacKeyOption[] dedupe(
+        CreateHmacKeyOption[] array, CreateHmacKeyOption... os) {
+      return Option.dedupe(CreateHmacKeyOption[]::new, array, os);
     }
   }
 
   /** Class for specifying getHmacKey options */
-  class GetHmacKeyOption extends Option {
-    private GetHmacKeyOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
+  class GetHmacKeyOption extends Option<HmacKeySourceOpt> {
+
+    private GetHmacKeyOption(HmacKeySourceOpt opt) {
+      super(opt);
     }
 
     /**
      * Returns an option to specify the project to be billed for this request. Required for
      * Requester Pays buckets.
      */
-    public static GetHmacKeyOption userProject(String userProject) {
-      return new GetHmacKeyOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static GetHmacKeyOption userProject(@NonNull String userProject) {
+      return new GetHmacKeyOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
      * Returns an option to specify the Project ID for this request. If not specified, defaults to
      * Application Default Credentials.
      */
-    public static GetHmacKeyOption projectId(String projectId) {
-      return new GetHmacKeyOption(StorageRpc.Option.PROJECT_ID, projectId);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static GetHmacKeyOption projectId(@NonNull String projectId) {
+      return new GetHmacKeyOption(UnifiedOpts.projectId(projectId));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static GetHmacKeyOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new GetHmacKeyOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static GetHmacKeyOption[] dedupe(GetHmacKeyOption... os) {
+      return Option.dedupe(GetHmacKeyOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static GetHmacKeyOption[] dedupe(
+        Collection<GetHmacKeyOption> collection, GetHmacKeyOption... os) {
+      return Option.dedupe(GetHmacKeyOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static GetHmacKeyOption[] dedupe(GetHmacKeyOption[] array, GetHmacKeyOption... os) {
+      return Option.dedupe(GetHmacKeyOption[]::new, array, os);
     }
   }
 
   /** Class for specifying deleteHmacKey options */
-  class DeleteHmacKeyOption extends Option {
-    private DeleteHmacKeyOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
+  class DeleteHmacKeyOption extends Option<HmacKeyTargetOpt> {
+
+    private DeleteHmacKeyOption(HmacKeyTargetOpt opt) {
+      super(opt);
     }
 
     /**
      * Returns an option to specify the project to be billed for this request. Required for
      * Requester Pays buckets.
      */
-    public static DeleteHmacKeyOption userProject(String userProject) {
-      return new DeleteHmacKeyOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static DeleteHmacKeyOption userProject(@NonNull String userProject) {
+      return new DeleteHmacKeyOption(UnifiedOpts.userProject(userProject));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static DeleteHmacKeyOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new DeleteHmacKeyOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static DeleteHmacKeyOption[] dedupe(DeleteHmacKeyOption... os) {
+      return Option.dedupe(DeleteHmacKeyOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static DeleteHmacKeyOption[] dedupe(
+        Collection<DeleteHmacKeyOption> collection, DeleteHmacKeyOption... os) {
+      return Option.dedupe(DeleteHmacKeyOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static DeleteHmacKeyOption[] dedupe(
+        DeleteHmacKeyOption[] array, DeleteHmacKeyOption... os) {
+      return Option.dedupe(DeleteHmacKeyOption[]::new, array, os);
     }
   }
 
   /** Class for specifying updateHmacKey options */
-  class UpdateHmacKeyOption extends Option {
-    private UpdateHmacKeyOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
+  class UpdateHmacKeyOption extends Option<HmacKeyTargetOpt> {
+
+    private UpdateHmacKeyOption(HmacKeyTargetOpt opt) {
+      super(opt);
     }
 
     /**
      * Returns an option to specify the project to be billed for this request. Required for
      * Requester Pays buckets.
      */
-    public static UpdateHmacKeyOption userProject(String userProject) {
-      return new UpdateHmacKeyOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static UpdateHmacKeyOption userProject(@NonNull String userProject) {
+      return new UpdateHmacKeyOption(UnifiedOpts.userProject(userProject));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static UpdateHmacKeyOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new UpdateHmacKeyOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static UpdateHmacKeyOption[] dedupe(UpdateHmacKeyOption... os) {
+      return Option.dedupe(UpdateHmacKeyOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static UpdateHmacKeyOption[] dedupe(
+        Collection<UpdateHmacKeyOption> collection, UpdateHmacKeyOption... os) {
+      return Option.dedupe(UpdateHmacKeyOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static UpdateHmacKeyOption[] dedupe(
+        UpdateHmacKeyOption[] array, UpdateHmacKeyOption... os) {
+      return Option.dedupe(UpdateHmacKeyOption[]::new, array, os);
     }
   }
 
   /** Class for specifying bucket get options. */
-  class BucketGetOption extends Option {
+  class BucketGetOption extends Option<BucketSourceOpt> {
 
-    private static final long serialVersionUID = 1901844869484087395L;
+    private static final long serialVersionUID = -669900932880354035L;
 
-    private BucketGetOption(StorageRpc.Option rpcOption, long metageneration) {
-      super(rpcOption, metageneration);
-    }
-
-    private BucketGetOption(StorageRpc.Option rpcOption, String value) {
-      super(rpcOption, value);
+    BucketGetOption(BucketSourceOpt opt) {
+      super(opt);
     }
 
     /**
      * Returns an option for bucket's metageneration match. If this option is used the request will
      * fail if bucket's metageneration does not match the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketGetOption metagenerationMatch(long metageneration) {
-      return new BucketGetOption(StorageRpc.Option.IF_METAGENERATION_MATCH, metageneration);
+      return new BucketGetOption(UnifiedOpts.metagenerationMatch(metageneration));
     }
 
     /**
      * Returns an option for bucket's metageneration mismatch. If this option is used the request
      * will fail if bucket's metageneration matches the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketGetOption metagenerationNotMatch(long metageneration) {
-      return new BucketGetOption(StorageRpc.Option.IF_METAGENERATION_NOT_MATCH, metageneration);
+      return new BucketGetOption(UnifiedOpts.metagenerationNotMatch(metageneration));
     }
 
     /**
      * Returns an option for bucket's billing user project. This option is only used by the buckets
      * with 'requester_pays' flag.
      */
-    public static BucketGetOption userProject(String userProject) {
-      return new BucketGetOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketGetOption userProject(@NonNull String userProject) {
+      return new BucketGetOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
@@ -456,75 +1313,203 @@ public interface Storage extends Service<StorageOptions> {
      * be used to specify only the fields of interest. Bucket name is always returned, even if not
      * specified.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketGetOption fields(BucketField... fields) {
-      return new BucketGetOption(
-          StorageRpc.Option.FIELDS, Helper.selector(BucketField.REQUIRED_FIELDS, fields));
+      requireNonNull(fields, "fields must be non null");
+      ImmutableSet<NamedField> set =
+          ImmutableSet.<NamedField>builder()
+              .addAll(BucketField.REQUIRED_FIELDS)
+              .add(fields)
+              .build();
+      return new BucketGetOption(UnifiedOpts.fields(set));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketGetOption extraHeaders(@NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BucketGetOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BucketGetOption[] dedupe(BucketGetOption... os) {
+      return Option.dedupe(BucketGetOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BucketGetOption[] dedupe(
+        Collection<BucketGetOption> collection, BucketGetOption... os) {
+      return Option.dedupe(BucketGetOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BucketGetOption[] dedupe(BucketGetOption[] array, BucketGetOption... os) {
+      return Option.dedupe(BucketGetOption[]::new, array, os);
     }
   }
 
   /** Class for specifying blob target options. */
-  class BlobTargetOption extends Option {
+  class BlobTargetOption extends Option<ObjectTargetOpt> {
 
-    private static final long serialVersionUID = 214616862061934846L;
+    private static final long serialVersionUID = -5554842495450599563L;
 
-    private BlobTargetOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
-    }
-
-    private BlobTargetOption(StorageRpc.Option rpcOption) {
-      this(rpcOption, null);
+    BlobTargetOption(ObjectTargetOpt opt) {
+      super(opt);
     }
 
     /** Returns an option for specifying blob's predefined ACL configuration. */
-    public static BlobTargetOption predefinedAcl(PredefinedAcl acl) {
-      return new BlobTargetOption(StorageRpc.Option.PREDEFINED_ACL, acl.getEntry());
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption predefinedAcl(@NonNull PredefinedAcl acl) {
+      return new BlobTargetOption(UnifiedOpts.predefinedAcl(acl));
     }
 
     /**
      * Returns an option that causes an operation to succeed only if the target blob does not exist.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobTargetOption doesNotExist() {
-      return new BlobTargetOption(StorageRpc.Option.IF_GENERATION_MATCH, 0L);
+      return new BlobTargetOption(UnifiedOpts.doesNotExist());
     }
 
     /**
      * Returns an option for blob's data generation match. If this option is used the request will
      * fail if generation does not match.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobTargetOption generationMatch() {
-      return new BlobTargetOption(StorageRpc.Option.IF_GENERATION_MATCH);
+      return new BlobTargetOption(UnifiedOpts.generationMatchExtractor());
+    }
+
+    /**
+     * Returns an option for blob's data generation match. If this option is used the request will
+     * fail if blob's generation does not match the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption generationMatch(long generation) {
+      return new BlobTargetOption(UnifiedOpts.generationMatch(generation));
+    }
+
+    /**
+     * Returns an option for blob's data generation mismatch. If this option is used the request
+     * will fail if generation matches the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption generationNotMatch(long generation) {
+      return new BlobTargetOption(UnifiedOpts.generationNotMatch(generation));
     }
 
     /**
      * Returns an option for blob's data generation mismatch. If this option is used the request
      * will fail if generation matches.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobTargetOption generationNotMatch() {
-      return new BlobTargetOption(StorageRpc.Option.IF_GENERATION_NOT_MATCH);
+      return new BlobTargetOption(UnifiedOpts.generationNotMatchExtractor());
     }
 
     /**
      * Returns an option for blob's metageneration match. If this option is used the request will
      * fail if metageneration does not match.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobTargetOption metagenerationMatch() {
-      return new BlobTargetOption(StorageRpc.Option.IF_METAGENERATION_MATCH);
+      return new BlobTargetOption(UnifiedOpts.metagenerationMatchExtractor());
+    }
+
+    /**
+     * Returns an option for blob's metageneration match. If this option is used the request will
+     * fail if blob's metageneration does not match the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption metagenerationMatch(long metageneration) {
+      return new BlobTargetOption(UnifiedOpts.metagenerationMatch(metageneration));
+    }
+
+    /**
+     * Returns an option for blob's metageneration mismatch. If this option is used the request will
+     * fail if metageneration matches the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption metagenerationNotMatch(long metageneration) {
+      return new BlobTargetOption(UnifiedOpts.metagenerationNotMatch(metageneration));
     }
 
     /**
      * Returns an option for blob's metageneration mismatch. If this option is used the request will
      * fail if metageneration matches.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobTargetOption metagenerationNotMatch() {
-      return new BlobTargetOption(StorageRpc.Option.IF_METAGENERATION_NOT_MATCH);
+      return new BlobTargetOption(UnifiedOpts.metagenerationNotMatchExtractor());
     }
 
     /**
      * Returns an option for blob's data disabledGzipContent. If this option is used, the request
      * will create a blob with disableGzipContent; at present, this is only for upload.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobTargetOption disableGzipContent() {
-      return new BlobTargetOption(StorageRpc.Option.IF_DISABLE_GZIP_CONTENT, true);
+      return new BlobTargetOption(UnifiedOpts.disableGzipContent());
     }
 
     /**
@@ -532,25 +1517,27 @@ public interface Storage extends Service<StorageOptions> {
      * detected from the blob name if not explicitly set. This option is on the client side only, it
      * does not appear in a RPC call.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobTargetOption detectContentType() {
-      return new BlobTargetOption(StorageRpc.Option.DETECT_CONTENT_TYPE, true);
+      return new BlobTargetOption(UnifiedOpts.detectContentType());
     }
 
     /**
      * Returns an option to set a customer-supplied AES256 key for server-side encryption of the
      * blob.
      */
-    public static BlobTargetOption encryptionKey(Key key) {
-      String base64Key = BaseEncoding.base64().encode(key.getEncoded());
-      return new BlobTargetOption(StorageRpc.Option.CUSTOMER_SUPPLIED_KEY, base64Key);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption encryptionKey(@NonNull Key key) {
+      return new BlobTargetOption(UnifiedOpts.encryptionKey(key));
     }
 
     /**
      * Returns an option for blob's billing user project. This option is only used by the buckets
      * with 'requester_pays' flag.
      */
-    public static BlobTargetOption userProject(String userProject) {
-      return new BlobTargetOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption userProject(@NonNull String userProject) {
+      return new BlobTargetOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
@@ -559,160 +1546,235 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @param key the AES256 encoded in base64
      */
-    public static BlobTargetOption encryptionKey(String key) {
-      return new BlobTargetOption(StorageRpc.Option.CUSTOMER_SUPPLIED_KEY, key);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption encryptionKey(@NonNull String key) {
+      return new BlobTargetOption(UnifiedOpts.encryptionKey(key));
     }
 
     /** Returns an option to set a customer-managed key for server-side encryption of the blob. */
-    public static BlobTargetOption kmsKeyName(String kmsKeyName) {
-      return new BlobTargetOption(StorageRpc.Option.KMS_KEY_NAME, kmsKeyName);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption kmsKeyName(@NonNull String kmsKeyName) {
+      return new BlobTargetOption(UnifiedOpts.kmsKeyName(kmsKeyName));
     }
 
-    static Tuple<BlobInfo, BlobTargetOption[]> convert(BlobInfo info, BlobWriteOption... options) {
-      BlobInfo.Builder infoBuilder = info.toBuilder().setCrc32c(null).setMd5(null);
-      List<BlobTargetOption> targetOptions = Lists.newArrayListWithCapacity(options.length);
-      for (BlobWriteOption option : options) {
-        switch (option.option) {
-          case IF_CRC32C_MATCH:
-            infoBuilder.setCrc32c(info.getCrc32c());
-            break;
-          case IF_MD5_MATCH:
-            infoBuilder.setMd5(info.getMd5());
-            break;
-          default:
-            targetOptions.add(option.toTargetOption());
-            break;
-        }
-      }
-      return Tuple.of(
-          infoBuilder.build(), targetOptions.toArray(new BlobTargetOption[targetOptions.size()]));
+    /**
+     * Returns an option for overriding an Unlocked Retention policy. This must be set to true in
+     * order to change a policy from Unlocked to Locked, to set it to null, or to reduce its
+     * retainUntilTime attribute.
+     */
+    @TransportCompatibility({Transport.HTTP})
+    public static BlobTargetOption overrideUnlockedRetention(boolean overrideUnlockedRetention) {
+      return new BlobTargetOption(UnifiedOpts.overrideUnlockedRetention(overrideUnlockedRetention));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobTargetOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BlobTargetOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BlobTargetOption[] dedupe(BlobTargetOption... os) {
+      return Option.dedupe(BlobTargetOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobTargetOption[] dedupe(
+        Collection<BlobTargetOption> collection, BlobTargetOption... os) {
+      return Option.dedupe(BlobTargetOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobTargetOption[] dedupe(BlobTargetOption[] array, BlobTargetOption... os) {
+      return Option.dedupe(BlobTargetOption[]::new, array, os);
     }
   }
 
   /** Class for specifying blob write options. */
-  class BlobWriteOption implements Serializable {
+  class BlobWriteOption extends Option<ObjectTargetOpt> implements Serializable {
 
-    private static final long serialVersionUID = -3880421670966224580L;
+    private static final long serialVersionUID = 5536338021856320475L;
 
-    private final Option option;
-    private final Object value;
-
-    enum Option {
-      PREDEFINED_ACL,
-      IF_GENERATION_MATCH,
-      IF_GENERATION_NOT_MATCH,
-      IF_METAGENERATION_MATCH,
-      IF_METAGENERATION_NOT_MATCH,
-      IF_MD5_MATCH,
-      IF_CRC32C_MATCH,
-      CUSTOMER_SUPPLIED_KEY,
-      KMS_KEY_NAME,
-      USER_PROJECT,
-      DETECT_CONTENT_TYPE,
-      IF_DISABLE_GZIP_CONTENT;
-
-      StorageRpc.Option toRpcOption() {
-        return StorageRpc.Option.valueOf(this.name());
-      }
-    }
-
-    BlobTargetOption toTargetOption() {
-      return new BlobTargetOption(this.option.toRpcOption(), this.value);
-    }
-
-    private BlobWriteOption(Option option, Object value) {
-      this.option = option;
-      this.value = value;
-    }
-
-    private BlobWriteOption(Option option) {
-      this(option, null);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(option, value);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == null) {
-        return false;
-      }
-      if (!(obj instanceof BlobWriteOption)) {
-        return false;
-      }
-      final BlobWriteOption other = (BlobWriteOption) obj;
-      return this.option == other.option && Objects.equals(this.value, other.value);
+    BlobWriteOption(ObjectTargetOpt opt) {
+      super(opt);
     }
 
     /** Returns an option for specifying blob's predefined ACL configuration. */
-    public static BlobWriteOption predefinedAcl(PredefinedAcl acl) {
-      return new BlobWriteOption(Option.PREDEFINED_ACL, acl.getEntry());
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption predefinedAcl(@NonNull PredefinedAcl acl) {
+      return new BlobWriteOption(UnifiedOpts.predefinedAcl(acl));
     }
 
     /**
      * Returns an option that causes an operation to succeed only if the target blob does not exist.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption doesNotExist() {
-      return new BlobWriteOption(Option.IF_GENERATION_MATCH, 0L);
+      return new BlobWriteOption(UnifiedOpts.doesNotExist());
     }
 
     /**
      * Returns an option for blob's data generation match. If this option is used the request will
      * fail if generation does not match.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption generationMatch() {
-      return new BlobWriteOption(Option.IF_GENERATION_MATCH);
+      return new BlobWriteOption(UnifiedOpts.generationMatchExtractor());
+    }
+
+    /**
+     * Returns an option for blob's data generation match. If this option is used the request will
+     * fail if blob's generation does not match the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption generationMatch(long generation) {
+      return new BlobWriteOption(UnifiedOpts.generationMatch(generation));
     }
 
     /**
      * Returns an option for blob's data generation mismatch. If this option is used the request
      * will fail if generation matches.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption generationNotMatch() {
-      return new BlobWriteOption(Option.IF_GENERATION_NOT_MATCH);
+      return new BlobWriteOption(UnifiedOpts.generationNotMatchExtractor());
+    }
+
+    /**
+     * Returns an option for blob's data generation mismatch. If this option is used the request
+     * will fail if blob's generation does not match the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption generationNotMatch(long generation) {
+      return new BlobWriteOption(UnifiedOpts.generationNotMatch(generation));
     }
 
     /**
      * Returns an option for blob's metageneration match. If this option is used the request will
      * fail if metageneration does not match.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption metagenerationMatch() {
-      return new BlobWriteOption(Option.IF_METAGENERATION_MATCH);
+      return new BlobWriteOption(UnifiedOpts.metagenerationMatchExtractor());
+    }
+
+    /**
+     * Returns an option for blob's metageneration match. If this option is used the request will
+     * fail if blob's generation does not match the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption metagenerationMatch(long metageneration) {
+      return new BlobWriteOption(UnifiedOpts.metagenerationMatch(metageneration));
     }
 
     /**
      * Returns an option for blob's metageneration mismatch. If this option is used the request will
      * fail if metageneration matches.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption metagenerationNotMatch() {
-      return new BlobWriteOption(Option.IF_METAGENERATION_NOT_MATCH);
+      return new BlobWriteOption(UnifiedOpts.metagenerationNotMatchExtractor());
+    }
+
+    /**
+     * Returns an option for blob's metageneration mismatch. If this option is used the request will
+     * fail if blob's generation does not match the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption metagenerationNotMatch(long metageneration) {
+      return new BlobWriteOption(UnifiedOpts.metagenerationNotMatch(metageneration));
     }
 
     /**
      * Returns an option for blob's data MD5 hash match. If this option is used the request will
      * fail if blobs' data MD5 hash does not match.
+     *
+     * @deprecated Please compute and use a crc32c checksum instead. {@link #crc32cMatch()}
      */
+    @Deprecated
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption md5Match() {
-      return new BlobWriteOption(Option.IF_MD5_MATCH, true);
+      return new BlobWriteOption(UnifiedOpts.md5MatchExtractor());
     }
 
     /**
      * Returns an option for blob's data CRC32C checksum match. If this option is used the request
      * will fail if blobs' data CRC32C checksum does not match.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption crc32cMatch() {
-      return new BlobWriteOption(Option.IF_CRC32C_MATCH, true);
+      return new BlobWriteOption(UnifiedOpts.crc32cMatchExtractor());
     }
 
     /**
      * Returns an option to set a customer-supplied AES256 key for server-side encryption of the
      * blob.
      */
-    public static BlobWriteOption encryptionKey(Key key) {
-      String base64Key = BaseEncoding.base64().encode(key.getEncoded());
-      return new BlobWriteOption(Option.CUSTOMER_SUPPLIED_KEY, base64Key);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption encryptionKey(@NonNull Key key) {
+      return new BlobWriteOption(UnifiedOpts.encryptionKey(key));
     }
 
     /**
@@ -721,8 +1783,9 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @param key the AES256 encoded in base64
      */
-    public static BlobWriteOption encryptionKey(String key) {
-      return new BlobWriteOption(Option.CUSTOMER_SUPPLIED_KEY, key);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption encryptionKey(@NonNull String key) {
+      return new BlobWriteOption(UnifiedOpts.encryptionKey(key));
     }
 
     /**
@@ -730,43 +1793,150 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @param kmsKeyName the KMS key resource id
      */
-    public static BlobWriteOption kmsKeyName(String kmsKeyName) {
-      return new BlobWriteOption(Option.KMS_KEY_NAME, kmsKeyName);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption kmsKeyName(@NonNull String kmsKeyName) {
+      return new BlobWriteOption(UnifiedOpts.kmsKeyName(kmsKeyName));
     }
 
     /**
      * Returns an option for blob's billing user project. This option is only used by the buckets
      * with 'requester_pays' flag.
      */
-    public static BlobWriteOption userProject(String userProject) {
-      return new BlobWriteOption(Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption userProject(@NonNull String userProject) {
+      return new BlobWriteOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
      * Returns an option that signals automatic gzip compression should not be performed en route to
      * the bucket.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption disableGzipContent() {
-      return new BlobWriteOption(Option.IF_DISABLE_GZIP_CONTENT, true);
+      return new BlobWriteOption(UnifiedOpts.disableGzipContent());
     }
 
     /**
      * Returns an option for detecting content type. If this option is used, the content type is
      * detected from the blob name if not explicitly set. This option is on the client side only, it
      * does not appear in a RPC call.
+     *
+     * <p>Content type detection is based on the database presented by {@link
+     * URLConnection#getFileNameMap()}
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobWriteOption detectContentType() {
-      return new BlobWriteOption(Option.DETECT_CONTENT_TYPE, true);
+      return new BlobWriteOption(UnifiedOpts.detectContentType());
+    }
+
+    /**
+     * Set a precondition on the number of bytes that GCS should expect for a resumable upload. See
+     * the docs for <a
+     * href="https://cloud.google.com/storage/docs/json_api/v1/parameters#xuploadcontentlength">X-Upload-Content-Length</a>
+     * for more detail.
+     *
+     * <p>If the method invoked with this option does not perform a resumable upload, this option
+     * will be ignored.
+     *
+     * @since 2.42.0
+     */
+    @BetaApi
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption expectedObjectSize(long objectContentSize) {
+      return new BlobWriteOption(UnifiedOpts.resumableUploadExpectedObjectSize(objectContentSize));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobWriteOption extraHeaders(@NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BlobWriteOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BlobWriteOption[] dedupe(BlobWriteOption... os) {
+      return Option.dedupe(BlobWriteOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobWriteOption[] dedupe(
+        Collection<BlobWriteOption> collection, BlobWriteOption... os) {
+      return Option.dedupe(BlobWriteOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobWriteOption[] dedupe(BlobWriteOption[] array, BlobWriteOption... os) {
+      return Option.dedupe(BlobWriteOption[]::new, array, os);
     }
   }
 
   /** Class for specifying blob source options. */
-  class BlobSourceOption extends Option {
+  class BlobSourceOption extends Option<ObjectSourceOpt> {
 
-    private static final long serialVersionUID = -3712768261070182991L;
+    private static final long serialVersionUID = -8626355836092280204L;
 
-    private BlobSourceOption(StorageRpc.Option rpcOption, Object value) {
-      super(rpcOption, value);
+    BlobSourceOption(ObjectSourceOpt opt) {
+      super(opt);
     }
 
     /**
@@ -776,16 +1946,18 @@ public interface Storage extends Service<StorageOptions> {
      * a {@link Storage} method and {@link BlobId#getGeneration()} is {@code null} or no {@link
      * BlobId} is provided an exception is thrown.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobSourceOption generationMatch() {
-      return new BlobSourceOption(StorageRpc.Option.IF_GENERATION_MATCH, null);
+      return new BlobSourceOption(UnifiedOpts.generationMatchExtractor());
     }
 
     /**
      * Returns an option for blob's data generation match. If this option is used the request will
      * fail if blob's generation does not match the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobSourceOption generationMatch(long generation) {
-      return new BlobSourceOption(StorageRpc.Option.IF_GENERATION_MATCH, generation);
+      return new BlobSourceOption(UnifiedOpts.generationMatch(generation));
     }
 
     /**
@@ -794,42 +1966,50 @@ public interface Storage extends Service<StorageOptions> {
      * blob's generation is taken from a source {@link BlobId} object. When this option is passed to
      * a {@link Storage} method and {@link BlobId#getGeneration()} is {@code null} or no {@link
      * BlobId} is provided an exception is thrown.
+     *
+     * @deprecated This option is invalid, and can never result in a valid response from the server.
+     *     use {@link #generationNotMatch(long)} instead.
      */
+    @Deprecated
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobSourceOption generationNotMatch() {
-      return new BlobSourceOption(StorageRpc.Option.IF_GENERATION_NOT_MATCH, null);
+      return new BlobSourceOption(UnifiedOpts.generationNotMatchExtractor());
     }
 
     /**
      * Returns an option for blob's data generation mismatch. If this option is used the request
      * will fail if blob's generation matches the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobSourceOption generationNotMatch(long generation) {
-      return new BlobSourceOption(StorageRpc.Option.IF_GENERATION_NOT_MATCH, generation);
+      return new BlobSourceOption(UnifiedOpts.generationNotMatch(generation));
     }
 
     /**
      * Returns an option for blob's metageneration match. If this option is used the request will
      * fail if blob's metageneration does not match the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobSourceOption metagenerationMatch(long metageneration) {
-      return new BlobSourceOption(StorageRpc.Option.IF_METAGENERATION_MATCH, metageneration);
+      return new BlobSourceOption(UnifiedOpts.metagenerationMatch(metageneration));
     }
 
     /**
      * Returns an option for blob's metageneration mismatch. If this option is used the request will
      * fail if blob's metageneration matches the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobSourceOption metagenerationNotMatch(long metageneration) {
-      return new BlobSourceOption(StorageRpc.Option.IF_METAGENERATION_NOT_MATCH, metageneration);
+      return new BlobSourceOption(UnifiedOpts.metagenerationNotMatch(metageneration));
     }
 
     /**
      * Returns an option to set a customer-supplied AES256 key for server-side encryption of the
      * blob.
      */
-    public static BlobSourceOption decryptionKey(Key key) {
-      String base64Key = BaseEncoding.base64().encode(key.getEncoded());
-      return new BlobSourceOption(StorageRpc.Option.CUSTOMER_SUPPLIED_KEY, base64Key);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobSourceOption decryptionKey(@NonNull Key key) {
+      return new BlobSourceOption(UnifiedOpts.decryptionKey(key));
     }
 
     /**
@@ -838,16 +2018,18 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @param key the AES256 encoded in base64
      */
-    public static BlobSourceOption decryptionKey(String key) {
-      return new BlobSourceOption(StorageRpc.Option.CUSTOMER_SUPPLIED_KEY, key);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobSourceOption decryptionKey(@NonNull String key) {
+      return new BlobSourceOption(UnifiedOpts.decryptionKey(key));
     }
 
     /**
      * Returns an option for blob's billing user project. This option is only used by the buckets
      * with 'requester_pays' flag.
      */
-    public static BlobSourceOption userProject(String userProject) {
-      return new BlobSourceOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobSourceOption userProject(@NonNull String userProject) {
+      return new BlobSourceOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
@@ -855,27 +2037,103 @@ public interface Storage extends Service<StorageOptions> {
      * automatically decompressing the content. By default, this is false for Blob.downloadTo(), but
      * true for ReadChannel.read().
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobSourceOption shouldReturnRawInputStream(boolean shouldReturnRawInputStream) {
-      return new BlobSourceOption(
-          StorageRpc.Option.RETURN_RAW_INPUT_STREAM, shouldReturnRawInputStream);
+      return new BlobSourceOption(UnifiedOpts.returnRawInputStream(shouldReturnRawInputStream));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobSourceOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BlobSourceOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BlobSourceOption[] dedupe(BlobSourceOption... os) {
+      return Option.dedupe(BlobSourceOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobSourceOption[] dedupe(
+        Collection<BlobSourceOption> collection, BlobSourceOption... os) {
+      return Option.dedupe(BlobSourceOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobSourceOption[] dedupe(BlobSourceOption[] array, BlobSourceOption... os) {
+      return Option.dedupe(BlobSourceOption[]::new, array, os);
     }
   }
 
   /** Class for specifying blob get options. */
-  class BlobGetOption extends Option {
+  class BlobGetOption extends Option<ObjectSourceOpt> {
 
-    private static final long serialVersionUID = 803817709703661480L;
+    private static final long serialVersionUID = -2857961421224394114L;
 
-    private BlobGetOption(StorageRpc.Option rpcOption, Long value) {
-      super(rpcOption, value);
-    }
-
-    private BlobGetOption(StorageRpc.Option rpcOption, String value) {
-      super(rpcOption, value);
-    }
-
-    private BlobGetOption(StorageRpc.Option rpcOption, boolean value) {
-      super(rpcOption, value);
+    BlobGetOption(ObjectSourceOpt opt) {
+      super(opt);
     }
 
     /**
@@ -885,16 +2143,18 @@ public interface Storage extends Service<StorageOptions> {
      * a {@link Storage} method and {@link BlobId#getGeneration()} is {@code null} or no {@link
      * BlobId} is provided an exception is thrown.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobGetOption generationMatch() {
-      return new BlobGetOption(StorageRpc.Option.IF_GENERATION_MATCH, (Long) null);
+      return new BlobGetOption(UnifiedOpts.generationMatchExtractor());
     }
 
     /**
      * Returns an option for blob's data generation match. If this option is used the request will
      * fail if blob's generation does not match the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobGetOption generationMatch(long generation) {
-      return new BlobGetOption(StorageRpc.Option.IF_GENERATION_MATCH, generation);
+      return new BlobGetOption(UnifiedOpts.generationMatch(generation));
     }
 
     /**
@@ -903,33 +2163,41 @@ public interface Storage extends Service<StorageOptions> {
      * blob's generation is taken from a source {@link BlobId} object. When this option is passed to
      * a {@link Storage} method and {@link BlobId#getGeneration()} is {@code null} or no {@link
      * BlobId} is provided an exception is thrown.
+     *
+     * @deprecated This option is invalid, and can never result in a valid response from the server.
+     *     use {@link #generationNotMatch(long)} instead.
      */
+    @Deprecated
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobGetOption generationNotMatch() {
-      return new BlobGetOption(StorageRpc.Option.IF_GENERATION_NOT_MATCH, (Long) null);
+      return new BlobGetOption(UnifiedOpts.generationNotMatchExtractor());
     }
 
     /**
      * Returns an option for blob's data generation mismatch. If this option is used the request
      * will fail if blob's generation matches the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobGetOption generationNotMatch(long generation) {
-      return new BlobGetOption(StorageRpc.Option.IF_GENERATION_NOT_MATCH, generation);
+      return new BlobGetOption(UnifiedOpts.generationNotMatch(generation));
     }
 
     /**
      * Returns an option for blob's metageneration match. If this option is used the request will
      * fail if blob's metageneration does not match the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobGetOption metagenerationMatch(long metageneration) {
-      return new BlobGetOption(StorageRpc.Option.IF_METAGENERATION_MATCH, metageneration);
+      return new BlobGetOption(UnifiedOpts.metagenerationMatch(metageneration));
     }
 
     /**
      * Returns an option for blob's metageneration mismatch. If this option is used the request will
      * fail if blob's metageneration matches the provided value.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobGetOption metagenerationNotMatch(long metageneration) {
-      return new BlobGetOption(StorageRpc.Option.IF_METAGENERATION_NOT_MATCH, metageneration);
+      return new BlobGetOption(UnifiedOpts.metagenerationNotMatch(metageneration));
     }
 
     /**
@@ -938,26 +2206,30 @@ public interface Storage extends Service<StorageOptions> {
      * specify only the fields of interest. Blob name and bucket are always returned, even if not
      * specified.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobGetOption fields(BlobField... fields) {
-      return new BlobGetOption(
-          StorageRpc.Option.FIELDS, Helper.selector(BlobField.REQUIRED_FIELDS, fields));
+      requireNonNull(fields, "fields must be non null");
+      ImmutableSet<NamedField> set =
+          ImmutableSet.<NamedField>builder().addAll(BlobField.REQUIRED_FIELDS).add(fields).build();
+      return new BlobGetOption(UnifiedOpts.fields(set));
     }
 
     /**
      * Returns an option for blob's billing user project. This option is only used by the buckets
      * with 'requester_pays' flag.
      */
-    public static BlobGetOption userProject(String userProject) {
-      return new BlobGetOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobGetOption userProject(@NonNull String userProject) {
+      return new BlobGetOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
      * Returns an option to set a customer-supplied AES256 key for server-side decryption of the
      * blob.
      */
-    public static BlobGetOption decryptionKey(Key key) {
-      String base64Key = BaseEncoding.base64().encode(key.getEncoded());
-      return new BlobGetOption(StorageRpc.Option.CUSTOMER_SUPPLIED_KEY, base64Key);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobGetOption decryptionKey(@NonNull Key key) {
+      return new BlobGetOption(UnifiedOpts.decryptionKey(key));
     }
 
     /**
@@ -966,8 +2238,9 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @param key the AES256 encoded in base64
      */
-    public static BlobGetOption decryptionKey(String key) {
-      return new BlobGetOption(StorageRpc.Option.CUSTOMER_SUPPLIED_KEY, key);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobGetOption decryptionKey(@NonNull String key) {
+      return new BlobGetOption(UnifiedOpts.decryptionKey(key));
     }
 
     /**
@@ -975,45 +2248,255 @@ public interface Storage extends Service<StorageOptions> {
      * automatically decompressing the content. By default, this is false for Blob.downloadTo(), but
      * true for ReadChannel.read().
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobGetOption shouldReturnRawInputStream(boolean shouldReturnRawInputStream) {
-      return new BlobGetOption(
-          StorageRpc.Option.RETURN_RAW_INPUT_STREAM, shouldReturnRawInputStream);
+      return new BlobGetOption(UnifiedOpts.returnRawInputStream(shouldReturnRawInputStream));
+    }
+
+    /**
+     * Returns an option for whether the request should return a soft-deleted object. If an object
+     * has been soft-deleted (Deleted while a Soft Delete Policy) is in place, this must be true or
+     * the request will return null.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobGetOption softDeleted(boolean softDeleted) {
+      return new BlobGetOption(UnifiedOpts.softDeleted(softDeleted));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobGetOption extraHeaders(@NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BlobGetOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BlobGetOption[] dedupe(BlobGetOption... os) {
+      return Option.dedupe(BlobGetOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobGetOption[] dedupe(
+        Collection<BlobGetOption> collection, BlobGetOption... os) {
+      return Option.dedupe(BlobGetOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobGetOption[] dedupe(BlobGetOption[] array, BlobGetOption... os) {
+      return Option.dedupe(BlobGetOption[]::new, array, os);
+    }
+  }
+
+  /** Class for specifying blob restore options * */
+  class BlobRestoreOption extends Option<ObjectSourceOpt> {
+
+    private static final long serialVersionUID = 1922118465380110958L;
+
+    BlobRestoreOption(ObjectSourceOpt opt) {
+      super(opt);
+    }
+
+    /**
+     * Returns an option for blob's data generation match. If this option is used the request will
+     * fail if generation does not match.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobRestoreOption generationMatch(long generation) {
+      return new BlobRestoreOption(UnifiedOpts.generationMatch(generation));
+    }
+
+    /**
+     * Returns an option for blob's data generation mismatch. If this option is used the request
+     * will fail if blob's generation matches the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobRestoreOption generationNotMatch(long generation) {
+      return new BlobRestoreOption(UnifiedOpts.generationNotMatch(generation));
+    }
+
+    /**
+     * Returns an option for blob's metageneration match. If this option is used the request will
+     * fail if blob's metageneration does not match the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobRestoreOption metagenerationMatch(long generation) {
+      return new BlobRestoreOption(UnifiedOpts.metagenerationMatch(generation));
+    }
+
+    /**
+     * Returns an option for blob's metageneration mismatch. If this option is used the request will
+     * fail if blob's metageneration matches the provided value.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobRestoreOption metagenerationNotMatch(long generation) {
+      return new BlobRestoreOption(UnifiedOpts.metagenerationNotMatch(generation));
+    }
+
+    /**
+     * Returns an option for whether the restored object should copy the access controls of the
+     * source object.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobRestoreOption copySourceAcl(boolean copySourceAcl) {
+      return new BlobRestoreOption(UnifiedOpts.copySourceAcl(copySourceAcl));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobRestoreOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BlobRestoreOption(UnifiedOpts.extraHeaders(extraHeaders));
     }
   }
 
   /** Class for specifying bucket list options. */
-  class BucketListOption extends Option {
+  class BucketListOption extends Option<BucketListOpt> {
 
-    private static final long serialVersionUID = 8754017079673290353L;
+    private static final long serialVersionUID = 6388807550815607557L;
 
-    private BucketListOption(StorageRpc.Option option, Object value) {
-      super(option, value);
+    private BucketListOption(BucketListOpt opt) {
+      super(opt);
     }
 
     /** Returns an option to specify the maximum number of buckets returned per page. */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketListOption pageSize(long pageSize) {
-      return new BucketListOption(StorageRpc.Option.MAX_RESULTS, pageSize);
+      return new BucketListOption(UnifiedOpts.pageSize(pageSize));
+    }
+
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketListOption returnPartialSuccess(boolean returnPartialSuccess) {
+      return new BucketListOption(UnifiedOpts.returnPartialSuccess(returnPartialSuccess));
     }
 
     /** Returns an option to specify the page token from which to start listing buckets. */
-    public static BucketListOption pageToken(String pageToken) {
-      return new BucketListOption(StorageRpc.Option.PAGE_TOKEN, pageToken);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketListOption pageToken(@NonNull String pageToken) {
+      return new BucketListOption(UnifiedOpts.pageToken(pageToken));
     }
 
     /**
      * Returns an option to set a prefix to filter results to buckets whose names begin with this
      * prefix.
      */
-    public static BucketListOption prefix(String prefix) {
-      return new BucketListOption(StorageRpc.Option.PREFIX, prefix);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketListOption prefix(@NonNull String prefix) {
+      return new BucketListOption(UnifiedOpts.prefix(prefix));
     }
 
     /**
      * Returns an option for bucket's billing user project. This option is only used by the buckets
      * with 'requester_pays' flag.
      */
-    public static BucketListOption userProject(String userProject) {
-      return new BucketListOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketListOption userProject(@NonNull String userProject) {
+      return new BucketListOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
@@ -1022,39 +2505,131 @@ public interface Storage extends Service<StorageOptions> {
      * be used to specify only the fields of interest. Bucket name is always returned, even if not
      * specified.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BucketListOption fields(BucketField... fields) {
-      return new BucketListOption(
-          StorageRpc.Option.FIELDS,
-          Helper.listSelector("items", BucketField.REQUIRED_FIELDS, fields));
+      requireNonNull(fields, "fields must be non null");
+      ImmutableSet<NamedField> set =
+          Streams.concat(
+                  Stream.of(NamedField.literal("nextPageToken")),
+                  Streams.concat(BucketField.REQUIRED_FIELDS.stream(), Arrays.stream(fields))
+                      .map(f -> NamedField.prefixed("items/", f)))
+              .collect(ImmutableSet.toImmutableSet());
+      return new BucketListOption(UnifiedOpts.fields(set));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BucketListOption extraHeaders(
+        @NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BucketListOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BucketListOption[] dedupe(BucketListOption... os) {
+      return Option.dedupe(BucketListOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BucketListOption[] dedupe(
+        Collection<BucketListOption> collection, BucketListOption... os) {
+      return Option.dedupe(BucketListOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BucketListOption[] dedupe(BucketListOption[] array, BucketListOption... os) {
+      return Option.dedupe(BucketListOption[]::new, array, os);
     }
   }
 
   /** Class for specifying blob list options. */
-  class BlobListOption extends Option {
+  class BlobListOption extends Option<ObjectListOpt> {
 
-    private static final String[] TOP_LEVEL_FIELDS = {"prefixes"};
-    private static final long serialVersionUID = 9083383524788661294L;
+    private static final long serialVersionUID = 5216908055423927281L;
 
-    private BlobListOption(StorageRpc.Option option, Object value) {
-      super(option, value);
+    private BlobListOption(ObjectListOpt opt) {
+      super(opt);
     }
 
     /** Returns an option to specify the maximum number of blobs returned per page. */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobListOption pageSize(long pageSize) {
-      return new BlobListOption(StorageRpc.Option.MAX_RESULTS, pageSize);
+      return new BlobListOption(UnifiedOpts.pageSize(pageSize));
     }
 
     /** Returns an option to specify the page token from which to start listing blobs. */
-    public static BlobListOption pageToken(String pageToken) {
-      return new BlobListOption(StorageRpc.Option.PAGE_TOKEN, pageToken);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption pageToken(@NonNull String pageToken) {
+      return new BlobListOption(UnifiedOpts.pageToken(pageToken));
     }
 
     /**
      * Returns an option to set a prefix to filter results to blobs whose names begin with this
      * prefix.
      */
-    public static BlobListOption prefix(String prefix) {
-      return new BlobListOption(StorageRpc.Option.PREFIX, prefix);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption prefix(@NonNull String prefix) {
+      return new BlobListOption(UnifiedOpts.prefix(prefix));
     }
 
     /**
@@ -1067,8 +2642,9 @@ public interface Storage extends Service<StorageOptions> {
      * Blob#getSize()} returns {@code 0} while {@link Blob#isDirectory()} returns {@code true}.
      * Duplicate directory blobs are omitted.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobListOption currentDirectory() {
-      return new BlobListOption(StorageRpc.Option.DELIMITER, true);
+      return new BlobListOption(UnifiedOpts.currentDirectory());
     }
 
     /**
@@ -1077,8 +2653,9 @@ public interface Storage extends Service<StorageOptions> {
      * @param delimiter generally '/' is the one used most often, but you can used other delimiters
      *     as well.
      */
-    public static BlobListOption delimiter(String delimiter) {
-      return new BlobListOption(StorageRpc.Option.DELIMITER, delimiter);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption delimiter(@NonNull String delimiter) {
+      return new BlobListOption(UnifiedOpts.delimiter(delimiter));
     }
 
     /**
@@ -1088,8 +2665,9 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @param startOffset startOffset to filter the results
      */
-    public static BlobListOption startOffset(String startOffset) {
-      return new BlobListOption(StorageRpc.Option.START_OFF_SET, startOffset);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption startOffset(@NonNull String startOffset) {
+      return new BlobListOption(UnifiedOpts.startOffset(startOffset));
     }
 
     /**
@@ -1099,8 +2677,40 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @param endOffset endOffset to filter the results
      */
-    public static BlobListOption endOffset(String endOffset) {
-      return new BlobListOption(StorageRpc.Option.END_OFF_SET, endOffset);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption endOffset(@NonNull String endOffset) {
+      return new BlobListOption(UnifiedOpts.endOffset(endOffset));
+    }
+
+    /**
+     * Returns an option to set a glob pattern to filter results to blobs that match the pattern.
+     *
+     * @see <a href="https://cloud.google.com/storage/docs/json_api/v1/objects/list">List
+     *     Objects</a>
+     */
+    @BetaApi
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption matchGlob(@NonNull String glob) {
+      return new BlobListOption(UnifiedOpts.matchGlob(glob));
+    }
+
+    /**
+     * Returns an option for whether to include all Folders (including empty Folders) in response.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption includeFolders(boolean includeFolders) {
+      return new BlobListOption(UnifiedOpts.includeFoldersAsPrefixes(includeFolders));
+    }
+
+    /**
+     * Returns an option which will cause blobs that end in exactly one instance of `delimiter` will
+     * have their metadata included rather than being synthetic objects.
+     *
+     * @since 2.52.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption includeTrailingDelimiter() {
+      return new BlobListOption(UnifiedOpts.includeTrailingDelimiter());
     }
 
     /**
@@ -1109,8 +2719,9 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @param userProject projectId of the billing user project.
      */
-    public static BlobListOption userProject(String userProject) {
-      return new BlobListOption(StorageRpc.Option.USER_PROJECT, userProject);
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption userProject(@NonNull String userProject) {
+      return new BlobListOption(UnifiedOpts.userProject(userProject));
     }
 
     /**
@@ -1118,8 +2729,9 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @see <a href="https://cloud.google.com/storage/docs/object-versioning">Object Versioning</a>
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobListOption versions(boolean versions) {
-      return new BlobListOption(StorageRpc.Option.VERSIONS, versions);
+      return new BlobListOption(UnifiedOpts.versionsFilter(versions));
     }
 
     /**
@@ -1128,19 +2740,125 @@ public interface Storage extends Service<StorageOptions> {
      * specify only the fields of interest. Blob name and bucket are always returned, even if not
      * specified.
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static BlobListOption fields(BlobField... fields) {
-      return new BlobListOption(
-          StorageRpc.Option.FIELDS,
-          Helper.listSelector(TOP_LEVEL_FIELDS, "items", BlobField.REQUIRED_FIELDS, fields));
+      requireNonNull(fields, "fields must be non null");
+      ImmutableSet<NamedField> set =
+          Streams.concat(
+                  Stream.of(NamedField.literal("nextPageToken"), NamedField.literal("prefixes")),
+                  Streams.concat(BlobField.REQUIRED_FIELDS.stream(), Arrays.stream(fields))
+                      .map(f -> NamedField.prefixed("items/", f)))
+              .collect(ImmutableSet.toImmutableSet());
+      return new BlobListOption(UnifiedOpts.fields(set));
+    }
+
+    /** Returns an option for whether the list result should include soft-deleted objects. */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption softDeleted(boolean softDeleted) {
+      return new BlobListOption(UnifiedOpts.softDeleted(softDeleted));
+    }
+
+    /**
+     * Returns an option to filter list results based on object attributes, such as object contexts.
+     *
+     * @param filter The filter string.
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption filter(String filter) {
+      return new BlobListOption(UnifiedOpts.objectFilter(filter));
+    }
+
+    /**
+     * A set of extra headers to be set for all requests performed within the scope of the operation
+     * this option is passed to (a get, read, resumable upload etc).
+     *
+     * <p>If the same header name is specified across multiple options provided to a method, the
+     * first occurrence will be the value included in the request(s).
+     *
+     * <p>The following headers are not allowed to be specified, and will result in an {@link
+     * IllegalArgumentException}.
+     *
+     * <ol>
+     *   <li>{@code Accept-Encoding}
+     *   <li>{@code Cache-Control}
+     *   <li>{@code Connection}
+     *   <li>{@code Content-ID}
+     *   <li>{@code Content-Length}
+     *   <li>{@code Content-Range}
+     *   <li>{@code Content-Transfer-Encoding}
+     *   <li>{@code Content-Type}
+     *   <li>{@code Date}
+     *   <li>{@code ETag}
+     *   <li>{@code If-Match}
+     *   <li>{@code If-None-Match}
+     *   <li>{@code Keep-Alive}
+     *   <li>{@code Range}
+     *   <li>{@code TE}
+     *   <li>{@code Trailer}
+     *   <li>{@code Transfer-Encoding}
+     *   <li>{@code User-Agent}
+     *   <li>{@code X-Goog-Api-Client}
+     *   <li>{@code X-Goog-Content-Length-Range}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key}
+     *   <li>{@code X-Goog-Copy-Source-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Encryption-Algorithm}
+     *   <li>{@code X-Goog-Encryption-Key}
+     *   <li>{@code X-Goog-Encryption-Key-Sha256}
+     *   <li>{@code X-Goog-Gcs-Idempotency-Token}
+     *   <li>{@code X-Goog-Meta-*}
+     *   <li>{@code X-Goog-User-Project}
+     *   <li>{@code X-HTTP-Method-Override}
+     *   <li>{@code X-Upload-Content-Length}
+     *   <li>{@code X-Upload-Content-Type}
+     * </ol>
+     *
+     * @since 2.49.0
+     */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+    public static BlobListOption extraHeaders(@NonNull ImmutableMap<String, String> extraHeaders) {
+      return new BlobListOption(UnifiedOpts.extraHeaders(extraHeaders));
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter. The value which comes last in {@code
+     * os} will be the value included in the return.
+     */
+    public static BlobListOption[] dedupe(BlobListOption... os) {
+      return Option.dedupe(BlobListOption[]::new, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobListOption[] dedupe(
+        Collection<BlobListOption> collection, BlobListOption... os) {
+      return Option.dedupe(BlobListOption[]::new, collection, os);
+    }
+
+    /**
+     * Deduplicate any options which are the same parameter.
+     *
+     * <p>The value which comes last in {@code collection} and {@code os} will be the value included
+     * in the return. All options from {@code os} will override their counterparts in {@code
+     * collection}.
+     */
+    public static BlobListOption[] dedupe(BlobListOption[] array, BlobListOption... os) {
+      return Option.dedupe(BlobListOption[]::new, array, os);
     }
   }
 
   /** Class for specifying Post Policy V4 options. * */
   class PostPolicyV4Option implements Serializable {
-    private static final long serialVersionUID = 8150867146534084543L;
+    private static final long serialVersionUID = -1592545784993528897L;
     private final PostPolicyV4Option.Option option;
     private final Object value;
 
+    @TransportCompatibility(Transport.HTTP)
     enum Option {
       PATH_STYLE,
       VIRTUAL_HOSTED_STYLE,
@@ -1168,6 +2886,7 @@ public interface Storage extends Service<StorageOptions> {
      * @see <a href="https://cloud.google.com/storage/docs/authentication#service_accounts">Service
      *     Accounts</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static PostPolicyV4Option signWith(ServiceAccountSigner signer) {
       return new PostPolicyV4Option(PostPolicyV4Option.Option.SERVICE_ACCOUNT_CRED, signer);
     }
@@ -1179,6 +2898,7 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @see <a href="https://cloud.google.com/storage/docs/request-endpoints">Request Endpoints</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static PostPolicyV4Option withVirtualHostedStyle() {
       return new PostPolicyV4Option(PostPolicyV4Option.Option.VIRTUAL_HOSTED_STYLE, "");
     }
@@ -1192,6 +2912,7 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @see <a href="https://cloud.google.com/storage/docs/request-endpoints">Request Endpoints</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static PostPolicyV4Option withPathStyle() {
       return new PostPolicyV4Option(PostPolicyV4Option.Option.PATH_STYLE, "");
     }
@@ -1210,6 +2931,7 @@ public interface Storage extends Service<StorageOptions> {
      *     href="https://cloud.google.com/load-balancing/docs/https/adding-backend-buckets-to-load-balancers">
      *     GCLB Redirects</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static PostPolicyV4Option withBucketBoundHostname(String bucketBoundHostname) {
       return withBucketBoundHostname(bucketBoundHostname, Storage.UriScheme.HTTP);
     }
@@ -1228,6 +2950,7 @@ public interface Storage extends Service<StorageOptions> {
      *     href="https://cloud.google.com/load-balancing/docs/https/adding-backend-buckets-to-load-balancers">
      *     GCLB Redirects</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static PostPolicyV4Option withBucketBoundHostname(
         String bucketBoundHostname, Storage.UriScheme uriScheme) {
       return new PostPolicyV4Option(
@@ -1239,11 +2962,12 @@ public interface Storage extends Service<StorageOptions> {
   /** Class for specifying signed URL options. */
   class SignUrlOption implements Serializable {
 
-    private static final long serialVersionUID = 7850569877451099267L;
+    private static final long serialVersionUID = -3165388740755311106L;
 
     private final Option option;
     private final Object value;
 
+    @TransportCompatibility(Transport.HTTP)
     enum Option {
       HTTP_METHOD,
       CONTENT_TYPE,
@@ -1258,6 +2982,7 @@ public interface Storage extends Service<StorageOptions> {
       QUERY_PARAMS
     }
 
+    @TransportCompatibility(Transport.HTTP)
     enum SignatureVersion {
       V2,
       V4
@@ -1280,6 +3005,7 @@ public interface Storage extends Service<StorageOptions> {
      * The HTTP method to be used with the signed URL. If this method is not called, defaults to
      * GET.
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption httpMethod(HttpMethod httpMethod) {
       return new SignUrlOption(Option.HTTP_METHOD, httpMethod);
     }
@@ -1289,6 +3015,7 @@ public interface Storage extends Service<StorageOptions> {
      * URL should include the blob's content-type with their request. If using this URL from a
      * browser, you must include a content type that matches what the browser will send.
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withContentType() {
       return new SignUrlOption(Option.CONTENT_TYPE, true);
     }
@@ -1297,6 +3024,7 @@ public interface Storage extends Service<StorageOptions> {
      * Use it if signature should include the blob's md5. When used, users of the signed URL should
      * include the blob's md5 with their request.
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withMd5() {
       return new SignUrlOption(Option.MD5, true);
     }
@@ -1308,6 +3036,7 @@ public interface Storage extends Service<StorageOptions> {
      * @see <a href="https://cloud.google.com/storage/docs/xml-api/reference-headers">Request
      *     Headers</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withExtHeaders(Map<String, String> extHeaders) {
       return new SignUrlOption(Option.EXT_HEADERS, extHeaders);
     }
@@ -1316,6 +3045,7 @@ public interface Storage extends Service<StorageOptions> {
      * Use if signature version should be V2. This is the default if neither this or {@code
      * withV4Signature()} is called.
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withV2Signature() {
       return new SignUrlOption(Option.SIGNATURE_VERSION, SignatureVersion.V2);
     }
@@ -1325,6 +3055,7 @@ public interface Storage extends Service<StorageOptions> {
      * longer than 7 days. V2 will be the default if neither this or {@code withV2Signature()} is
      * called.
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withV4Signature() {
       return new SignUrlOption(Option.SIGNATURE_VERSION, SignatureVersion.V4);
     }
@@ -1336,6 +3067,7 @@ public interface Storage extends Service<StorageOptions> {
      * @see <a href="https://cloud.google.com/storage/docs/authentication#service_accounts">Service
      *     Accounts</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption signWith(ServiceAccountSigner signer) {
       return new SignUrlOption(Option.SERVICE_ACCOUNT_CRED, signer);
     }
@@ -1347,6 +3079,7 @@ public interface Storage extends Service<StorageOptions> {
      * withVirtualHostedStyle()} method, you should omit the bucket name from the hostname, as it
      * automatically gets prepended to the hostname for virtual hosted-style URLs.
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withHostName(String hostName) {
       return new SignUrlOption(Option.HOST_NAME, hostName);
     }
@@ -1360,6 +3093,7 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @see <a href="https://cloud.google.com/storage/docs/request-endpoints">Request Endpoints</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withVirtualHostedStyle() {
       return new SignUrlOption(Option.VIRTUAL_HOSTED_STYLE, "");
     }
@@ -1373,6 +3107,7 @@ public interface Storage extends Service<StorageOptions> {
      *
      * @see <a href="https://cloud.google.com/storage/docs/request-endpoints">Request Endpoints</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withPathStyle() {
       return new SignUrlOption(Option.PATH_STYLE, "");
     }
@@ -1391,6 +3126,7 @@ public interface Storage extends Service<StorageOptions> {
      *     href="https://cloud.google.com/load-balancing/docs/https/adding-backend-buckets-to-load-balancers">
      *     GCLB Redirects</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withBucketBoundHostname(String bucketBoundHostname) {
       return withBucketBoundHostname(bucketBoundHostname, UriScheme.HTTP);
     }
@@ -1409,6 +3145,7 @@ public interface Storage extends Service<StorageOptions> {
      *     href="https://cloud.google.com/load-balancing/docs/https/adding-backend-buckets-to-load-balancers">
      *     GCLB Redirects</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withBucketBoundHostname(
         String bucketBoundHostname, UriScheme uriScheme) {
       return new SignUrlOption(
@@ -1428,6 +3165,7 @@ public interface Storage extends Service<StorageOptions> {
      * @see <a href="https://cloud.google.com/storage/docs/access-control/signed-urls-v2">V2 Signing
      *     Process</a>
      */
+    @TransportCompatibility(Transport.HTTP)
     public static SignUrlOption withQueryParams(Map<String, String> queryParams) {
       return new SignUrlOption(Option.QUERY_PARAMS, queryParams);
     }
@@ -1439,18 +3177,22 @@ public interface Storage extends Service<StorageOptions> {
    * @see <a href="https://cloud.google.com/storage/docs/composite-objects#_Compose">Compose
    *     Operation</a>
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   class ComposeRequest implements Serializable {
 
-    private static final long serialVersionUID = -7385681353748590911L;
+    private static final long serialVersionUID = 6612204553167273919L;
 
     private final List<SourceBlob> sourceBlobs;
     private final BlobInfo target;
     private final List<BlobTargetOption> targetOptions;
 
+    private transient Opts<ObjectTargetOpt> targetOpts;
+
     /** Class for Compose source blobs. */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static class SourceBlob implements Serializable {
 
-      private static final long serialVersionUID = 4094962795951990439L;
+      private static final long serialVersionUID = -157636474404489874L;
 
       final String name;
       final Long generation;
@@ -1473,11 +3215,13 @@ public interface Storage extends Service<StorageOptions> {
       }
     }
 
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static class Builder {
 
       private final List<SourceBlob> sourceBlobs = new LinkedList<>();
       private final Set<BlobTargetOption> targetOptions = new LinkedHashSet<>();
       private BlobInfo target;
+      private Opts<ObjectTargetOpt> opts = Opts.empty();
 
       /** Add source blobs for compose operation. */
       public Builder addSource(Iterable<String> blobs) {
@@ -1504,6 +3248,11 @@ public interface Storage extends Service<StorageOptions> {
         return this;
       }
 
+      Builder setTargetOpts(Opts<ObjectTargetOpt> opts) {
+        this.opts = opts;
+        return this;
+      }
+
       /** Sets compose operation's target blob options. */
       public Builder setTargetOptions(BlobTargetOption... options) {
         Collections.addAll(targetOptions, options);
@@ -1520,6 +3269,7 @@ public interface Storage extends Service<StorageOptions> {
       public ComposeRequest build() {
         checkArgument(!sourceBlobs.isEmpty());
         checkNotNull(target);
+        checkNotNull(opts);
         return new ComposeRequest(this);
       }
     }
@@ -1527,7 +3277,9 @@ public interface Storage extends Service<StorageOptions> {
     private ComposeRequest(Builder builder) {
       sourceBlobs = ImmutableList.copyOf(builder.sourceBlobs);
       target = builder.target;
+      // keep targetOptions for serialization even though we will read targetOpts
       targetOptions = ImmutableList.copyOf(builder.targetOptions);
+      targetOpts = builder.opts.prepend(Opts.unwrap(targetOptions).resolveFrom(target));
     }
 
     /** Returns compose operation's source blobs. */
@@ -1545,12 +3297,27 @@ public interface Storage extends Service<StorageOptions> {
       return targetOptions;
     }
 
+    @InternalApi
+    Opts<ObjectTargetOpt> getTargetOpts() {
+      return targetOpts;
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+      in.defaultReadObject();
+      if (this.targetOptions != null) {
+        this.targetOpts = Opts.unwrap(this.targetOptions);
+      } else {
+        this.targetOpts = Opts.empty();
+      }
+    }
+
     /**
      * Creates a {@code ComposeRequest} object.
      *
      * @param sources source blobs names
      * @param target target blob
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static ComposeRequest of(Iterable<String> sources, BlobInfo target) {
       return newBuilder().setTarget(target).addSource(sources).build();
     }
@@ -1562,20 +3329,23 @@ public interface Storage extends Service<StorageOptions> {
      * @param sources source blobs names
      * @param target target blob name
      */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static ComposeRequest of(String bucket, Iterable<String> sources, String target) {
       return of(sources, BlobInfo.newBuilder(BlobId.of(bucket, target)).build());
     }
 
     /** Returns a {@code ComposeRequest} builder. */
+    @TransportCompatibility({Transport.HTTP, Transport.GRPC})
     public static Builder newBuilder() {
       return new Builder();
     }
   }
 
   /** A class to contain all information needed for a Google Cloud Storage Copy operation. */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   class CopyRequest implements Serializable {
 
-    private static final long serialVersionUID = -4498650529476219937L;
+    private static final long serialVersionUID = 5670794463350011330L;
 
     private final BlobId source;
     private final List<BlobSourceOption> sourceOptions;
@@ -1852,6 +3622,150 @@ public interface Storage extends Service<StorageOptions> {
   }
 
   /**
+   * A class to contain all information needed for a Google Cloud Storage Object Move.
+   *
+   * @since 2.48.0
+   * @see Storage#moveBlob(MoveBlobRequest)
+   */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+  final class MoveBlobRequest {
+    private final BlobId source;
+    private final BlobId target;
+    private final ImmutableList<BlobSourceOption> sourceOptions;
+    private final ImmutableList<BlobTargetOption> targetOptions;
+
+    MoveBlobRequest(
+        BlobId source,
+        BlobId target,
+        ImmutableList<BlobSourceOption> sourceOptions,
+        ImmutableList<BlobTargetOption> targetOptions) {
+      this.source = source;
+      this.target = target;
+      this.sourceOptions = sourceOptions;
+      this.targetOptions = targetOptions;
+    }
+
+    public BlobId getSource() {
+      return source;
+    }
+
+    public BlobId getTarget() {
+      return target;
+    }
+
+    public List<BlobSourceOption> getSourceOptions() {
+      return sourceOptions;
+    }
+
+    public List<BlobTargetOption> getTargetOptions() {
+      return targetOptions;
+    }
+
+    public Builder toBuilder() {
+      return new Builder(source, target, sourceOptions, targetOptions);
+    }
+
+    public static Builder newBuilder() {
+      return new Builder();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof MoveBlobRequest)) {
+        return false;
+      }
+      MoveBlobRequest that = (MoveBlobRequest) o;
+      return Objects.equals(source, that.source)
+          && Objects.equals(target, that.target)
+          && Objects.equals(sourceOptions, that.sourceOptions)
+          && Objects.equals(targetOptions, that.targetOptions);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(source, target, sourceOptions, targetOptions);
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("source", source)
+          .add("target", target)
+          .add("sourceOptions", sourceOptions)
+          .add("targetOptions", targetOptions)
+          .toString();
+    }
+
+    public static final class Builder {
+
+      private BlobId source;
+      private BlobId target;
+      private ImmutableList<BlobSourceOption> sourceOptions;
+      private ImmutableList<BlobTargetOption> targetOptions;
+
+      private Builder() {
+        this(null, null, ImmutableList.of(), ImmutableList.of());
+      }
+
+      private Builder(
+          BlobId source,
+          BlobId target,
+          ImmutableList<BlobSourceOption> sourceOptions,
+          ImmutableList<BlobTargetOption> targetOptions) {
+        this.source = source;
+        this.target = target;
+        this.sourceOptions = sourceOptions;
+        this.targetOptions = targetOptions;
+      }
+
+      public Builder setSource(BlobId source) {
+        this.source = requireNonNull(source, "source must be non null");
+        return this;
+      }
+
+      public Builder setTarget(BlobId target) {
+        this.target = requireNonNull(target, "target must be non null");
+        return this;
+      }
+
+      public Builder setSourceOptions(Iterable<BlobSourceOption> sourceOptions) {
+        this.sourceOptions =
+            ImmutableList.copyOf(requireNonNull(sourceOptions, "sourceOptions must be non null"));
+        return this;
+      }
+
+      public Builder setTargetOptions(Iterable<BlobTargetOption> targetOptions) {
+        this.targetOptions =
+            ImmutableList.copyOf(requireNonNull(targetOptions, "targetOptions must be non null"));
+        return this;
+      }
+
+      public Builder setSourceOptions(BlobSourceOption... sourceOptions) {
+        this.sourceOptions =
+            ImmutableList.copyOf(requireNonNull(sourceOptions, "sourceOptions must be non null"));
+        return this;
+      }
+
+      public Builder setTargetOptions(BlobTargetOption... targetOptions) {
+        this.targetOptions =
+            ImmutableList.copyOf(requireNonNull(targetOptions, "targetOptions must be non null"));
+        return this;
+      }
+
+      public MoveBlobRequest build() {
+        return new MoveBlobRequest(
+            requireNonNull(source, "source must be non null"),
+            requireNonNull(target, "target must be non null"),
+            sourceOptions,
+            targetOptions);
+      }
+    }
+  }
+
+  /**
    * Creates a new bucket.
    *
    * <p>Accepts an optional userProject {@link BucketTargetOption} option which defines the project
@@ -1879,10 +3793,14 @@ public interface Storage extends Service<StorageOptions> {
    * @return a complete bucket
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Bucket create(BucketInfo bucketInfo, BucketTargetOption... options);
 
   /**
-   * Creates a new blob with no content.
+   * Creates a new blob with no content. Note that all <a
+   * href="https://cloud.google.com/storage/docs/metadata#fixed">non-editable metadata</a>, such as
+   * generation or metageneration, will be ignored even if it's present in the provided BlobInfo
+   * object.
    *
    * <p>Example of creating a blob with no content.
    *
@@ -1897,6 +3815,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return a {@code Blob} with complete information
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob create(BlobInfo blobInfo, BlobTargetOption... options);
 
   /**
@@ -1904,7 +3823,10 @@ public interface Storage extends Service<StorageOptions> {
    * #writer} is recommended as it uses resumable upload. MD5 and CRC32C hashes of {@code content}
    * are computed and used for validating transferred data. Accepts an optional userProject {@link
    * BlobGetOption} option which defines the project id to assign operational costs. The content
-   * type is detected from the blob name if not explicitly set.
+   * type is detected from the blob name if not explicitly set. Note that all <a
+   * href="https://cloud.google.com/storage/docs/metadata#fixed">non-editable metadata</a>, such as
+   * generation or metageneration, will be ignored even if it's present in the provided BlobInfo
+   * object.
    *
    * <p>Example of creating a blob from a byte array:
    *
@@ -1920,6 +3842,7 @@ public interface Storage extends Service<StorageOptions> {
    * @throws StorageException upon failure
    * @see <a href="https://cloud.google.com/storage/docs/hashes-etags">Hashes and ETags</a>
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob create(BlobInfo blobInfo, byte[] content, BlobTargetOption... options);
 
   /**
@@ -1927,7 +3850,10 @@ public interface Storage extends Service<StorageOptions> {
    * {@code content}. For large content, {@link #writer} is recommended as it uses resumable upload.
    * MD5 and CRC32C hashes of {@code content} are computed and used for validating transferred data.
    * Accepts a userProject {@link BlobGetOption} option, which defines the project id to assign
-   * operational costs.
+   * operational costs. Note that all <a
+   * href="https://cloud.google.com/storage/docs/metadata#fixed">non-editable metadata</a>, such as
+   * generation or metageneration, will be ignored even if it's present in the provided BlobInfo
+   * object.
    *
    * <p>Example of creating a blob from a byte array:
    *
@@ -1943,6 +3869,7 @@ public interface Storage extends Service<StorageOptions> {
    * @throws StorageException upon failure
    * @see <a href="https://cloud.google.com/storage/docs/hashes-etags">Hashes and ETags</a>
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob create(
       BlobInfo blobInfo, byte[] content, int offset, int length, BlobTargetOption... options);
 
@@ -1951,7 +3878,10 @@ public interface Storage extends Service<StorageOptions> {
    * #writer} is recommended as it uses resumable upload. By default any MD5 and CRC32C values in
    * the given {@code blobInfo} are ignored unless requested via the {@code
    * BlobWriteOption.md5Match} and {@code BlobWriteOption.crc32cMatch} options. The given input
-   * stream is closed upon success.
+   * stream is closed upon success. Note that all <a
+   * href="https://cloud.google.com/storage/docs/metadata#fixed">non-editable metadata</a>, such as
+   * generation or metageneration, will be ignored even if it's present in the provided BlobInfo
+   * object.
    *
    * <p>This method is marked as {@link Deprecated} because it cannot safely retry, given that it
    * accepts an {@link InputStream} which can only be consumed once.
@@ -1986,13 +3916,16 @@ public interface Storage extends Service<StorageOptions> {
    * @throws StorageException upon failure
    */
   @Deprecated
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob create(BlobInfo blobInfo, InputStream content, BlobWriteOption... options);
 
   /**
    * Uploads {@code path} to the blob using {@link #writer}. By default any MD5 and CRC32C values in
    * the given {@code blobInfo} are ignored unless requested via the {@link
    * BlobWriteOption#md5Match()} and {@link BlobWriteOption#crc32cMatch()} options. Folder upload is
-   * not supported.
+   * not supported. Note that all <a href="https://cloud.google.com/storage/docs/metadata#fixed">
+   * non-editable metadata</a>, such as generation or metageneration, will be ignored even if it's
+   * present in the provided BlobInfo object.
    *
    * <p>Example of uploading a file:
    *
@@ -2012,19 +3945,20 @@ public interface Storage extends Service<StorageOptions> {
    * @throws StorageException on server side error
    * @see #createFrom(BlobInfo, Path, int, BlobWriteOption...)
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob createFrom(BlobInfo blobInfo, Path path, BlobWriteOption... options) throws IOException;
 
   /**
-   * Uploads {@code path} to the blob using {@link #writer} and {@code bufferSize}. By default any
-   * MD5 and CRC32C values in the given {@code blobInfo} are ignored unless requested via the {@link
+   * Uploads {@code path} to the blob using {@code ResumableSession}. By default any MD5 and CRC32C
+   * values in the given {@code blobInfo} are ignored unless requested via the {@link
    * BlobWriteOption#md5Match()} and {@link BlobWriteOption#crc32cMatch()} options. Folder upload is
-   * not supported.
+   * not supported. Note that all <a href="https://cloud.google.com/storage/docs/metadata#fixed">
+   * non-editable metadata</a>, such as generation or metageneration, will be ignored even if it's
+   * present in the provided BlobInfo object.
    *
-   * <p>{@link #createFrom(BlobInfo, Path, BlobWriteOption...)} invokes this method with a buffer
-   * size of 15 MiB. Users can pass alternative values. Larger buffer sizes might improve the upload
-   * performance but require more memory. This can cause an OutOfMemoryError or add significant
-   * garbage collection overhead. Smaller buffer sizes reduce memory consumption, that is noticeable
-   * when uploading many objects in parallel. Buffer sizes less than 256 KiB are treated as 256 KiB.
+   * <p>This method used to preallocate a buffer, but since v2.25.0, it uses a ResumableSession and
+   * no longer needs it. The bufferSize parameter is still present for binary compatibility, but is
+   * now ignored.
    *
    * <p>Example of uploading a humongous file:
    *
@@ -2032,19 +3966,19 @@ public interface Storage extends Service<StorageOptions> {
    * BlobId blobId = BlobId.of(bucketName, blobName);
    * BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType("video/webm").build();
    *
-   * int largeBufferSize = 150 * 1024 * 1024;
    * Path file = Paths.get("humongous.file");
-   * storage.createFrom(blobInfo, file, largeBufferSize);
+   * storage.createFrom(blobInfo, file, 0);
    * }</pre>
    *
    * @param blobInfo blob to create
    * @param path file to upload
-   * @param bufferSize size of the buffer I/O operations
+   * @param bufferSize ignored field, still present for compatibility purposes
    * @param options blob write options
    * @return a {@code Blob} with complete information
    * @throws IOException on I/O error
    * @throws StorageException on server side error
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob createFrom(BlobInfo blobInfo, Path path, int bufferSize, BlobWriteOption... options)
       throws IOException;
 
@@ -2052,6 +3986,9 @@ public interface Storage extends Service<StorageOptions> {
    * Reads bytes from an input stream and uploads those bytes to the blob using {@link #writer}. By
    * default any MD5 and CRC32C values in the given {@code blobInfo} are ignored unless requested
    * via the {@link BlobWriteOption#md5Match()} and {@link BlobWriteOption#crc32cMatch()} options.
+   * Note that all <a href="https://cloud.google.com/storage/docs/metadata#fixed">non-editable
+   * metadata</a>, such as generation or metageneration, will be ignored even if it's present in the
+   * provided BlobInfo object.
    *
    * <p>Example of uploading data with CRC32C checksum:
    *
@@ -2072,6 +4009,7 @@ public interface Storage extends Service<StorageOptions> {
    * @throws StorageException on server side error
    * @see #createFrom(BlobInfo, InputStream, int, BlobWriteOption...)
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob createFrom(BlobInfo blobInfo, InputStream content, BlobWriteOption... options)
       throws IOException;
 
@@ -2079,7 +4017,10 @@ public interface Storage extends Service<StorageOptions> {
    * Reads bytes from an input stream and uploads those bytes to the blob using {@link #writer} and
    * {@code bufferSize}. By default any MD5 and CRC32C values in the given {@code blobInfo} are
    * ignored unless requested via the {@link BlobWriteOption#md5Match()} and {@link
-   * BlobWriteOption#crc32cMatch()} options.
+   * BlobWriteOption#crc32cMatch()} options. Note that all <a
+   * href="https://cloud.google.com/storage/docs/metadata#fixed">non-editable metadata</a>, such as
+   * generation or metageneration, will be ignored even if it's present in the provided BlobInfo
+   * object.
    *
    * <p>{@link #createFrom(BlobInfo, InputStream, BlobWriteOption...)} )} invokes this method with a
    * buffer size of 15 MiB. Users can pass alternative values. Larger buffer sizes might improve the
@@ -2096,6 +4037,7 @@ public interface Storage extends Service<StorageOptions> {
    * @throws IOException on I/O error
    * @throws StorageException on server side error
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob createFrom(
       BlobInfo blobInfo, InputStream content, int bufferSize, BlobWriteOption... options)
       throws IOException;
@@ -2118,6 +4060,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Bucket get(String bucket, BucketGetOption... options);
 
   /**
@@ -2141,6 +4084,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return a {@code Bucket} object of the locked bucket
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Bucket lockRetentionPolicy(BucketInfo bucket, BucketTargetOption... options);
 
   /**
@@ -2162,6 +4106,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob get(String bucket, String blob, BlobGetOption... options);
 
   /**
@@ -2198,6 +4143,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob get(BlobId blob, BlobGetOption... options);
 
   /**
@@ -2214,7 +4160,25 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob get(BlobId blob);
+
+  /**
+   * Restores a soft-deleted object to full object status and returns the object. Note that you must
+   * specify a generation to use this method.
+   *
+   * <p>Example of restoring an object.
+   *
+   * <pre>{@code
+   * String bucketName = "my-unique-bucket";
+   * String blobName = "my-blob-name";
+   * long generation = 42;
+   * BlobId blobId = BlobId.of(bucketName, blobName, gen);
+   * Blob blob = storage.restore(blobId);
+   * }</pre>
+   */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+  Blob restore(BlobId blob, BlobRestoreOption... options);
 
   /**
    * Lists the project's buckets.
@@ -2234,6 +4198,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Page<Bucket> list(BucketListOption... options);
 
   /**
@@ -2256,6 +4221,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Page<Blob> list(String bucket, BlobListOption... options);
 
   /**
@@ -2275,6 +4241,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return the updated bucket
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Bucket update(BucketInfo bucketInfo, BucketTargetOption... options);
 
   /**
@@ -2314,6 +4281,7 @@ public interface Storage extends Service<StorageOptions> {
    * @see <a
    *     href="https://cloud.google.com/storage/docs/json_api/v1/objects/update">https://cloud.google.com/storage/docs/json_api/v1/objects/update</a>
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob update(BlobInfo blobInfo, BlobTargetOption... options);
 
   /**
@@ -2346,6 +4314,7 @@ public interface Storage extends Service<StorageOptions> {
    * @see <a
    *     href="https://cloud.google.com/storage/docs/json_api/v1/objects/update">https://cloud.google.com/storage/docs/json_api/v1/objects/update</a>
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob update(BlobInfo blobInfo);
 
   /**
@@ -2372,6 +4341,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return {@code true} if bucket was deleted, {@code false} if it was not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   boolean delete(String bucket, BucketSourceOption... options);
 
   /**
@@ -2396,6 +4366,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return {@code true} if blob was deleted, {@code false} if it was not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   boolean delete(String bucket, String blob, BlobSourceOption... options);
 
   /**
@@ -2423,6 +4394,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return {@code true} if blob was deleted, {@code false} if it was not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   boolean delete(BlobId blob, BlobSourceOption... options);
 
   /**
@@ -2445,6 +4417,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return {@code true} if blob was deleted, {@code false} if it was not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   boolean delete(BlobId blob);
 
   /**
@@ -2473,6 +4446,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return the composed blob
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Blob compose(ComposeRequest composeRequest);
 
   /**
@@ -2539,6 +4513,7 @@ public interface Storage extends Service<StorageOptions> {
    * @throws StorageException upon failure
    * @see <a href="https://cloud.google.com/storage/docs/json_api/v1/objects/rewrite">Rewrite</a>
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   CopyWriter copy(CopyRequest copyRequest);
 
   /**
@@ -2558,6 +4533,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return the blob's content
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   byte[] readAllBytes(String bucket, String blob, BlobSourceOption... options);
 
   /**
@@ -2587,6 +4563,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return the blob's content
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   byte[] readAllBytes(BlobId blob, BlobSourceOption... options);
 
   /**
@@ -2616,6 +4593,7 @@ public interface Storage extends Service<StorageOptions> {
    * Blob blob = result.get(); // returns get result or throws StorageException
    * }</pre>
    */
+  @TransportCompatibility(Transport.HTTP)
   StorageBatch batch();
 
   /**
@@ -2640,6 +4618,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   ReadChannel reader(String bucket, String blob, BlobSourceOption... options);
 
   /**
@@ -2672,6 +4651,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   ReadChannel reader(BlobId blob, BlobSourceOption... options);
 
   /**
@@ -2691,6 +4671,7 @@ public interface Storage extends Service<StorageOptions> {
    * @param options
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   void downloadTo(BlobId blob, Path path, BlobSourceOption... options);
 
   /**
@@ -2711,6 +4692,7 @@ public interface Storage extends Service<StorageOptions> {
    * @param outputStream
    * @param options
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   void downloadTo(BlobId blob, OutputStream outputStream, BlobSourceOption... options);
 
   /**
@@ -2735,6 +4717,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   WriteChannel writer(BlobInfo blobInfo, BlobWriteOption... options);
 
   /**
@@ -2759,6 +4742,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility(Transport.HTTP)
   WriteChannel writer(URL signedURL);
 
   /**
@@ -2871,6 +4855,7 @@ public interface Storage extends Service<StorageOptions> {
    * @throws SigningException if the attempt to sign the URL failed
    * @see <a href="https://cloud.google.com/storage/docs/access-control#Signed-URLs">Signed-URLs</a>
    */
+  @TransportCompatibility(Transport.HTTP)
   URL signUrl(BlobInfo blobInfo, long duration, TimeUnit unit, SignUrlOption... options);
 
   /**
@@ -2922,6 +4907,7 @@ public interface Storage extends Service<StorageOptions> {
    *     href="https://cloud.google.com/storage/docs/xml-api/post-object#usage_and_examples">POST
    *     Object</a>
    */
+  @TransportCompatibility(Transport.HTTP)
   PostPolicyV4 generateSignedPostPolicyV4(
       BlobInfo blobInfo,
       long duration,
@@ -2935,6 +4921,7 @@ public interface Storage extends Service<StorageOptions> {
    * conditions. See full documentation for {@link #generateSignedPostPolicyV4(BlobInfo, long,
    * TimeUnit, PostPolicyV4.PostFieldsV4, PostPolicyV4.PostConditionsV4, PostPolicyV4Option...)}.
    */
+  @TransportCompatibility(Transport.HTTP)
   PostPolicyV4 generateSignedPostPolicyV4(
       BlobInfo blobInfo,
       long duration,
@@ -2947,6 +4934,7 @@ public interface Storage extends Service<StorageOptions> {
    * See full documentation for {@link #generateSignedPostPolicyV4(BlobInfo, long, TimeUnit,
    * PostPolicyV4.PostFieldsV4, PostPolicyV4.PostConditionsV4, PostPolicyV4Option...)}.
    */
+  @TransportCompatibility(Transport.HTTP)
   PostPolicyV4 generateSignedPostPolicyV4(
       BlobInfo blobInfo,
       long duration,
@@ -2960,6 +4948,7 @@ public interface Storage extends Service<StorageOptions> {
    * #generateSignedPostPolicyV4(BlobInfo, long, TimeUnit, PostPolicyV4.PostFieldsV4,
    * PostPolicyV4.PostConditionsV4, PostPolicyV4Option...)}.
    */
+  @TransportCompatibility(Transport.HTTP)
   PostPolicyV4 generateSignedPostPolicyV4(
       BlobInfo blobInfo, long duration, TimeUnit unit, PostPolicyV4Option... options);
 
@@ -2982,6 +4971,7 @@ public interface Storage extends Service<StorageOptions> {
    *     been denied the corresponding item in the list is {@code null}.
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   List<Blob> get(BlobId... blobIds);
 
   /**
@@ -3004,6 +4994,7 @@ public interface Storage extends Service<StorageOptions> {
    *     been denied the corresponding item in the list is {@code null}.
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   List<Blob> get(Iterable<BlobId> blobIds);
 
   /**
@@ -3030,6 +5021,7 @@ public interface Storage extends Service<StorageOptions> {
    *     been denied the corresponding item in the list is {@code null}.
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   List<Blob> update(BlobInfo... blobInfos);
 
   /**
@@ -3057,6 +5049,7 @@ public interface Storage extends Service<StorageOptions> {
    *     been denied the corresponding item in the list is {@code null}.
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   List<Blob> update(Iterable<BlobInfo> blobInfos);
 
   /**
@@ -3079,6 +5072,7 @@ public interface Storage extends Service<StorageOptions> {
    *     was denied the corresponding item is {@code false}.
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   List<Boolean> delete(BlobId... blobIds);
 
   /**
@@ -3102,6 +5096,7 @@ public interface Storage extends Service<StorageOptions> {
    *     was denied the corresponding item is {@code false}.
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   List<Boolean> delete(Iterable<BlobId> blobIds);
 
   /**
@@ -3125,14 +5120,28 @@ public interface Storage extends Service<StorageOptions> {
    * Acl acl = storage.getAcl(bucketName, new User(userEmail), userProjectOption);
    * }</pre>
    *
+   * <h4>Behavioral Differences between HTTP and gRPC</h4>
+   *
+   * <ol>
+   *   <li>Calling this method for a Bucket which has <a target="_blank"
+   *       href="https://cloud.google.com/storage/docs/uniform-bucket-level-access">Uniform
+   *       bucket-level access</a> enabled exhibits different behavior Depending on which {@link
+   *       Transport} is used. For JSON, an HTTP 400 Bad Request error will be thrown. Whereas for
+   *       gRPC, an empty list will be returned.
+   * </ol>
+   *
    * @param bucket name of the bucket where the getAcl operation takes place
    * @param entity ACL entity to fetch
    * @param options extra parameters to apply to this operation
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl getAcl(String bucket, Entity entity, BucketSourceOption... options);
 
-  /** @see #getAcl(String, Entity, BucketSourceOption...) */
+  /**
+   * @see #getAcl(String, Entity, BucketSourceOption...)
+   */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl getAcl(String bucket, Entity entity);
 
   /**
@@ -3165,9 +5174,13 @@ public interface Storage extends Service<StorageOptions> {
    * @return {@code true} if the ACL was deleted, {@code false} if it was not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   boolean deleteAcl(String bucket, Entity entity, BucketSourceOption... options);
 
-  /** @see #deleteAcl(String, Entity, BucketSourceOption...) */
+  /**
+   * @see #deleteAcl(String, Entity, BucketSourceOption...)
+   */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   boolean deleteAcl(String bucket, Entity entity);
 
   /**
@@ -3193,9 +5206,13 @@ public interface Storage extends Service<StorageOptions> {
    * @param options extra parameters to apply to this operation
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl createAcl(String bucket, Acl acl, BucketSourceOption... options);
 
-  /** @see #createAcl(String, Acl, BucketSourceOption...) */
+  /**
+   * @see #createAcl(String, Acl, BucketSourceOption...)
+   */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl createAcl(String bucket, Acl acl);
 
   /**
@@ -3221,9 +5238,13 @@ public interface Storage extends Service<StorageOptions> {
    * @param options extra parameters to apply to this operation
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl updateAcl(String bucket, Acl acl, BucketSourceOption... options);
 
-  /** @see #updateAcl(String, Acl, BucketSourceOption...) */
+  /**
+   * @see #updateAcl(String, Acl, BucketSourceOption...)
+   */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl updateAcl(String bucket, Acl acl);
 
   /**
@@ -3250,13 +5271,27 @@ public interface Storage extends Service<StorageOptions> {
    * }
    * }</pre>
    *
+   * <h4>Behavioral Differences between HTTP and gRPC</h4>
+   *
+   * <ol>
+   *   <li>Calling this method for a Bucket which has <a target="_blank"
+   *       href="https://cloud.google.com/storage/docs/uniform-bucket-level-access">Uniform
+   *       bucket-level access</a> enabled exhibits different behavior Depending on which {@link
+   *       Transport} is used. For JSON, an HTTP 400 Bad Request error will be thrown. Whereas for
+   *       gRPC, an empty list will be returned.
+   * </ol>
+   *
    * @param bucket the name of the bucket to list ACLs for
    * @param options any number of BucketSourceOptions to apply to this operation
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   List<Acl> listAcls(String bucket, BucketSourceOption... options);
 
-  /** @see #listAcls(String, BucketSourceOption...) */
+  /**
+   * @see #listAcls(String, BucketSourceOption...)
+   */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   List<Acl> listAcls(String bucket);
 
   /**
@@ -3273,8 +5308,19 @@ public interface Storage extends Service<StorageOptions> {
    * Acl acl = storage.getDefaultAcl(bucketName, User.ofAllAuthenticatedUsers());
    * }</pre>
    *
+   * <h4>Behavioral Differences between HTTP and gRPC</h4>
+   *
+   * <ol>
+   *   <li>Calling this method for a Bucket which has <a target="_blank"
+   *       href="https://cloud.google.com/storage/docs/uniform-bucket-level-access">Uniform
+   *       bucket-level access</a> enabled exhibits different behavior Depending on which {@link
+   *       Transport} is used. For JSON, an HTTP 400 Bad Request error will be thrown. Whereas for
+   *       gRPC, an empty list will be returned.
+   * </ol>
+   *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl getDefaultAcl(String bucket, Entity entity);
 
   /**
@@ -3298,6 +5344,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return {@code true} if the ACL was deleted, {@code false} if it was not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   boolean deleteDefaultAcl(String bucket, Entity entity);
 
   /**
@@ -3316,6 +5363,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl createDefaultAcl(String bucket, Acl acl);
 
   /**
@@ -3334,6 +5382,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl updateDefaultAcl(String bucket, Acl acl);
 
   /**
@@ -3352,8 +5401,19 @@ public interface Storage extends Service<StorageOptions> {
    * }
    * }</pre>
    *
+   * <h4>Behavioral Differences between HTTP and gRPC</h4>
+   *
+   * <ol>
+   *   <li>Calling this method for a Bucket which has <a target="_blank"
+   *       href="https://cloud.google.com/storage/docs/uniform-bucket-level-access">Uniform
+   *       bucket-level access</a> enabled exhibits different behavior Depending on which {@link
+   *       Transport} is used. For JSON, an HTTP 400 Bad Request error will be thrown. Whereas for
+   *       gRPC, an empty list will be returned.
+   * </ol>
+   *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   List<Acl> listDefaultAcls(String bucket);
 
   /**
@@ -3382,6 +5442,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl getAcl(BlobId blob, Entity entity);
 
   /**
@@ -3405,6 +5466,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return {@code true} if the ACL was deleted, {@code false} if it was not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   boolean deleteAcl(BlobId blob, Entity entity);
 
   /**
@@ -3432,6 +5494,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl createAcl(BlobId blob, Acl acl);
 
   /**
@@ -3449,6 +5512,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Acl updateAcl(BlobId blob, Acl acl);
 
   /**
@@ -3469,6 +5533,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   List<Acl> listAcls(BlobId blob);
 
   /**
@@ -3488,6 +5553,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   HmacKey createHmacKey(ServiceAccount serviceAccount, CreateHmacKeyOption... options);
 
   /**
@@ -3522,6 +5588,7 @@ public interface Storage extends Service<StorageOptions> {
    * @param options the options to apply to this operation
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   Page<HmacKeyMetadata> listHmacKeys(ListHmacKeysOption... options);
 
   /**
@@ -3538,6 +5605,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   HmacKeyMetadata getHmacKey(String accessId, GetHmacKeyOption... options);
 
   /**
@@ -3557,6 +5625,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   void deleteHmacKey(HmacKeyMetadata hmacKeyMetadata, DeleteHmacKeyOption... options);
 
   /**
@@ -3573,6 +5642,7 @@ public interface Storage extends Service<StorageOptions> {
    *
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   HmacKeyMetadata updateHmacKeyState(
       final HmacKeyMetadata hmacKeyMetadata,
       final HmacKey.HmacKeyState state,
@@ -3597,6 +5667,7 @@ public interface Storage extends Service<StorageOptions> {
    * @param options extra parameters to apply to this operation
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Policy getIamPolicy(String bucket, BucketSourceOption... options);
 
   /**
@@ -3624,6 +5695,7 @@ public interface Storage extends Service<StorageOptions> {
    * @param options extra parameters to apply to this operation
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   Policy setIamPolicy(String bucket, Policy policy, BucketSourceOption... options);
 
   /**
@@ -3648,6 +5720,7 @@ public interface Storage extends Service<StorageOptions> {
    * @param options extra parameters to apply to this operation
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
   List<Boolean> testIamPermissions(
       String bucket, List<String> permissions, BucketSourceOption... options);
 
@@ -3665,6 +5738,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return the service account associated with this project
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   ServiceAccount getServiceAccount(String projectId);
 
   /**
@@ -3688,6 +5762,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return the created notification
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   Notification createNotification(String bucket, NotificationInfo notificationInfo);
 
   /**
@@ -3706,6 +5781,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return the {@code Notification} object with the given id or {@code null} if not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   Notification getNotification(String bucket, String notificationId);
 
   /**
@@ -3722,6 +5798,7 @@ public interface Storage extends Service<StorageOptions> {
    * @return a list of {@link Notification} objects added to the bucket.
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   List<Notification> listNotifications(String bucket);
 
   /**
@@ -3745,5 +5822,169 @@ public interface Storage extends Service<StorageOptions> {
    * @return {@code true} if the notification has been deleted, {@code false} if not found
    * @throws StorageException upon failure
    */
+  @TransportCompatibility({Transport.HTTP})
   boolean deleteNotification(String bucket, String notificationId);
+
+  /**
+   * @throws InterruptedException thrown if interrupted while awaiting termination of underlying
+   *     resources
+   */
+  @Override
+  default void close() throws Exception {}
+
+  /**
+   * Create a new {@link BlobWriteSession} for the specified {@code blobInfo} and {@code options}.
+   *
+   * <p>The returned {@code BlobWriteSession} can be used to write an individual version, a new
+   * session must be created each time you want to create a new version.
+   *
+   * <p>By default, any MD5 value in the provided {@code blobInfo} is ignored unless the option
+   * {@link BlobWriteOption#md5Match()} is included in {@code options}.
+   *
+   * <p>By default, any CRC32c value in the provided {@code blobInfo} is ignored unless the option
+   * {@link BlobWriteOption#crc32cMatch()} is included in {@code options}.
+   *
+   * <h4>Example of creating an object using {@code BlobWriteSession}:</h4>
+   *
+   * <pre>{@code
+   * String bucketName = "my-unique-bucket";
+   * String blobName = "my-blob-name";
+   * BlobId blobId = BlobId.of(bucketName, blobName);
+   * BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+   * ReadableByteChannel readableByteChannel = ...;
+   * BlobWriteSession blobWriteSession = storage.blobWriteSession(blobInfo, BlobWriteOption.doesNotExist());
+   *
+   * // open the channel for writing
+   * try (WritableByteChannel writableByteChannel = blobWriteSession.open()) {
+   *   // copy all bytes
+   *   ByteStreams.copy(readableByteChannel, writableByteChannel);
+   * } catch (IOException e) {
+   *   // handle IOException
+   * }
+   *
+   * // get the resulting object metadata
+   * ApiFuture<BlobInfo> resultFuture = blobWriteSession.getResult();
+   * BlobInfo gen1 = resultFuture.get();
+   * }</pre>
+   *
+   * @param blobInfo blob to create
+   * @param options blob write options
+   * @since 2.26.0 This new api is in preview and is subject to breaking changes.
+   * @see BlobWriteSessionConfig
+   * @see BlobWriteSessionConfigs
+   * @see GrpcStorageOptions.Builder#setBlobWriteSessionConfig(BlobWriteSessionConfig)
+   */
+  @BetaApi
+  @TransportCompatibility({Transport.GRPC, Transport.HTTP})
+  default BlobWriteSession blobWriteSession(BlobInfo blobInfo, BlobWriteOption... options) {
+    return throwGrpcOnly(fmtMethodName("blobWriteSession", BlobInfo.class, BlobWriteOption.class));
+  }
+
+  /**
+   * Atomically move an object from one name to another.
+   *
+   * <p>This new method is an atomic equivalent of the existing {@link Storage#copy(CopyRequest)} +
+   * {@link Storage#delete(BlobId)}, however without the ability to change metadata fields for the
+   * target object.
+   *
+   * @since 2.48.0
+   */
+  @TransportCompatibility({Transport.HTTP, Transport.GRPC})
+  Blob moveBlob(MoveBlobRequest request);
+
+  /**
+   * Asynchronously set up a new {@link BlobReadSession} for the specified {@link BlobId} and {@code
+   * options}.
+   *
+   * <p>The resulting {@code BlobReadSession} can be used to read multiple times from a single
+   * object generation. A new session must be created for each object generation.
+   *
+   * <h4>Example of using {@code BlobReadSession} to read up to 20 bytes from the object:</h4>
+   *
+   * <pre>{@code
+   * ApiFuture<BlobReadSession> futureBlobReadSession = storage.blobReadSession(blobId);
+   *
+   * try (BlobReadSession blobReadSession = futureBlobReadSession.get(10, TimeUnit.SECONDS)) {
+   *
+   *   ByteBuffer buf = ByteBuffer.allocate(30);
+   *   RangeSpec rangeSpec = RangeSpec.of(
+   *     10, // begin
+   *     20  // maxLength
+   *   );
+   *   ReadAsChannel readAsChannelConfig = ReadProjectionConfigs.asChannel()
+   *       .withRangeSpec(rangeSpec);
+   *   try (ScatteringByteChannel channel = blobReadSession.readAs(readAsChannelConfig)) {
+   *     channel.read(buf);
+   *   }
+   *
+   *   buf.flip();
+   *   System.out.printf(
+   *       Locale.US,
+   *       "Read %d bytes from range %s of object %s%n",
+   *       buf.remaining(),
+   *       rangeSpec,
+   *       blobReadSession.getBlobInfo().getBlobId().toGsUtilUriWithGeneration()
+   *   );
+   * }
+   * }</pre>
+   *
+   * @param id the blob to read from
+   * @since 2.51.0 This new api is in preview and is subject to breaking changes.
+   */
+  @BetaApi
+  @TransportCompatibility({Transport.GRPC})
+  default ApiFuture<BlobReadSession> blobReadSession(BlobId id, BlobSourceOption... options) {
+    return throwGrpcOnly(fmtMethodName("blobReadSession", BlobId.class, BlobSourceOption.class));
+  }
+
+  /**
+   * Create a new {@link BlobAppendableUpload} for the specified {@code blobInfo} and {@code
+   * options}.
+   *
+   * <p>The returned {@code BlobWriteSession} can be used to write an individual version, a new
+   * session must be created each time you want to create a new version.
+   *
+   * <p>If your object exists, but is still in an appendable state ensure you provide the generation
+   * of the object in the provided {@code blobInfo} ({@link BlobInfo#getBlobId()
+   * blobInfo.getBlobId()}{@link BlobId#getGeneration() .getGeneration()}) to enable takeover.
+   *
+   * <h4>Example of creating an object using {@code BlobAppendableUpload}:</h4>
+   *
+   * <pre>{@code
+   * String bucketName = "my-unique-bucket";
+   * String blobName = "my-blobInfo-name";
+   * BlobId blobId = BlobId.of(bucketName, blobName);
+   * BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+   * ReadableByteChannel readableByteChannel = ...;
+   *
+   * BlobAppendableUpload uploadSession = storage.blobAppendableUpload(
+   *     blobInfo,
+   *     BlobAppendableUploadConfig.of()
+   * );
+   * try (AppendableUploadWriteableByteChannel channel = uploadSession.open()) {
+   *   // copy all bytes
+   *   ByteStreams.copy(readableByteChannel, channel);
+   *   channel.finalizeAndClose();
+   * } catch (IOException ex) {
+   *   // handle IOException
+   * }
+   *
+   * // get the resulting object metadata
+   * ApiFuture<BlobInfo> resultFuture = uploadSession.getResult();
+   * BlobInfo gen1 = resultFuture.get();
+   * }</pre>
+   *
+   * @param blobInfo blobInfo to create
+   * @param uploadConfig the configuration parameters for the channel
+   * @param options blobInfo write options
+   * @since 2.51.0 This new api is in preview and is subject to breaking changes.
+   * @see StorageOptions#grpc()
+   */
+  @BetaApi
+  @TransportCompatibility({Transport.GRPC})
+  default BlobAppendableUpload blobAppendableUpload(
+      BlobInfo blobInfo, BlobAppendableUploadConfig uploadConfig, BlobWriteOption... options) {
+    return throwGrpcOnly(
+        fmtMethodName("appendableBlobUpload", BlobId.class, BlobWriteOption.class));
+  }
 }

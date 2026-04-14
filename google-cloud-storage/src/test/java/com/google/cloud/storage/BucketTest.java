@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,13 @@ package com.google.cloud.storage;
 
 import static com.google.cloud.storage.Acl.Role.WRITER;
 import static com.google.common.truth.Truth.assertThat;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createStrictMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.api.gax.paging.Page;
 import com.google.cloud.PageImpl;
@@ -40,10 +37,13 @@ import com.google.cloud.storage.BucketInfo.DeleteRule;
 import com.google.cloud.storage.BucketInfo.LifecycleRule;
 import com.google.cloud.storage.BucketInfo.LifecycleRule.LifecycleAction;
 import com.google.cloud.storage.BucketInfo.LifecycleRule.LifecycleCondition;
+import com.google.cloud.storage.Storage.BlobTargetOption;
+import com.google.cloud.storage.Storage.BlobWriteOption;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -53,10 +53,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.crypto.spec.SecretKeySpec;
-import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class BucketTest {
 
@@ -136,31 +135,24 @@ public class BucketTest {
   private static final String BASE64_KEY = "JVzfVl8NLD9FjedFuStegjRfES5ll5zc59CIXw572OA=";
   private static final Key KEY =
       new SecretKeySpec(BaseEncoding.base64().decode(BASE64_KEY), "AES256");
-  private final RetryAlgorithmManager retryAlgorithmManager =
-      StorageOptions.getDefaultInstance().getRetryAlgorithmManager();
+  private final HttpRetryAlgorithmManager retryAlgorithmManager =
+      HttpStorageOptions.getDefaultInstance().getRetryAlgorithmManager();
 
   private Storage storage;
-  private Storage serviceMockReturnsOptions = createMock(Storage.class);
-  private StorageOptions mockOptions = createMock(StorageOptions.class);
+  private Storage serviceMockReturnsOptions = Mockito.mock(Storage.class);
+  private HttpStorageOptions mockOptions = Mockito.mock(HttpStorageOptions.class);
   private Bucket bucket;
   private Bucket expectedBucket;
   private List<Blob> blobResults;
 
   @Before
   public void setUp() {
-    storage = createStrictMock(Storage.class);
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    verify(storage);
+    storage = Mockito.mock(Storage.class);
   }
 
   private void initializeExpectedBucket() {
-    expect(serviceMockReturnsOptions.getOptions()).andReturn(mockOptions).anyTimes();
-    replay(serviceMockReturnsOptions);
-    expect(mockOptions.getRetryAlgorithmManager()).andReturn(retryAlgorithmManager).anyTimes();
-    replay(mockOptions);
+    when(serviceMockReturnsOptions.getOptions()).thenReturn(mockOptions);
+    when(mockOptions.getRetryAlgorithmManager()).thenReturn(retryAlgorithmManager);
     expectedBucket = new Bucket(serviceMockReturnsOptions, new BucketInfo.BuilderImpl(BUCKET_INFO));
     blobResults =
         ImmutableList.of(
@@ -183,22 +175,26 @@ public class BucketTest {
   public void testExists_True() throws Exception {
     initializeExpectedBucket();
     Storage.BucketGetOption[] expectedOptions = {Storage.BucketGetOption.fields()};
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.get(BUCKET_INFO.getName(), expectedOptions)).andReturn(expectedBucket);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(BUCKET_INFO.getName(), expectedOptions)).thenReturn(expectedBucket);
     initializeBucket();
     assertTrue(bucket.exists());
+
+    verify(storage).getOptions();
+    verify(storage).get(BUCKET_INFO.getName(), expectedOptions);
   }
 
   @Test
   public void testExists_False() throws Exception {
     initializeExpectedBucket();
     Storage.BucketGetOption[] expectedOptions = {Storage.BucketGetOption.fields()};
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.get(BUCKET_INFO.getName(), expectedOptions)).andReturn(null);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(BUCKET_INFO.getName(), expectedOptions)).thenReturn(null);
     initializeBucket();
     assertFalse(bucket.exists());
+
+    verify(storage).getOptions();
+    verify(storage).get(BUCKET_INFO.getName(), expectedOptions);
   }
 
   @Test
@@ -207,22 +203,26 @@ public class BucketTest {
     BucketInfo updatedInfo = BUCKET_INFO.toBuilder().setNotFoundPage("p").build();
     Bucket expectedUpdatedBucket =
         new Bucket(serviceMockReturnsOptions, new BucketInfo.BuilderImpl(updatedInfo));
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.get(updatedInfo.getName())).andReturn(expectedUpdatedBucket);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(updatedInfo.getName())).thenReturn(expectedUpdatedBucket);
     initializeBucket();
     Bucket updatedBucket = bucket.reload();
     assertEquals(expectedUpdatedBucket, updatedBucket);
+
+    verify(storage).getOptions();
+    verify(storage).get(updatedInfo.getName());
   }
 
   @Test
   public void testReloadNull() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.get(BUCKET_INFO.getName())).andReturn(null);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(BUCKET_INFO.getName())).thenReturn(null);
     initializeBucket();
     assertNull(bucket.reload());
+
+    verify(storage).getOptions();
+    verify(storage).get(BUCKET_INFO.getName());
   }
 
   @Test
@@ -231,45 +231,50 @@ public class BucketTest {
     BucketInfo updatedInfo = BUCKET_INFO.toBuilder().setNotFoundPage("p").build();
     Bucket expectedUpdatedBucket =
         new Bucket(serviceMockReturnsOptions, new BucketInfo.BuilderImpl(updatedInfo));
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.get(updatedInfo.getName(), Storage.BucketGetOption.metagenerationMatch(42L)))
-        .andReturn(expectedUpdatedBucket);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(updatedInfo.getName(), Storage.BucketGetOption.metagenerationMatch(42L)))
+        .thenReturn(expectedUpdatedBucket);
     initializeBucket();
     Bucket updatedBucket = bucket.reload(Bucket.BucketSourceOption.metagenerationMatch());
     assertEquals(expectedUpdatedBucket, updatedBucket);
+
+    verify(storage).getOptions();
+    verify(storage).get(updatedInfo.getName(), Storage.BucketGetOption.metagenerationMatch(42L));
   }
 
   @Test
   public void testUpdate() throws Exception {
     initializeExpectedBucket();
     Bucket expectedUpdatedBucket = expectedBucket.toBuilder().setNotFoundPage("p").build();
-    expect(storage.getOptions()).andReturn(mockOptions).times(2);
-    expect(storage.update(expectedUpdatedBucket)).andReturn(expectedUpdatedBucket);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.update(expectedUpdatedBucket)).thenReturn(expectedUpdatedBucket);
     initializeBucket();
     Bucket updatedBucket = new Bucket(storage, new BucketInfo.BuilderImpl(expectedUpdatedBucket));
     Bucket actualUpdatedBucket = updatedBucket.update();
     assertEquals(expectedUpdatedBucket, actualUpdatedBucket);
+
+    verify(storage, times(2)).getOptions();
+    verify(storage).update(expectedUpdatedBucket);
   }
 
   @Test
   public void testDelete() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.delete(BUCKET_INFO.getName())).andReturn(true);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.delete(BUCKET_INFO.getName())).thenReturn(true);
     initializeBucket();
     assertTrue(bucket.delete());
+
+    verify(storage).getOptions();
+    verify(storage).delete(BUCKET_INFO.getName());
   }
 
   @Test
   public void testList() throws Exception {
     initializeExpectedBucket();
     PageImpl<Blob> expectedBlobPage = new PageImpl<>(null, "c", blobResults);
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.list(BUCKET_INFO.getName())).andReturn(expectedBlobPage);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.list(BUCKET_INFO.getName())).thenReturn(expectedBlobPage);
     initializeBucket();
     Page<Blob> blobPage = bucket.list();
     Iterator<Blob> blobInfoIterator = blobPage.getValues().iterator();
@@ -280,6 +285,9 @@ public class BucketTest {
     assertFalse(blobInfoIterator.hasNext());
     assertFalse(blobIterator.hasNext());
     assertEquals(expectedBlobPage.getNextPageToken(), blobPage.getNextPageToken());
+
+    verify(storage).getOptions();
+    verify(storage).list(BUCKET_INFO.getName());
   }
 
   @Test
@@ -289,19 +297,21 @@ public class BucketTest {
         new Blob(
             serviceMockReturnsOptions,
             new BlobInfo.BuilderImpl(BlobInfo.newBuilder("b", "n").build()));
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.get(BlobId.of(expectedBucket.getName(), "n"), new Storage.BlobGetOption[0]))
-        .andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.get(BlobId.of(expectedBucket.getName(), "n"), new Storage.BlobGetOption[0]))
+        .thenReturn(expectedBlob);
     initializeBucket();
     Blob blob = bucket.get("n");
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage).get(BlobId.of(expectedBucket.getName(), "n"), new Storage.BlobGetOption[0]);
   }
 
   @Test
   public void testGetAllArray() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
+    when(storage.getOptions()).thenReturn(mockOptions);
     List<BlobId> blobIds =
         Lists.transform(
             blobResults,
@@ -311,16 +321,18 @@ public class BucketTest {
                 return blob.getBlobId();
               }
             });
-    expect(storage.get(blobIds)).andReturn(blobResults);
-    replay(storage);
+    when(storage.get(blobIds)).thenReturn(blobResults);
     initializeBucket();
     assertEquals(blobResults, bucket.get("n1", "n2", "n3"));
+
+    verify(storage).getOptions();
+    verify(storage).get(blobIds);
   }
 
   @Test
   public void testGetAllIterable() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
+    when(storage.getOptions()).thenReturn(mockOptions);
     List<BlobId> blobIds =
         Lists.transform(
             blobResults,
@@ -330,10 +342,12 @@ public class BucketTest {
                 return blob.getBlobId();
               }
             });
-    expect(storage.get(blobIds)).andReturn(blobResults);
-    replay(storage);
+    when(storage.get(blobIds)).thenReturn(blobResults);
     initializeBucket();
     assertEquals(blobResults, bucket.get(ImmutableList.of("n1", "n2", "n3")));
+
+    verify(storage).getOptions();
+    verify(storage).get(blobIds);
   }
 
   @Test
@@ -342,12 +356,14 @@ public class BucketTest {
     BlobInfo info = BlobInfo.newBuilder("b", "n").setContentType(CONTENT_TYPE).build();
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, content)).andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, content)).thenReturn(expectedBlob);
     initializeBucket();
     Blob blob = bucket.create("n", content, CONTENT_TYPE);
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage).create(info, content);
   }
 
   @Test
@@ -356,37 +372,33 @@ public class BucketTest {
     BlobInfo info = BlobInfo.newBuilder("b", "n").build();
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, content)).andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, content)).thenReturn(expectedBlob);
     initializeBucket();
     Blob blob = bucket.create("n", content);
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage).create(info, content);
   }
 
   @Test
   public void testCreateWithOptions() throws Exception {
     initializeExpectedBucket();
-    BlobInfo info =
-        BlobInfo.newBuilder(BlobId.of("b", "n", 42L))
-            .setContentType(CONTENT_TYPE)
-            .setMetageneration(24L)
-            .build();
+    BlobInfo info = BlobInfo.newBuilder(BlobId.of("b", "n")).setContentType(CONTENT_TYPE).build();
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
     Storage.PredefinedAcl acl = Storage.PredefinedAcl.ALL_AUTHENTICATED_USERS;
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(
-            storage.create(
-                info,
-                content,
-                Storage.BlobTargetOption.generationMatch(),
-                Storage.BlobTargetOption.metagenerationMatch(),
-                Storage.BlobTargetOption.predefinedAcl(acl),
-                Storage.BlobTargetOption.encryptionKey(BASE64_KEY),
-                Storage.BlobTargetOption.userProject(USER_PROJECT)))
-        .andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(
+            info,
+            content,
+            new BlobTargetOption(UnifiedOpts.generationMatch(42L)),
+            new BlobTargetOption(UnifiedOpts.metagenerationMatch(24L)),
+            Storage.BlobTargetOption.predefinedAcl(acl),
+            Storage.BlobTargetOption.encryptionKey(BASE64_KEY),
+            Storage.BlobTargetOption.userProject(USER_PROJECT)))
+        .thenReturn(expectedBlob);
     initializeBucket();
     Blob blob =
         bucket.create(
@@ -399,6 +411,17 @@ public class BucketTest {
             Bucket.BlobTargetOption.encryptionKey(BASE64_KEY),
             Bucket.BlobTargetOption.userProject(USER_PROJECT));
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage)
+        .create(
+            info,
+            content,
+            new BlobTargetOption(UnifiedOpts.generationMatch(42L)),
+            new BlobTargetOption(UnifiedOpts.metagenerationMatch(24L)),
+            Storage.BlobTargetOption.predefinedAcl(acl),
+            Storage.BlobTargetOption.encryptionKey(BASE64_KEY),
+            Storage.BlobTargetOption.userProject(USER_PROJECT));
   }
 
   @Test
@@ -407,14 +430,16 @@ public class BucketTest {
     BlobInfo info = BlobInfo.newBuilder(BlobId.of("b", "n")).setContentType(CONTENT_TYPE).build();
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, content, Storage.BlobTargetOption.encryptionKey(KEY)))
-        .andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, content, Storage.BlobTargetOption.encryptionKey(KEY)))
+        .thenReturn(expectedBlob);
     initializeBucket();
     Blob blob =
         bucket.create("n", content, CONTENT_TYPE, Bucket.BlobTargetOption.encryptionKey(KEY));
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage).create(info, content, Storage.BlobTargetOption.encryptionKey(KEY));
   }
 
   @Test
@@ -423,71 +448,35 @@ public class BucketTest {
     BlobInfo info = BlobInfo.newBuilder(BlobId.of("b", "n")).setContentType(CONTENT_TYPE).build();
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, content, Storage.BlobTargetOption.kmsKeyName(DEFAULT_KMS_KEY_NAME)))
-        .andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, content, Storage.BlobTargetOption.kmsKeyName(DEFAULT_KMS_KEY_NAME)))
+        .thenReturn(expectedBlob);
     initializeBucket();
     Blob blob =
         bucket.create(
             "n", content, CONTENT_TYPE, Bucket.BlobTargetOption.kmsKeyName(DEFAULT_KMS_KEY_NAME));
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage)
+        .create(info, content, Storage.BlobTargetOption.kmsKeyName(DEFAULT_KMS_KEY_NAME));
   }
 
   @Test
   public void testCreateNotExists() throws Exception {
     initializeExpectedBucket();
-    BlobInfo info =
-        BlobInfo.newBuilder(BlobId.of("b", "n", 0L)).setContentType(CONTENT_TYPE).build();
+    BlobInfo info = BlobInfo.newBuilder(BlobId.of("b", "n")).setContentType(CONTENT_TYPE).build();
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, content, Storage.BlobTargetOption.generationMatch()))
-        .andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, content, new BlobTargetOption(UnifiedOpts.doesNotExist())))
+        .thenReturn(expectedBlob);
     initializeBucket();
     Blob blob = bucket.create("n", content, CONTENT_TYPE, Bucket.BlobTargetOption.doesNotExist());
     assertEquals(expectedBlob, blob);
-  }
 
-  @Test
-  public void testCreateWithWrongGenerationOptions() throws Exception {
-    initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    replay(storage);
-    initializeBucket();
-    byte[] content = {0xD, 0xE, 0xA, 0xD};
-    try {
-      bucket.create(
-          "n",
-          content,
-          CONTENT_TYPE,
-          Bucket.BlobTargetOption.generationMatch(42L),
-          Bucket.BlobTargetOption.generationNotMatch(24L));
-      Assert.fail();
-    } catch (IllegalArgumentException ex) {
-      assertNotNull(ex.getMessage());
-    }
-  }
-
-  @Test
-  public void testCreateWithWrongMetagenerationOptions() throws Exception {
-    initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    replay(storage);
-    initializeBucket();
-    byte[] content = {0xD, 0xE, 0xA, 0xD};
-    try {
-      bucket.create(
-          "n",
-          content,
-          CONTENT_TYPE,
-          Bucket.BlobTargetOption.metagenerationMatch(42L),
-          Bucket.BlobTargetOption.metagenerationNotMatch(24L));
-      Assert.fail();
-    } catch (IllegalArgumentException ex) {
-      assertNotNull(ex.getMessage());
-    }
+    verify(storage).getOptions();
+    verify(storage).create(info, content, new BlobTargetOption(UnifiedOpts.doesNotExist()));
   }
 
   @Test
@@ -498,12 +487,14 @@ public class BucketTest {
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
     InputStream streamContent = new ByteArrayInputStream(content);
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, streamContent)).andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, streamContent)).thenReturn(expectedBlob);
     initializeBucket();
     Blob blob = bucket.create("n", streamContent, CONTENT_TYPE);
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage).create(info, streamContent);
   }
 
   @Test
@@ -514,43 +505,38 @@ public class BucketTest {
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
     InputStream streamContent = new ByteArrayInputStream(content);
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, streamContent)).andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, streamContent)).thenReturn(expectedBlob);
     initializeBucket();
     Blob blob = bucket.create("n", streamContent);
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage).create(info, streamContent);
   }
 
   @Test
   @SuppressWarnings({"unchecked", "deprecation"})
   public void testCreateFromStreamWithOptions() throws Exception {
     initializeExpectedBucket();
-    BlobInfo info =
-        BlobInfo.newBuilder(BlobId.of("b", "n", 42L))
-            .setContentType(CONTENT_TYPE)
-            .setMetageneration(24L)
-            .setCrc32c("crc")
-            .setMd5("md5")
-            .build();
-    Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
+    BlobInfo info = BlobInfo.newBuilder(BlobId.of("b", "n")).setContentType(CONTENT_TYPE).build();
+    Blob expectedBlob = info.asBlob(serviceMockReturnsOptions);
     byte[] content = {0xD, 0xE, 0xA, 0xD};
+    String crc32c = Utils.crc32cCodec.encode(Hashing.crc32c().hashBytes(content).asInt());
     Storage.PredefinedAcl acl = Storage.PredefinedAcl.ALL_AUTHENTICATED_USERS;
     InputStream streamContent = new ByteArrayInputStream(content);
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(
-            storage.create(
-                info,
-                streamContent,
-                Storage.BlobWriteOption.generationMatch(),
-                Storage.BlobWriteOption.metagenerationMatch(),
-                Storage.BlobWriteOption.predefinedAcl(acl),
-                Storage.BlobWriteOption.crc32cMatch(),
-                Storage.BlobWriteOption.md5Match(),
-                Storage.BlobWriteOption.encryptionKey(BASE64_KEY),
-                Storage.BlobWriteOption.userProject(USER_PROJECT)))
-        .andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(
+            info,
+            streamContent,
+            new BlobWriteOption(UnifiedOpts.generationMatch(42L)),
+            new BlobWriteOption(UnifiedOpts.metagenerationMatch(24L)),
+            Storage.BlobWriteOption.predefinedAcl(acl),
+            new BlobWriteOption(UnifiedOpts.crc32cMatch(crc32c)),
+            new BlobWriteOption(UnifiedOpts.md5Match("md5")),
+            Storage.BlobWriteOption.encryptionKey(BASE64_KEY),
+            Storage.BlobWriteOption.userProject(USER_PROJECT)))
+        .thenReturn(expectedBlob);
     initializeBucket();
     Blob blob =
         bucket.create(
@@ -560,11 +546,24 @@ public class BucketTest {
             Bucket.BlobWriteOption.generationMatch(42L),
             Bucket.BlobWriteOption.metagenerationMatch(24L),
             Bucket.BlobWriteOption.predefinedAcl(acl),
-            Bucket.BlobWriteOption.crc32cMatch("crc"),
+            Bucket.BlobWriteOption.crc32cMatch(crc32c),
             Bucket.BlobWriteOption.md5Match("md5"),
             Bucket.BlobWriteOption.encryptionKey(BASE64_KEY),
             Bucket.BlobWriteOption.userProject(USER_PROJECT));
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage)
+        .create(
+            info,
+            streamContent,
+            new BlobWriteOption(UnifiedOpts.generationMatch(42L)),
+            new BlobWriteOption(UnifiedOpts.metagenerationMatch(24L)),
+            Storage.BlobWriteOption.predefinedAcl(acl),
+            new BlobWriteOption(UnifiedOpts.crc32cMatch(crc32c)),
+            new BlobWriteOption(UnifiedOpts.md5Match("md5")),
+            Storage.BlobWriteOption.encryptionKey(BASE64_KEY),
+            Storage.BlobWriteOption.userProject(USER_PROJECT));
   }
 
   @Test
@@ -575,201 +574,177 @@ public class BucketTest {
     Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
     byte[] content = {0xD, 0xE, 0xA, 0xD};
     InputStream streamContent = new ByteArrayInputStream(content);
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, streamContent, Storage.BlobWriteOption.encryptionKey(KEY)))
-        .andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, streamContent, Storage.BlobWriteOption.encryptionKey(KEY)))
+        .thenReturn(expectedBlob);
     initializeBucket();
     Blob blob =
         bucket.create("n", streamContent, CONTENT_TYPE, Bucket.BlobWriteOption.encryptionKey(KEY));
     assertEquals(expectedBlob, blob);
+
+    verify(storage).getOptions();
+    verify(storage).create(info, streamContent, Storage.BlobWriteOption.encryptionKey(KEY));
   }
 
   @Test
   @SuppressWarnings({"unchecked", "deprecation"})
   public void testCreateFromStreamNotExists() throws Exception {
     initializeExpectedBucket();
-    BlobInfo info =
-        BlobInfo.newBuilder(BlobId.of("b", "n", 0L)).setContentType(CONTENT_TYPE).build();
-    Blob expectedBlob = new Blob(serviceMockReturnsOptions, new BlobInfo.BuilderImpl(info));
+    BlobInfo info = BlobInfo.newBuilder(BlobId.of("b", "n")).setContentType(CONTENT_TYPE).build();
+    Blob expectedBlob = info.asBlob(serviceMockReturnsOptions);
     byte[] content = {0xD, 0xE, 0xA, 0xD};
     InputStream streamContent = new ByteArrayInputStream(content);
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.create(info, streamContent, Storage.BlobWriteOption.generationMatch()))
-        .andReturn(expectedBlob);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.create(info, streamContent, new BlobWriteOption(UnifiedOpts.doesNotExist())))
+        .thenReturn(expectedBlob);
     initializeBucket();
     Blob blob =
         bucket.create("n", streamContent, CONTENT_TYPE, Bucket.BlobWriteOption.doesNotExist());
     assertEquals(expectedBlob, blob);
-  }
 
-  @Test
-  public void testCreateFromStreamWithWrongGenerationOptions() throws Exception {
-    initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    replay(storage);
-    initializeBucket();
-    byte[] content = {0xD, 0xE, 0xA, 0xD};
-    InputStream streamContent = new ByteArrayInputStream(content);
-    try {
-      bucket.create(
-          "n",
-          streamContent,
-          CONTENT_TYPE,
-          Bucket.BlobWriteOption.generationMatch(42L),
-          Bucket.BlobWriteOption.generationNotMatch(24L));
-      Assert.fail();
-    } catch (IllegalArgumentException ex) {
-      assertNotNull(ex.getMessage());
-    }
-  }
-
-  @Test
-  public void testCreateFromStreamWithWrongMetagenerationOptions() throws Exception {
-    initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    replay(storage);
-    initializeBucket();
-    byte[] content = {0xD, 0xE, 0xA, 0xD};
-    InputStream streamContent = new ByteArrayInputStream(content);
-    try {
-      bucket.create(
-          "n",
-          streamContent,
-          CONTENT_TYPE,
-          Bucket.BlobWriteOption.metagenerationMatch(42L),
-          Bucket.BlobWriteOption.metagenerationNotMatch(24L));
-      Assert.fail();
-    } catch (IllegalArgumentException ex) {
-      assertNotNull(ex.getMessage());
-    }
+    verify(storage).getOptions();
+    verify(storage).create(info, streamContent, new BlobWriteOption(UnifiedOpts.doesNotExist()));
   }
 
   @Test
   public void testGetAcl() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.getAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers())).andReturn(ACL);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.getAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers())).thenReturn(ACL);
     initializeBucket();
     assertEquals(ACL, bucket.getAcl(User.ofAllAuthenticatedUsers()));
+
+    verify(storage).getOptions();
+    verify(storage).getAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers());
   }
 
   @Test
   public void testDeleteAcl() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.deleteAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers()))
-        .andReturn(true);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.deleteAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers())).thenReturn(true);
     initializeBucket();
     assertTrue(bucket.deleteAcl(User.ofAllAuthenticatedUsers()));
+
+    verify(storage).getOptions();
+    verify(storage).deleteAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers());
   }
 
   @Test
   public void testCreateAcl() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
+    when(storage.getOptions()).thenReturn(mockOptions);
     Acl returnedAcl = ACL.toBuilder().setEtag("ETAG").setId("ID").build();
-    expect(storage.createAcl(BUCKET_INFO.getName(), ACL)).andReturn(returnedAcl);
-    replay(storage);
+    when(storage.createAcl(BUCKET_INFO.getName(), ACL)).thenReturn(returnedAcl);
     initializeBucket();
     assertEquals(returnedAcl, bucket.createAcl(ACL));
+
+    verify(storage).getOptions();
+    verify(storage).createAcl(BUCKET_INFO.getName(), ACL);
   }
 
   @Test
   public void testUpdateAcl() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
+    when(storage.getOptions()).thenReturn(mockOptions);
     Acl returnedAcl = ACL.toBuilder().setEtag("ETAG").setId("ID").build();
-    expect(storage.updateAcl(BUCKET_INFO.getName(), ACL)).andReturn(returnedAcl);
-    replay(storage);
+    when(storage.updateAcl(BUCKET_INFO.getName(), ACL)).thenReturn(returnedAcl);
     initializeBucket();
     assertEquals(returnedAcl, bucket.updateAcl(ACL));
+    verify(storage).getOptions();
+    verify(storage).updateAcl(BUCKET_INFO.getName(), ACL);
   }
 
   @Test
   public void testListAcls() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.listAcls(BUCKET_INFO.getName())).andReturn(ACLS);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.listAcls(BUCKET_INFO.getName())).thenReturn(ACLS);
     initializeBucket();
     assertEquals(ACLS, bucket.listAcls());
+
+    verify(storage).getOptions();
+    verify(storage).listAcls(BUCKET_INFO.getName());
   }
 
   @Test
   public void testGetDefaultAcl() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.getDefaultAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers()))
-        .andReturn(ACL);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.getDefaultAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers()))
+        .thenReturn(ACL);
     initializeBucket();
     assertEquals(ACL, bucket.getDefaultAcl(User.ofAllAuthenticatedUsers()));
+
+    verify(storage).getOptions();
+    verify(storage).getDefaultAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers());
   }
 
   @Test
   public void testDeleteDefaultAcl() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.deleteDefaultAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers()))
-        .andReturn(true);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.deleteDefaultAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers()))
+        .thenReturn(true);
     initializeBucket();
     assertTrue(bucket.deleteDefaultAcl(User.ofAllAuthenticatedUsers()));
+
+    verify(storage).getOptions();
+    verify(storage).deleteDefaultAcl(BUCKET_INFO.getName(), User.ofAllAuthenticatedUsers());
   }
 
   @Test
   public void testCreateDefaultAcl() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
+    when(storage.getOptions()).thenReturn(mockOptions);
     Acl returnedAcl = ACL.toBuilder().setEtag("ETAG").setId("ID").build();
-    expect(storage.createDefaultAcl(BUCKET_INFO.getName(), ACL)).andReturn(returnedAcl);
-    replay(storage);
+    when(storage.createDefaultAcl(BUCKET_INFO.getName(), ACL)).thenReturn(returnedAcl);
     initializeBucket();
     assertEquals(returnedAcl, bucket.createDefaultAcl(ACL));
+
+    verify(storage).getOptions();
+    verify(storage).createDefaultAcl(BUCKET_INFO.getName(), ACL);
   }
 
   @Test
   public void testUpdateDefaultAcl() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
+    when(storage.getOptions()).thenReturn(mockOptions);
     Acl returnedAcl = ACL.toBuilder().setEtag("ETAG").setId("ID").build();
-    expect(storage.updateDefaultAcl(BUCKET_INFO.getName(), ACL)).andReturn(returnedAcl);
-    replay(storage);
+    when(storage.updateDefaultAcl(BUCKET_INFO.getName(), ACL)).thenReturn(returnedAcl);
     initializeBucket();
     assertEquals(returnedAcl, bucket.updateDefaultAcl(ACL));
+
+    verify(storage).getOptions();
+    verify(storage).updateDefaultAcl(BUCKET_INFO.getName(), ACL);
   }
 
   @Test
   public void testListDefaultAcls() throws Exception {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions);
-    expect(storage.listDefaultAcls(BUCKET_INFO.getName())).andReturn(ACLS);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.listDefaultAcls(BUCKET_INFO.getName())).thenReturn(ACLS);
     initializeBucket();
     assertEquals(ACLS, bucket.listDefaultAcls());
+
+    verify(storage).getOptions();
+    verify(storage).listDefaultAcls(BUCKET_INFO.getName());
   }
 
   @Test
   public void testLockRetention() throws Exception {
     initializeExpectedBucket();
     Bucket expectedRetentionLockedBucket =
-        expectedBucket
-            .toBuilder()
+        expectedBucket.toBuilder()
             .setRetentionPeriod(RETENTION_PERIOD)
             .setRetentionPolicyIsLocked(true)
             .build();
-    expect(storage.getOptions()).andReturn(mockOptions).times(2);
-    expect(
-            storage.lockRetentionPolicy(
-                expectedRetentionLockedBucket,
-                Storage.BucketTargetOption.metagenerationMatch(),
-                Storage.BucketTargetOption.userProject(USER_PROJECT)))
-        .andReturn(expectedRetentionLockedBucket);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.lockRetentionPolicy(
+            expectedRetentionLockedBucket,
+            Storage.BucketTargetOption.metagenerationMatch(),
+            Storage.BucketTargetOption.userProject(USER_PROJECT)))
+        .thenReturn(expectedRetentionLockedBucket);
     initializeBucket();
     Bucket lockedRetentionPolicyBucket =
         new Bucket(storage, new BucketInfo.BuilderImpl(expectedRetentionLockedBucket));
@@ -778,13 +753,19 @@ public class BucketTest {
             Storage.BucketTargetOption.metagenerationMatch(),
             Storage.BucketTargetOption.userProject(USER_PROJECT));
     assertEquals(expectedRetentionLockedBucket, actualRetentionLockedBucket);
+
+    verify(storage, times(2)).getOptions();
+    verify(storage)
+        .lockRetentionPolicy(
+            expectedRetentionLockedBucket,
+            Storage.BucketTargetOption.metagenerationMatch(),
+            Storage.BucketTargetOption.userProject(USER_PROJECT));
   }
 
   @Test
   @SuppressWarnings({"unchecked", "deprecation"})
   public void testToBuilder() {
-    expect(storage.getOptions()).andReturn(mockOptions).times(4);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
     Bucket fullBucket = new Bucket(storage, new BucketInfo.BuilderImpl(FULL_BUCKET_INFO));
     assertEquals(fullBucket, fullBucket.toBuilder().build());
     Bucket simpleBlob = new Bucket(storage, new BucketInfo.BuilderImpl(BUCKET_INFO));
@@ -795,8 +776,7 @@ public class BucketTest {
   @SuppressWarnings({"unchecked", "deprecation"})
   public void testBuilder() {
     initializeExpectedBucket();
-    expect(storage.getOptions()).andReturn(mockOptions).times(4);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
     Bucket.Builder builder =
         new Bucket.Builder(new Bucket(storage, new BucketInfo.BuilderImpl(BUCKET_INFO)));
     Bucket bucket =
@@ -863,13 +843,15 @@ public class BucketTest {
         new Bucket(serviceMockReturnsOptions, new BucketInfo.BuilderImpl(FULL_BUCKET_INFO));
     assertThat(bucket.getLifecycleRules()).hasSize(1);
     Bucket expectedUpdatedBucket = bucket.toBuilder().deleteLifecycleRules().build();
-    expect(storage.getOptions()).andReturn(mockOptions).times(2);
-    expect(storage.update(expectedUpdatedBucket)).andReturn(expectedUpdatedBucket);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.update(expectedUpdatedBucket)).thenReturn(expectedUpdatedBucket);
     initializeBucket();
     Bucket updatedBucket = new Bucket(storage, new BucketInfo.BuilderImpl(expectedUpdatedBucket));
     Bucket actualUpdatedBucket = updatedBucket.update();
     assertThat(actualUpdatedBucket.getLifecycleRules()).hasSize(0);
+
+    verify(storage, times(2)).getOptions();
+    verify(storage).update(expectedUpdatedBucket);
   }
 
   @Test
@@ -885,14 +867,16 @@ public class BucketTest {
     assertThat(bucket.getLogging().getLogBucket()).isEqualTo("logs-bucket");
     assertThat(bucket.getLogging().getLogObjectPrefix()).isEqualTo("test-logs");
     Bucket expectedUpdatedBucket = bucket.toBuilder().setLogging(null).build();
-    expect(storage.getOptions()).andReturn(mockOptions).times(2);
-    expect(storage.update(expectedUpdatedBucket)).andReturn(expectedUpdatedBucket);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.update(expectedUpdatedBucket)).thenReturn(expectedUpdatedBucket);
     initializeBucket();
     Bucket updatedBucket = new Bucket(storage, new BucketInfo.BuilderImpl(expectedUpdatedBucket));
     Bucket actualUpdatedBucket = updatedBucket.update();
     assertThat(actualUpdatedBucket.getLogging().getLogBucket()).isNull();
     assertThat(actualUpdatedBucket.getLogging().getLogObjectPrefix()).isNull();
+
+    verify(storage, times(2)).getOptions();
+    verify(storage).update(expectedUpdatedBucket);
   }
 
   @Test
@@ -918,12 +902,14 @@ public class BucketTest {
 
     // Remove bucket CORS configuration.
     Bucket expectedUpdatedBucket = bucket.toBuilder().setCors(null).build();
-    expect(storage.getOptions()).andReturn(mockOptions).times(2);
-    expect(storage.update(expectedUpdatedBucket)).andReturn(expectedUpdatedBucket);
-    replay(storage);
+    when(storage.getOptions()).thenReturn(mockOptions);
+    when(storage.update(expectedUpdatedBucket)).thenReturn(expectedUpdatedBucket);
     initializeBucket();
     Bucket updatedBucket = new Bucket(storage, new BucketInfo.BuilderImpl(expectedUpdatedBucket));
     Bucket actualUpdatedBucket = updatedBucket.update();
     assertThat(actualUpdatedBucket.getCors()).isEmpty();
+
+    verify(storage, times(2)).getOptions();
+    verify(storage).update(expectedUpdatedBucket);
   }
 }

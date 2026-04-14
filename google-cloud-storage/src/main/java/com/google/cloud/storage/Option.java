@@ -16,53 +16,50 @@
 
 package com.google.cloud.storage;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import com.google.cloud.storage.spi.v1.StorageRpc;
-import com.google.common.base.MoreObjects;
+import com.google.cloud.storage.UnifiedOpts.Opt;
 import java.io.Serializable;
-import java.util.Objects;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.function.IntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Base class for Storage operation option. */
-public abstract class Option implements Serializable {
+@Deprecated
+public abstract class Option<O extends Opt> extends UnifiedOpts.OptionShim<O>
+    implements Serializable {
 
-  private static final long serialVersionUID = -73199088766477208L;
+  private static final long serialVersionUID = -7579883369516703936L;
 
-  private final StorageRpc.Option rpcOption;
-  private final Object value;
-
-  Option(StorageRpc.Option rpcOption, Object value) {
-    this.rpcOption = checkNotNull(rpcOption);
-    this.value = value;
+  Option(O opt) {
+    super(opt);
   }
 
-  StorageRpc.Option getRpcOption() {
-    return rpcOption;
+  @SafeVarargs
+  static <O extends Option<?>> O[] dedupe(IntFunction<O[]> gen, O... os) {
+    return dedupe(gen, Arrays.stream(os));
   }
 
-  Object getValue() {
-    return value;
+  @SafeVarargs
+  static <O extends Option<?>> O[] dedupe(IntFunction<O[]> gen, Collection<O> collection, O... os) {
+    return dedupe(gen, Stream.of(collection.stream(), Arrays.stream(os)).flatMap(s -> s));
   }
 
-  @Override
-  public boolean equals(Object obj) {
-    if (!(obj instanceof Option)) {
-      return false;
-    }
-    Option other = (Option) obj;
-    return Objects.equals(rpcOption, other.rpcOption) && Objects.equals(value, other.value);
+  @SafeVarargs
+  static <O extends Option<?>> O[] dedupe(IntFunction<O[]> gen, O[] array, O... os) {
+    return dedupe(gen, Stream.of(Arrays.stream(array), Arrays.stream(os)).flatMap(s -> s));
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(rpcOption, value);
-  }
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("name", rpcOption.value())
-        .add("value", value)
-        .toString();
+  /**
+   * All Options contain an {@link Opt}, {@code Opt}s are distinct classes allowing us to group
+   * based on those classes. Once grouped, we select the last element to provide last wins behavior.
+   *
+   * <p>Each of these helpers is an internal implementation detail, primarily due to the fact that
+   * generic arrays can not be instantiated in Java and requires a factory to be passed in.
+   */
+  private static <O extends Option<?>> O[] dedupe(IntFunction<O[]> gen, Stream<O> s) {
+    return s.collect(Collectors.groupingBy(o -> o.getOpt().getClass())).values().stream()
+        .map(l -> l.get(l.size() - 1))
+        .toArray(gen);
   }
 }

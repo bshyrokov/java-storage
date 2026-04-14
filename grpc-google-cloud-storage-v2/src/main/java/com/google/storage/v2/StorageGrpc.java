@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,32 +24,32 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * ## API Overview and Naming Syntax
  * The Cloud Storage gRPC API allows applications to read and write data through
  * the abstractions of buckets and objects. For a description of these
- * abstractions please see https://cloud.google.com/storage/docs.
+ * abstractions please see [Cloud Storage
+ * documentation](https://cloud.google.com/storage/docs).
  * Resources are named as follows:
  *   - Projects are referred to as they are defined by the Resource Manager API,
  *     using strings like `projects/123456` or `projects/my-string-id`.
  *   - Buckets are named using string names of the form:
- *     `projects/{project}/buckets/{bucket}`
- *     For globally unique buckets, `_` may be substituted for the project.
+ *     `projects/{project}/buckets/{bucket}`.
+ *     For globally unique buckets, `_` might be substituted for the project.
  *   - Objects are uniquely identified by their name along with the name of the
  *     bucket they belong to, as separate strings in this API. For example:
- *       ReadObjectRequest {
+ *         ```
+ *         ReadObjectRequest {
  *         bucket: 'projects/_/buckets/my-bucket'
  *         object: 'my-object'
- *       }
- *     Note that object names can contain `/` characters, which are treated as
- *     any other character (no special directory semantics).
+ *         }
+ *         ```
+ * Note that object names can contain `/` characters, which are treated as
+ * any other character (no special directory semantics).
  * </pre>
  */
-@javax.annotation.Generated(
-    value = "by gRPC proto compiler",
-    comments = "Source: google/storage/v2/storage.proto")
 @io.grpc.stub.annotations.GrpcGenerated
 public final class StorageGrpc {
 
   private StorageGrpc() {}
 
-  public static final String SERVICE_NAME = "google.storage.v2.Storage";
+  public static final java.lang.String SERVICE_NAME = "google.storage.v2.Storage";
 
   // Static method descriptors that strictly reflect the proto.
   private static volatile io.grpc.MethodDescriptor<
@@ -417,174 +417,6 @@ public final class StorageGrpc {
   }
 
   private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.DeleteNotificationRequest, com.google.protobuf.Empty>
-      getDeleteNotificationMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "DeleteNotification",
-      requestType = com.google.storage.v2.DeleteNotificationRequest.class,
-      responseType = com.google.protobuf.Empty.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.DeleteNotificationRequest, com.google.protobuf.Empty>
-      getDeleteNotificationMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.DeleteNotificationRequest, com.google.protobuf.Empty>
-        getDeleteNotificationMethod;
-    if ((getDeleteNotificationMethod = StorageGrpc.getDeleteNotificationMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getDeleteNotificationMethod = StorageGrpc.getDeleteNotificationMethod) == null) {
-          StorageGrpc.getDeleteNotificationMethod =
-              getDeleteNotificationMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.DeleteNotificationRequest, com.google.protobuf.Empty>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "DeleteNotification"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.DeleteNotificationRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.protobuf.Empty.getDefaultInstance()))
-                      .setSchemaDescriptor(
-                          new StorageMethodDescriptorSupplier("DeleteNotification"))
-                      .build();
-        }
-      }
-    }
-    return getDeleteNotificationMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.GetNotificationRequest, com.google.storage.v2.Notification>
-      getGetNotificationMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "GetNotification",
-      requestType = com.google.storage.v2.GetNotificationRequest.class,
-      responseType = com.google.storage.v2.Notification.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.GetNotificationRequest, com.google.storage.v2.Notification>
-      getGetNotificationMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.GetNotificationRequest, com.google.storage.v2.Notification>
-        getGetNotificationMethod;
-    if ((getGetNotificationMethod = StorageGrpc.getGetNotificationMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getGetNotificationMethod = StorageGrpc.getGetNotificationMethod) == null) {
-          StorageGrpc.getGetNotificationMethod =
-              getGetNotificationMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.GetNotificationRequest,
-                          com.google.storage.v2.Notification>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetNotification"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.GetNotificationRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.Notification.getDefaultInstance()))
-                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("GetNotification"))
-                      .build();
-        }
-      }
-    }
-    return getGetNotificationMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.CreateNotificationRequest, com.google.storage.v2.Notification>
-      getCreateNotificationMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "CreateNotification",
-      requestType = com.google.storage.v2.CreateNotificationRequest.class,
-      responseType = com.google.storage.v2.Notification.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.CreateNotificationRequest, com.google.storage.v2.Notification>
-      getCreateNotificationMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.CreateNotificationRequest, com.google.storage.v2.Notification>
-        getCreateNotificationMethod;
-    if ((getCreateNotificationMethod = StorageGrpc.getCreateNotificationMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getCreateNotificationMethod = StorageGrpc.getCreateNotificationMethod) == null) {
-          StorageGrpc.getCreateNotificationMethod =
-              getCreateNotificationMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.CreateNotificationRequest,
-                          com.google.storage.v2.Notification>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CreateNotification"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.CreateNotificationRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.Notification.getDefaultInstance()))
-                      .setSchemaDescriptor(
-                          new StorageMethodDescriptorSupplier("CreateNotification"))
-                      .build();
-        }
-      }
-    }
-    return getCreateNotificationMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.ListNotificationsRequest,
-          com.google.storage.v2.ListNotificationsResponse>
-      getListNotificationsMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "ListNotifications",
-      requestType = com.google.storage.v2.ListNotificationsRequest.class,
-      responseType = com.google.storage.v2.ListNotificationsResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.ListNotificationsRequest,
-          com.google.storage.v2.ListNotificationsResponse>
-      getListNotificationsMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.ListNotificationsRequest,
-            com.google.storage.v2.ListNotificationsResponse>
-        getListNotificationsMethod;
-    if ((getListNotificationsMethod = StorageGrpc.getListNotificationsMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getListNotificationsMethod = StorageGrpc.getListNotificationsMethod) == null) {
-          StorageGrpc.getListNotificationsMethod =
-              getListNotificationsMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.ListNotificationsRequest,
-                          com.google.storage.v2.ListNotificationsResponse>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ListNotifications"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.ListNotificationsRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.ListNotificationsResponse.getDefaultInstance()))
-                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("ListNotifications"))
-                      .build();
-        }
-      }
-    }
-    return getListNotificationsMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
           com.google.storage.v2.ComposeObjectRequest, com.google.storage.v2.Object>
       getComposeObjectMethod;
 
@@ -661,6 +493,46 @@ public final class StorageGrpc {
       }
     }
     return getDeleteObjectMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<
+          com.google.storage.v2.RestoreObjectRequest, com.google.storage.v2.Object>
+      getRestoreObjectMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "RestoreObject",
+      requestType = com.google.storage.v2.RestoreObjectRequest.class,
+      responseType = com.google.storage.v2.Object.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<
+          com.google.storage.v2.RestoreObjectRequest, com.google.storage.v2.Object>
+      getRestoreObjectMethod() {
+    io.grpc.MethodDescriptor<
+            com.google.storage.v2.RestoreObjectRequest, com.google.storage.v2.Object>
+        getRestoreObjectMethod;
+    if ((getRestoreObjectMethod = StorageGrpc.getRestoreObjectMethod) == null) {
+      synchronized (StorageGrpc.class) {
+        if ((getRestoreObjectMethod = StorageGrpc.getRestoreObjectMethod) == null) {
+          StorageGrpc.getRestoreObjectMethod =
+              getRestoreObjectMethod =
+                  io.grpc.MethodDescriptor
+                      .<com.google.storage.v2.RestoreObjectRequest, com.google.storage.v2.Object>
+                          newBuilder()
+                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "RestoreObject"))
+                      .setSampledToLocalTracing(true)
+                      .setRequestMarshaller(
+                          io.grpc.protobuf.ProtoUtils.marshaller(
+                              com.google.storage.v2.RestoreObjectRequest.getDefaultInstance()))
+                      .setResponseMarshaller(
+                          io.grpc.protobuf.ProtoUtils.marshaller(
+                              com.google.storage.v2.Object.getDefaultInstance()))
+                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("RestoreObject"))
+                      .build();
+        }
+      }
+    }
+    return getRestoreObjectMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<
@@ -792,6 +664,48 @@ public final class StorageGrpc {
   }
 
   private static volatile io.grpc.MethodDescriptor<
+          com.google.storage.v2.BidiReadObjectRequest, com.google.storage.v2.BidiReadObjectResponse>
+      getBidiReadObjectMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "BidiReadObject",
+      requestType = com.google.storage.v2.BidiReadObjectRequest.class,
+      responseType = com.google.storage.v2.BidiReadObjectResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
+  public static io.grpc.MethodDescriptor<
+          com.google.storage.v2.BidiReadObjectRequest, com.google.storage.v2.BidiReadObjectResponse>
+      getBidiReadObjectMethod() {
+    io.grpc.MethodDescriptor<
+            com.google.storage.v2.BidiReadObjectRequest,
+            com.google.storage.v2.BidiReadObjectResponse>
+        getBidiReadObjectMethod;
+    if ((getBidiReadObjectMethod = StorageGrpc.getBidiReadObjectMethod) == null) {
+      synchronized (StorageGrpc.class) {
+        if ((getBidiReadObjectMethod = StorageGrpc.getBidiReadObjectMethod) == null) {
+          StorageGrpc.getBidiReadObjectMethod =
+              getBidiReadObjectMethod =
+                  io.grpc.MethodDescriptor
+                      .<com.google.storage.v2.BidiReadObjectRequest,
+                          com.google.storage.v2.BidiReadObjectResponse>
+                          newBuilder()
+                      .setType(io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
+                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "BidiReadObject"))
+                      .setSampledToLocalTracing(true)
+                      .setRequestMarshaller(
+                          io.grpc.protobuf.ProtoUtils.marshaller(
+                              com.google.storage.v2.BidiReadObjectRequest.getDefaultInstance()))
+                      .setResponseMarshaller(
+                          io.grpc.protobuf.ProtoUtils.marshaller(
+                              com.google.storage.v2.BidiReadObjectResponse.getDefaultInstance()))
+                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("BidiReadObject"))
+                      .build();
+        }
+      }
+    }
+    return getBidiReadObjectMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<
           com.google.storage.v2.UpdateObjectRequest, com.google.storage.v2.Object>
       getUpdateObjectMethod;
 
@@ -870,6 +784,50 @@ public final class StorageGrpc {
       }
     }
     return getWriteObjectMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<
+          com.google.storage.v2.BidiWriteObjectRequest,
+          com.google.storage.v2.BidiWriteObjectResponse>
+      getBidiWriteObjectMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "BidiWriteObject",
+      requestType = com.google.storage.v2.BidiWriteObjectRequest.class,
+      responseType = com.google.storage.v2.BidiWriteObjectResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
+  public static io.grpc.MethodDescriptor<
+          com.google.storage.v2.BidiWriteObjectRequest,
+          com.google.storage.v2.BidiWriteObjectResponse>
+      getBidiWriteObjectMethod() {
+    io.grpc.MethodDescriptor<
+            com.google.storage.v2.BidiWriteObjectRequest,
+            com.google.storage.v2.BidiWriteObjectResponse>
+        getBidiWriteObjectMethod;
+    if ((getBidiWriteObjectMethod = StorageGrpc.getBidiWriteObjectMethod) == null) {
+      synchronized (StorageGrpc.class) {
+        if ((getBidiWriteObjectMethod = StorageGrpc.getBidiWriteObjectMethod) == null) {
+          StorageGrpc.getBidiWriteObjectMethod =
+              getBidiWriteObjectMethod =
+                  io.grpc.MethodDescriptor
+                      .<com.google.storage.v2.BidiWriteObjectRequest,
+                          com.google.storage.v2.BidiWriteObjectResponse>
+                          newBuilder()
+                      .setType(io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
+                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "BidiWriteObject"))
+                      .setSampledToLocalTracing(true)
+                      .setRequestMarshaller(
+                          io.grpc.protobuf.ProtoUtils.marshaller(
+                              com.google.storage.v2.BidiWriteObjectRequest.getDefaultInstance()))
+                      .setResponseMarshaller(
+                          io.grpc.protobuf.ProtoUtils.marshaller(
+                              com.google.storage.v2.BidiWriteObjectResponse.getDefaultInstance()))
+                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("BidiWriteObject"))
+                      .build();
+        }
+      }
+    }
+    return getBidiWriteObjectMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<
@@ -1047,247 +1005,42 @@ public final class StorageGrpc {
   }
 
   private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.GetServiceAccountRequest, com.google.storage.v2.ServiceAccount>
-      getGetServiceAccountMethod;
+          com.google.storage.v2.MoveObjectRequest, com.google.storage.v2.Object>
+      getMoveObjectMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "GetServiceAccount",
-      requestType = com.google.storage.v2.GetServiceAccountRequest.class,
-      responseType = com.google.storage.v2.ServiceAccount.class,
+      fullMethodName = SERVICE_NAME + '/' + "MoveObject",
+      requestType = com.google.storage.v2.MoveObjectRequest.class,
+      responseType = com.google.storage.v2.Object.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
   public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.GetServiceAccountRequest, com.google.storage.v2.ServiceAccount>
-      getGetServiceAccountMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.GetServiceAccountRequest, com.google.storage.v2.ServiceAccount>
-        getGetServiceAccountMethod;
-    if ((getGetServiceAccountMethod = StorageGrpc.getGetServiceAccountMethod) == null) {
+          com.google.storage.v2.MoveObjectRequest, com.google.storage.v2.Object>
+      getMoveObjectMethod() {
+    io.grpc.MethodDescriptor<com.google.storage.v2.MoveObjectRequest, com.google.storage.v2.Object>
+        getMoveObjectMethod;
+    if ((getMoveObjectMethod = StorageGrpc.getMoveObjectMethod) == null) {
       synchronized (StorageGrpc.class) {
-        if ((getGetServiceAccountMethod = StorageGrpc.getGetServiceAccountMethod) == null) {
-          StorageGrpc.getGetServiceAccountMethod =
-              getGetServiceAccountMethod =
+        if ((getMoveObjectMethod = StorageGrpc.getMoveObjectMethod) == null) {
+          StorageGrpc.getMoveObjectMethod =
+              getMoveObjectMethod =
                   io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.GetServiceAccountRequest,
-                          com.google.storage.v2.ServiceAccount>
+                      .<com.google.storage.v2.MoveObjectRequest, com.google.storage.v2.Object>
                           newBuilder()
                       .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetServiceAccount"))
+                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "MoveObject"))
                       .setSampledToLocalTracing(true)
                       .setRequestMarshaller(
                           io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.GetServiceAccountRequest.getDefaultInstance()))
+                              com.google.storage.v2.MoveObjectRequest.getDefaultInstance()))
                       .setResponseMarshaller(
                           io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.ServiceAccount.getDefaultInstance()))
-                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("GetServiceAccount"))
+                              com.google.storage.v2.Object.getDefaultInstance()))
+                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("MoveObject"))
                       .build();
         }
       }
     }
-    return getGetServiceAccountMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.CreateHmacKeyRequest, com.google.storage.v2.CreateHmacKeyResponse>
-      getCreateHmacKeyMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "CreateHmacKey",
-      requestType = com.google.storage.v2.CreateHmacKeyRequest.class,
-      responseType = com.google.storage.v2.CreateHmacKeyResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.CreateHmacKeyRequest, com.google.storage.v2.CreateHmacKeyResponse>
-      getCreateHmacKeyMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.CreateHmacKeyRequest, com.google.storage.v2.CreateHmacKeyResponse>
-        getCreateHmacKeyMethod;
-    if ((getCreateHmacKeyMethod = StorageGrpc.getCreateHmacKeyMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getCreateHmacKeyMethod = StorageGrpc.getCreateHmacKeyMethod) == null) {
-          StorageGrpc.getCreateHmacKeyMethod =
-              getCreateHmacKeyMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.CreateHmacKeyRequest,
-                          com.google.storage.v2.CreateHmacKeyResponse>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "CreateHmacKey"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.CreateHmacKeyRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.CreateHmacKeyResponse.getDefaultInstance()))
-                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("CreateHmacKey"))
-                      .build();
-        }
-      }
-    }
-    return getCreateHmacKeyMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.DeleteHmacKeyRequest, com.google.protobuf.Empty>
-      getDeleteHmacKeyMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "DeleteHmacKey",
-      requestType = com.google.storage.v2.DeleteHmacKeyRequest.class,
-      responseType = com.google.protobuf.Empty.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.DeleteHmacKeyRequest, com.google.protobuf.Empty>
-      getDeleteHmacKeyMethod() {
-    io.grpc.MethodDescriptor<com.google.storage.v2.DeleteHmacKeyRequest, com.google.protobuf.Empty>
-        getDeleteHmacKeyMethod;
-    if ((getDeleteHmacKeyMethod = StorageGrpc.getDeleteHmacKeyMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getDeleteHmacKeyMethod = StorageGrpc.getDeleteHmacKeyMethod) == null) {
-          StorageGrpc.getDeleteHmacKeyMethod =
-              getDeleteHmacKeyMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.DeleteHmacKeyRequest, com.google.protobuf.Empty>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "DeleteHmacKey"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.DeleteHmacKeyRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.protobuf.Empty.getDefaultInstance()))
-                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("DeleteHmacKey"))
-                      .build();
-        }
-      }
-    }
-    return getDeleteHmacKeyMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.GetHmacKeyRequest, com.google.storage.v2.HmacKeyMetadata>
-      getGetHmacKeyMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "GetHmacKey",
-      requestType = com.google.storage.v2.GetHmacKeyRequest.class,
-      responseType = com.google.storage.v2.HmacKeyMetadata.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.GetHmacKeyRequest, com.google.storage.v2.HmacKeyMetadata>
-      getGetHmacKeyMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.GetHmacKeyRequest, com.google.storage.v2.HmacKeyMetadata>
-        getGetHmacKeyMethod;
-    if ((getGetHmacKeyMethod = StorageGrpc.getGetHmacKeyMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getGetHmacKeyMethod = StorageGrpc.getGetHmacKeyMethod) == null) {
-          StorageGrpc.getGetHmacKeyMethod =
-              getGetHmacKeyMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.GetHmacKeyRequest,
-                          com.google.storage.v2.HmacKeyMetadata>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetHmacKey"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.GetHmacKeyRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.HmacKeyMetadata.getDefaultInstance()))
-                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("GetHmacKey"))
-                      .build();
-        }
-      }
-    }
-    return getGetHmacKeyMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.ListHmacKeysRequest, com.google.storage.v2.ListHmacKeysResponse>
-      getListHmacKeysMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "ListHmacKeys",
-      requestType = com.google.storage.v2.ListHmacKeysRequest.class,
-      responseType = com.google.storage.v2.ListHmacKeysResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.ListHmacKeysRequest, com.google.storage.v2.ListHmacKeysResponse>
-      getListHmacKeysMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.ListHmacKeysRequest, com.google.storage.v2.ListHmacKeysResponse>
-        getListHmacKeysMethod;
-    if ((getListHmacKeysMethod = StorageGrpc.getListHmacKeysMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getListHmacKeysMethod = StorageGrpc.getListHmacKeysMethod) == null) {
-          StorageGrpc.getListHmacKeysMethod =
-              getListHmacKeysMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.ListHmacKeysRequest,
-                          com.google.storage.v2.ListHmacKeysResponse>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ListHmacKeys"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.ListHmacKeysRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.ListHmacKeysResponse.getDefaultInstance()))
-                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("ListHmacKeys"))
-                      .build();
-        }
-      }
-    }
-    return getListHmacKeysMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<
-          com.google.storage.v2.UpdateHmacKeyRequest, com.google.storage.v2.HmacKeyMetadata>
-      getUpdateHmacKeyMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "UpdateHmacKey",
-      requestType = com.google.storage.v2.UpdateHmacKeyRequest.class,
-      responseType = com.google.storage.v2.HmacKeyMetadata.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<
-          com.google.storage.v2.UpdateHmacKeyRequest, com.google.storage.v2.HmacKeyMetadata>
-      getUpdateHmacKeyMethod() {
-    io.grpc.MethodDescriptor<
-            com.google.storage.v2.UpdateHmacKeyRequest, com.google.storage.v2.HmacKeyMetadata>
-        getUpdateHmacKeyMethod;
-    if ((getUpdateHmacKeyMethod = StorageGrpc.getUpdateHmacKeyMethod) == null) {
-      synchronized (StorageGrpc.class) {
-        if ((getUpdateHmacKeyMethod = StorageGrpc.getUpdateHmacKeyMethod) == null) {
-          StorageGrpc.getUpdateHmacKeyMethod =
-              getUpdateHmacKeyMethod =
-                  io.grpc.MethodDescriptor
-                      .<com.google.storage.v2.UpdateHmacKeyRequest,
-                          com.google.storage.v2.HmacKeyMetadata>
-                          newBuilder()
-                      .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-                      .setFullMethodName(generateFullMethodName(SERVICE_NAME, "UpdateHmacKey"))
-                      .setSampledToLocalTracing(true)
-                      .setRequestMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.UpdateHmacKeyRequest.getDefaultInstance()))
-                      .setResponseMarshaller(
-                          io.grpc.protobuf.ProtoUtils.marshaller(
-                              com.google.storage.v2.HmacKeyMetadata.getDefaultInstance()))
-                      .setSchemaDescriptor(new StorageMethodDescriptorSupplier("UpdateHmacKey"))
-                      .build();
-        }
-      }
-    }
-    return getUpdateHmacKeyMethod;
+    return getMoveObjectMethod;
   }
 
   /** Creates a new async stub that supports all call types for the service */
@@ -1300,6 +1053,19 @@ public final class StorageGrpc {
           }
         };
     return StorageStub.newStub(factory, channel);
+  }
+
+  /** Creates a new blocking-style stub that supports all types of calls on the service */
+  public static StorageBlockingV2Stub newBlockingV2Stub(io.grpc.Channel channel) {
+    io.grpc.stub.AbstractStub.StubFactory<StorageBlockingV2Stub> factory =
+        new io.grpc.stub.AbstractStub.StubFactory<StorageBlockingV2Stub>() {
+          @java.lang.Override
+          public StorageBlockingV2Stub newStub(
+              io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+            return new StorageBlockingV2Stub(channel, callOptions);
+          }
+        };
+    return StorageBlockingV2Stub.newStub(factory, channel);
   }
 
   /**
@@ -1337,33 +1103,55 @@ public final class StorageGrpc {
    * ## API Overview and Naming Syntax
    * The Cloud Storage gRPC API allows applications to read and write data through
    * the abstractions of buckets and objects. For a description of these
-   * abstractions please see https://cloud.google.com/storage/docs.
+   * abstractions please see [Cloud Storage
+   * documentation](https://cloud.google.com/storage/docs).
    * Resources are named as follows:
    *   - Projects are referred to as they are defined by the Resource Manager API,
    *     using strings like `projects/123456` or `projects/my-string-id`.
    *   - Buckets are named using string names of the form:
-   *     `projects/{project}/buckets/{bucket}`
-   *     For globally unique buckets, `_` may be substituted for the project.
+   *     `projects/{project}/buckets/{bucket}`.
+   *     For globally unique buckets, `_` might be substituted for the project.
    *   - Objects are uniquely identified by their name along with the name of the
    *     bucket they belong to, as separate strings in this API. For example:
-   *       ReadObjectRequest {
+   *         ```
+   *         ReadObjectRequest {
    *         bucket: 'projects/_/buckets/my-bucket'
    *         object: 'my-object'
-   *       }
-   *     Note that object names can contain `/` characters, which are treated as
-   *     any other character (no special directory semantics).
+   *         }
+   *         ```
+   * Note that object names can contain `/` characters, which are treated as
+   * any other character (no special directory semantics).
    * </pre>
    */
-  public abstract static class StorageImplBase implements io.grpc.BindableService {
+  public interface AsyncService {
 
     /**
      *
      *
      * <pre>
      * Permanently deletes an empty bucket.
+     * The request fails if there are any live or
+     * noncurrent objects in the bucket, but the request succeeds if the
+     * bucket only contains soft-deleted objects or incomplete uploads, such
+     * as ongoing XML API multipart uploads. Does not permanently delete
+     * soft-deleted objects.
+     * When this API is used to delete a bucket containing an object that has a
+     * soft delete policy
+     * enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the
+     * object.
+     * Objects and multipart uploads that were in the bucket at the time of
+     * deletion are also retained for the specified retention duration. When
+     * a soft-deleted bucket reaches the end of its retention duration, it
+     * is permanently deleted. The `hardDeleteTime` of the bucket always
+     * equals
+     * or exceeds the expiration time of the last soft-deleted object in the
+     * bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.delete` IAM permission on the bucket.
      * </pre>
      */
-    public void deleteBucket(
+    default void deleteBucket(
         com.google.storage.v2.DeleteBucketRequest request,
         io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1375,9 +1163,16 @@ public final class StorageGrpc {
      *
      * <pre>
      * Returns metadata for the specified bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.get`
+     * IAM permission on
+     * the bucket. Additionally, to return specific bucket metadata, the
+     * authenticated user must have the following permissions:
+     * - To return the IAM policies: `storage.buckets.getIamPolicy`
+     * - To return the bucket IP filtering rules: `storage.buckets.getIpFilter`
      * </pre>
      */
-    public void getBucket(
+    default void getBucket(
         com.google.storage.v2.GetBucketRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.Bucket> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetBucketMethod(), responseObserver);
@@ -1388,9 +1183,16 @@ public final class StorageGrpc {
      *
      * <pre>
      * Creates a new bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.create` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To enable object retention using the `enableObjectRetention` query
+     * parameter: `storage.buckets.enableObjectRetention`
+     * - To set the bucket IP filtering rules: `storage.buckets.setIpFilter`
      * </pre>
      */
-    public void createBucket(
+    default void createBucket(
         com.google.storage.v2.CreateBucketRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.Bucket> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1401,10 +1203,17 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves a list of buckets for a given project.
+     * Retrieves a list of buckets for a given project, ordered
+     * lexicographically by name.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.list` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated
+     * user must have the following permissions:
+     * - To list the IAM policies: `storage.buckets.getIamPolicy`
+     * - To list the bucket IP filtering rules: `storage.buckets.getIpFilter`
      * </pre>
      */
-    public void listBuckets(
+    default void listBuckets(
         com.google.storage.v2.ListBucketsRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.ListBucketsResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1415,10 +1224,23 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Locks retention policy on a bucket.
+     * Permanently locks the retention
+     * policy that is
+     * currently applied to the specified bucket.
+     * Caution: Locking a bucket is an
+     * irreversible action. Once you lock a bucket:
+     * - You cannot remove the retention policy from the bucket.
+     * - You cannot decrease the retention period for the policy.
+     * Once locked, you must delete the entire bucket in order to remove the
+     * bucket's retention policy. However, before you can delete the bucket, you
+     * must delete all the objects in the bucket, which is only
+     * possible if all the objects have reached the retention period set by the
+     * retention policy.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
      * </pre>
      */
-    public void lockBucketRetentionPolicy(
+    default void lockBucketRetentionPolicy(
         com.google.storage.v2.LockBucketRetentionPolicyRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.Bucket> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1429,10 +1251,18 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Gets the IAM policy for a specified bucket or object.
+     * Gets the IAM policy for a specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.getIamPolicy` on the bucket or
+     * `storage.managedFolders.getIamPolicy` IAM permission on the
+     * managed folder.
      * </pre>
      */
-    public void getIamPolicy(
+    default void getIamPolicy(
         com.google.iam.v1.GetIamPolicyRequest request,
         io.grpc.stub.StreamObserver<com.google.iam.v1.Policy> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1443,10 +1273,14 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates an IAM policy for the specified bucket or object.
+     * Updates an IAM policy for the specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
      * </pre>
      */
-    public void setIamPolicy(
+    default void setIamPolicy(
         com.google.iam.v1.SetIamPolicyRequest request,
         io.grpc.stub.StreamObserver<com.google.iam.v1.Policy> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1457,11 +1291,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Tests a set of permissions on the given bucket or object to see which, if
-     * any, are held by the caller.
+     * Tests a set of permissions on the given bucket, object, or managed folder
+     * to see which, if any, are held by the caller. The `resource` field in the
+     * request should be `projects/_/buckets/{bucket}` for a bucket,
+     * `projects/_/buckets/{bucket}/objects/{object}` for an object, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
      * </pre>
      */
-    public void testIamPermissions(
+    default void testIamPermissions(
         com.google.iam.v1.TestIamPermissionsRequest request,
         io.grpc.stub.StreamObserver<com.google.iam.v1.TestIamPermissionsResponse>
             responseObserver) {
@@ -1473,10 +1311,19 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates a bucket. Equivalent to JSON API's storage.buckets.patch method.
+     * Updates a bucket. Changes to the bucket are readable immediately after
+     * writing, but configuration changes might take time to propagate. This
+     * method supports `patch` semantics.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To set bucket IP filtering rules: `storage.buckets.setIpFilter`
+     * - To update public access prevention policies or access control lists
+     * (ACLs): `storage.buckets.setIamPolicy`
      * </pre>
      */
-    public void updateBucket(
+    default void updateBucket(
         com.google.storage.v2.UpdateBucketRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.Bucket> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1487,71 +1334,18 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Permanently deletes a notification subscription.
-     * </pre>
-     */
-    public void deleteNotification(
-        com.google.storage.v2.DeleteNotificationRequest request,
-        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getDeleteNotificationMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * View a notification config.
-     * </pre>
-     */
-    public void getNotification(
-        com.google.storage.v2.GetNotificationRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.Notification> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getGetNotificationMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Creates a notification subscription for a given bucket.
-     * These notifications, when triggered, publish messages to the specified
-     * Pub/Sub topics.
-     * See https://cloud.google.com/storage/docs/pubsub-notifications.
-     * </pre>
-     */
-    public void createNotification(
-        com.google.storage.v2.CreateNotificationRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.Notification> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getCreateNotificationMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Retrieves a list of notification subscriptions for a given bucket.
-     * </pre>
-     */
-    public void listNotifications(
-        com.google.storage.v2.ListNotificationsRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.ListNotificationsResponse>
-            responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getListNotificationsMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
      * Concatenates a list of existing objects into a new object in the same
-     * bucket.
+     * bucket. The existing source objects are unaffected by this operation.
+     * **IAM Permissions**:
+     * Requires the `storage.objects.create` and `storage.objects.get` IAM
+     * permissions to use this method. If the new composite object
+     * overwrites an existing object, the authenticated user must also have
+     * the `storage.objects.delete` permission. If the request body includes
+     * the retention property, the authenticated user must also have the
+     * `storage.objects.setRetention` IAM permission.
      * </pre>
      */
-    public void composeObject(
+    default void composeObject(
         com.google.storage.v2.ComposeObjectRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.Object> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1563,10 +1357,23 @@ public final class StorageGrpc {
      *
      * <pre>
      * Deletes an object and its metadata. Deletions are permanent if versioning
-     * is not enabled for the bucket, or if the `generation` parameter is used.
+     * is not enabled for the bucket, or if the generation parameter is used, or
+     * if soft delete is not
+     * enabled for the bucket.
+     * When this API is used to delete an object from a bucket that has soft
+     * delete policy enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the object.
+     * This API cannot be used to permanently delete soft-deleted objects.
+     * Soft-deleted objects are permanently deleted according to their
+     * `hardDeleteTime`.
+     * You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject]
+     * API to restore soft-deleted objects until the soft delete retention period
+     * has passed.
+     * **IAM Permissions**:
+     * Requires `storage.objects.delete` IAM permission on the bucket.
      * </pre>
      */
-    public void deleteObject(
+    default void deleteObject(
         com.google.storage.v2.DeleteObjectRequest request,
         io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1577,10 +1384,60 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Cancels an in-progress resumable upload.
+     * Restores a
+     * soft-deleted object.
+     * When a soft-deleted object is restored, a new copy of that object is
+     * created in the same bucket and inherits the same metadata as the
+     * soft-deleted object. The inherited metadata is the metadata that existed
+     * when the original object became soft deleted, with the following
+     * exceptions:
+     *   - The `createTime` of the new object is set to the time at which the
+     *   soft-deleted object was restored.
+     *   - The `softDeleteTime` and `hardDeleteTime` values are cleared.
+     *   - A new generation is assigned and the metageneration is reset to 1.
+     *   - If the soft-deleted object was in a bucket that had Autoclass enabled,
+     *   the new object is
+     *     restored to Standard storage.
+     *   - The restored object inherits the bucket's default object ACL, unless
+     *   `copySourceAcl` is `true`.
+     * If a live object using the same name already exists in the bucket and
+     * becomes overwritten, the live object becomes a noncurrent object if Object
+     * Versioning is enabled on the bucket. If Object Versioning is not enabled,
+     * the live object becomes soft deleted.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.restore`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
+     *   - `storage.objects.getIamPolicy` (only required if `projection` is `full`
+     *   and the relevant bucket
+     *     has uniform bucket-level access disabled)
+     *   - `storage.objects.setIamPolicy` (only required if `copySourceAcl` is
+     *   `true` and the relevant
+     *     bucket has uniform bucket-level access disabled)
      * </pre>
      */
-    public void cancelResumableWrite(
+    default void restoreObject(
+        com.google.storage.v2.RestoreObjectRequest request,
+        io.grpc.stub.StreamObserver<com.google.storage.v2.Object> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
+          getRestoreObjectMethod(), responseObserver);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Cancels an in-progress resumable upload.
+     * Any attempts to write to the resumable upload after cancelling the upload
+     * fail.
+     * The behavior for any in-progress write operations is not guaranteed;
+     * they could either complete before the cancellation or fail if the
+     * cancellation completes first.
+     * </pre>
+     */
+    default void cancelResumableWrite(
         com.google.storage.v2.CancelResumableWriteRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.CancelResumableWriteResponse>
             responseObserver) {
@@ -1592,10 +1449,14 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves an object's metadata.
+     * Retrieves object metadata.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
+     * To return object ACLs, the authenticated user must also have
+     * the `storage.objects.getIamPolicy` permission.
      * </pre>
      */
-    public void getObject(
+    default void getObject(
         com.google.storage.v2.GetObjectRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.Object> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetObjectMethod(), responseObserver);
@@ -1605,10 +1466,12 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Reads an object's data.
+     * Retrieves object data.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
      * </pre>
      */
-    public void readObject(
+    default void readObject(
         com.google.storage.v2.ReadObjectRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.ReadObjectResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getReadObjectMethod(), responseObserver);
@@ -1618,11 +1481,35 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates an object's metadata.
-     * Equivalent to JSON API's storage.objects.patch.
+     * Reads an object's data.
+     * This bi-directional API reads data from an object, allowing you to request
+     * multiple data ranges within a single stream, even across several messages.
+     * If an error occurs with any request, the stream closes with a relevant
+     * error code. Since you can have multiple outstanding requests, the error
+     * response includes a `BidiReadObjectError` proto in its `details` field,
+     * reporting the specific error, if any, for each pending `read_id`.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
      * </pre>
      */
-    public void updateObject(
+    default io.grpc.stub.StreamObserver<com.google.storage.v2.BidiReadObjectRequest> bidiReadObject(
+        io.grpc.stub.StreamObserver<com.google.storage.v2.BidiReadObjectResponse>
+            responseObserver) {
+      return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(
+          getBidiReadObjectMethod(), responseObserver);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Updates an object's metadata.
+     * Equivalent to JSON API's `storage.objects.patch` method.
+     * **IAM Permissions**:
+     * Requires `storage.objects.update` IAM permission on the bucket.
+     * </pre>
+     */
+    default void updateObject(
         com.google.storage.v2.UpdateObjectRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.Object> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1649,41 +1536,51 @@ public final class StorageGrpc {
      * follows:
      *   - Check the result Status of the stream, to determine if writing can be
      *     resumed on this stream or must be restarted from scratch (by calling
-     *     `StartResumableWrite()`). The resumable errors are DEADLINE_EXCEEDED,
-     *     INTERNAL, and UNAVAILABLE. For each case, the client should use binary
-     *     exponential backoff before retrying.  Additionally, writes can be
-     *     resumed after RESOURCE_EXHAUSTED errors, but only after taking
-     *     appropriate measures, which may include reducing aggregate send rate
+     *     `StartResumableWrite()`). The resumable errors are `DEADLINE_EXCEEDED`,
+     *     `INTERNAL`, and `UNAVAILABLE`. For each case, the client should use
+     *     binary exponential backoff before retrying.  Additionally, writes can
+     *     be resumed after `RESOURCE_EXHAUSTED` errors, but only after taking
+     *     appropriate measures, which might include reducing aggregate send rate
      *     across clients and/or requesting a quota increase for your project.
      *   - If the call to `WriteObject` returns `ABORTED`, that indicates
      *     concurrent attempts to update the resumable write, caused either by
      *     multiple racing clients or by a single client where the previous
      *     request was timed out on the client side but nonetheless reached the
      *     server. In this case the client should take steps to prevent further
-     *     concurrent writes (e.g., increase the timeouts, stop using more than
-     *     one process to perform the upload, etc.), and then should follow the
-     *     steps below for resuming the upload.
+     *     concurrent writes. For example, increase the timeouts and stop using
+     *     more than one process to perform the upload. Follow the steps below for
+     *     resuming the upload.
      *   - For resumable errors, the client should call `QueryWriteStatus()` and
-     *     then continue writing from the returned `persisted_size`. This may be
+     *     then continue writing from the returned `persisted_size`. This might be
      *     less than the amount of data the client previously sent. Note also that
      *     it is acceptable to send data starting at an offset earlier than the
-     *     returned `persisted_size`; in this case, the service will skip data at
+     *     returned `persisted_size`; in this case, the service skips data at
      *     offsets that were already persisted (without checking that it matches
      *     the previously written data), and write only the data starting from the
-     *     persisted offset. This behavior can make client-side handling simpler
-     *     in some cases.
-     * The service will not view the object as complete until the client has
+     *     persisted offset. Even though the data isn't written, it might still
+     *     incur a performance cost over resuming at the correct write offset.
+     *     This behavior can make client-side handling simpler in some cases.
+     *   - Clients must only send data that is a multiple of 256 KiB per message,
+     *     unless the object is being finished with `finish_write` set to `true`.
+     * The service does not view the object as complete until the client has
      * sent a `WriteObjectRequest` with `finish_write` set to `true`. Sending any
      * requests on a stream after sending a request with `finish_write` set to
-     * `true` will cause an error. The client **should** check the response it
-     * receives to determine how much data the service was able to commit and
+     * `true` causes an error. The client must check the response it
+     * receives to determine how much data the service is able to commit and
      * whether the service views the object as complete.
-     * Attempting to resume an already finalized object will result in an OK
-     * status, with a WriteObjectResponse containing the finalized object's
+     * Attempting to resume an already finalized object results in an `OK`
+     * status, with a `WriteObjectResponse` containing the finalized object's
      * metadata.
+     * Alternatively, you can use the `BidiWriteObject` operation to write an
+     * object with controls over flushing and the ability to fetch the ability to
+     * determine the current persisted size.
+     * **IAM Permissions**:
+     * Requires `storage.objects.create`
+     * IAM permission on
+     * the bucket.
      * </pre>
      */
-    public io.grpc.stub.StreamObserver<com.google.storage.v2.WriteObjectRequest> writeObject(
+    default io.grpc.stub.StreamObserver<com.google.storage.v2.WriteObjectRequest> writeObject(
         io.grpc.stub.StreamObserver<com.google.storage.v2.WriteObjectResponse> responseObserver) {
       return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(
           getWriteObjectMethod(), responseObserver);
@@ -1693,10 +1590,42 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves a list of objects matching the criteria.
+     * Stores a new object and metadata.
+     * This is similar to the `WriteObject` call with the added support for
+     * manual flushing of persisted state, and the ability to determine current
+     * persisted size without closing the stream.
+     * The client might specify one or both of the `state_lookup` and `flush`
+     * fields in each `BidiWriteObjectRequest`. If `flush` is specified, the data
+     * written so far is persisted to storage. If `state_lookup` is specified, the
+     * service responds with a `BidiWriteObjectResponse` that contains the
+     * persisted size. If both `flush` and `state_lookup` are specified, the flush
+     * always occurs before a `state_lookup`, so that both might be set in the
+     * same request and the returned state is the state of the object
+     * post-flush. When the stream is closed, a `BidiWriteObjectResponse`
+     * is always sent to the client, regardless of the value of `state_lookup`.
      * </pre>
      */
-    public void listObjects(
+    default io.grpc.stub.StreamObserver<com.google.storage.v2.BidiWriteObjectRequest>
+        bidiWriteObject(
+            io.grpc.stub.StreamObserver<com.google.storage.v2.BidiWriteObjectResponse>
+                responseObserver) {
+      return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(
+          getBidiWriteObjectMethod(), responseObserver);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Retrieves a list of objects matching the criteria.
+     * **IAM Permissions**:
+     * The authenticated user requires `storage.objects.list`
+     * IAM permission to use this method. To return object ACLs, the
+     * authenticated user must also
+     * have the `storage.objects.getIamPolicy` permission.
+     * </pre>
+     */
+    default void listObjects(
         com.google.storage.v2.ListObjectsRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.ListObjectsResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1711,7 +1640,7 @@ public final class StorageGrpc {
      * metadata.
      * </pre>
      */
-    public void rewriteObject(
+    default void rewriteObject(
         com.google.storage.v2.RewriteObjectRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.RewriteResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
@@ -1722,12 +1651,18 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Starts a resumable write. How long the write operation remains valid, and
-     * what happens when the write operation becomes invalid, are
-     * service-dependent.
+     * Starts a resumable write operation. This
+     * method is part of the Resumable
+     * upload feature.
+     * This allows you to upload large objects in multiple chunks, which is more
+     * resilient to network interruptions than a single upload. The validity
+     * duration of the write operation, and the consequences of it becoming
+     * invalid, are service-dependent.
+     * **IAM Permissions**:
+     * Requires `storage.objects.create` IAM permission on the bucket.
      * </pre>
      */
-    public void startResumableWrite(
+    default void startResumableWrite(
         com.google.storage.v2.StartResumableWriteRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.StartResumableWriteResponse>
             responseObserver) {
@@ -1739,20 +1674,24 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Determines the `persisted_size` for an object that is being written, which
-     * can then be used as the `write_offset` for the next `Write()` call.
-     * If the object does not exist (i.e., the object has been deleted, or the
-     * first `Write()` has not yet reached the service), this method returns the
+     * Determines the `persisted_size` of an object that is being written. This
+     * method is part of the resumable
+     * upload feature.
+     * The returned value is the size of the object that has been persisted so
+     * far. The value can be used as the `write_offset` for the next `Write()`
+     * call.
+     * If the object does not exist, meaning if it was deleted, or the
+     * first `Write()` has not yet reached the service, this method returns the
      * error `NOT_FOUND`.
-     * The client **may** call `QueryWriteStatus()` at any time to determine how
-     * much data has been processed for this object. This is useful if the
-     * client is buffering data and needs to know which data can be safely
-     * evicted. For any sequence of `QueryWriteStatus()` calls for a given
-     * object name, the sequence of returned `persisted_size` values will be
+     * This method is useful for clients that buffer data and need to know which
+     * data can be safely evicted. The client can call `QueryWriteStatus()` at any
+     * time to determine how much data has been logged for this object.
+     * For any sequence of `QueryWriteStatus()` calls for a given
+     * object name, the sequence of returned `persisted_size` values are
      * non-decreasing.
      * </pre>
      */
-    public void queryWriteStatus(
+    default void queryWriteStatus(
         com.google.storage.v2.QueryWriteStatusRequest request,
         io.grpc.stub.StreamObserver<com.google.storage.v2.QueryWriteStatusResponse>
             responseObserver) {
@@ -1764,299 +1703,86 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves the name of a project's Google Cloud Storage service account.
+     * Moves the source object to the destination object in the same bucket.
+     * This operation moves a source object to a destination object in the
+     * same bucket by renaming the object. The move itself is an atomic
+     * transaction, ensuring all steps either complete successfully or no
+     * changes are made.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.move`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
      * </pre>
      */
-    public void getServiceAccount(
-        com.google.storage.v2.GetServiceAccountRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.ServiceAccount> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getGetServiceAccountMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Creates a new HMAC key for the given service account.
-     * </pre>
-     */
-    public void createHmacKey(
-        com.google.storage.v2.CreateHmacKeyRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.CreateHmacKeyResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getCreateHmacKeyMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Deletes a given HMAC key.  Key must be in an INACTIVE state.
-     * </pre>
-     */
-    public void deleteHmacKey(
-        com.google.storage.v2.DeleteHmacKeyRequest request,
-        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getDeleteHmacKeyMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Gets an existing HMAC key metadata for the given id.
-     * </pre>
-     */
-    public void getHmacKey(
-        com.google.storage.v2.GetHmacKeyRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.HmacKeyMetadata> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetHmacKeyMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Lists HMAC keys under a given project with the additional filters provided.
-     * </pre>
-     */
-    public void listHmacKeys(
-        com.google.storage.v2.ListHmacKeysRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.ListHmacKeysResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getListHmacKeysMethod(), responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Updates a given HMAC key state between ACTIVE and INACTIVE.
-     * </pre>
-     */
-    public void updateHmacKey(
-        com.google.storage.v2.UpdateHmacKeyRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.HmacKeyMetadata> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(
-          getUpdateHmacKeyMethod(), responseObserver);
-    }
-
-    @java.lang.Override
-    public final io.grpc.ServerServiceDefinition bindService() {
-      return io.grpc.ServerServiceDefinition.builder(getServiceDescriptor())
-          .addMethod(
-              getDeleteBucketMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.DeleteBucketRequest, com.google.protobuf.Empty>(
-                      this, METHODID_DELETE_BUCKET)))
-          .addMethod(
-              getGetBucketMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.GetBucketRequest, com.google.storage.v2.Bucket>(
-                      this, METHODID_GET_BUCKET)))
-          .addMethod(
-              getCreateBucketMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.CreateBucketRequest, com.google.storage.v2.Bucket>(
-                      this, METHODID_CREATE_BUCKET)))
-          .addMethod(
-              getListBucketsMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.ListBucketsRequest,
-                      com.google.storage.v2.ListBucketsResponse>(this, METHODID_LIST_BUCKETS)))
-          .addMethod(
-              getLockBucketRetentionPolicyMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.LockBucketRetentionPolicyRequest,
-                      com.google.storage.v2.Bucket>(this, METHODID_LOCK_BUCKET_RETENTION_POLICY)))
-          .addMethod(
-              getGetIamPolicyMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.iam.v1.GetIamPolicyRequest, com.google.iam.v1.Policy>(
-                      this, METHODID_GET_IAM_POLICY)))
-          .addMethod(
-              getSetIamPolicyMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.iam.v1.SetIamPolicyRequest, com.google.iam.v1.Policy>(
-                      this, METHODID_SET_IAM_POLICY)))
-          .addMethod(
-              getTestIamPermissionsMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.iam.v1.TestIamPermissionsRequest,
-                      com.google.iam.v1.TestIamPermissionsResponse>(
-                      this, METHODID_TEST_IAM_PERMISSIONS)))
-          .addMethod(
-              getUpdateBucketMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.UpdateBucketRequest, com.google.storage.v2.Bucket>(
-                      this, METHODID_UPDATE_BUCKET)))
-          .addMethod(
-              getDeleteNotificationMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.DeleteNotificationRequest, com.google.protobuf.Empty>(
-                      this, METHODID_DELETE_NOTIFICATION)))
-          .addMethod(
-              getGetNotificationMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.GetNotificationRequest,
-                      com.google.storage.v2.Notification>(this, METHODID_GET_NOTIFICATION)))
-          .addMethod(
-              getCreateNotificationMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.CreateNotificationRequest,
-                      com.google.storage.v2.Notification>(this, METHODID_CREATE_NOTIFICATION)))
-          .addMethod(
-              getListNotificationsMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.ListNotificationsRequest,
-                      com.google.storage.v2.ListNotificationsResponse>(
-                      this, METHODID_LIST_NOTIFICATIONS)))
-          .addMethod(
-              getComposeObjectMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.ComposeObjectRequest, com.google.storage.v2.Object>(
-                      this, METHODID_COMPOSE_OBJECT)))
-          .addMethod(
-              getDeleteObjectMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.DeleteObjectRequest, com.google.protobuf.Empty>(
-                      this, METHODID_DELETE_OBJECT)))
-          .addMethod(
-              getCancelResumableWriteMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.CancelResumableWriteRequest,
-                      com.google.storage.v2.CancelResumableWriteResponse>(
-                      this, METHODID_CANCEL_RESUMABLE_WRITE)))
-          .addMethod(
-              getGetObjectMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.GetObjectRequest, com.google.storage.v2.Object>(
-                      this, METHODID_GET_OBJECT)))
-          .addMethod(
-              getReadObjectMethod(),
-              io.grpc.stub.ServerCalls.asyncServerStreamingCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.ReadObjectRequest,
-                      com.google.storage.v2.ReadObjectResponse>(this, METHODID_READ_OBJECT)))
-          .addMethod(
-              getUpdateObjectMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.UpdateObjectRequest, com.google.storage.v2.Object>(
-                      this, METHODID_UPDATE_OBJECT)))
-          .addMethod(
-              getWriteObjectMethod(),
-              io.grpc.stub.ServerCalls.asyncClientStreamingCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.WriteObjectRequest,
-                      com.google.storage.v2.WriteObjectResponse>(this, METHODID_WRITE_OBJECT)))
-          .addMethod(
-              getListObjectsMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.ListObjectsRequest,
-                      com.google.storage.v2.ListObjectsResponse>(this, METHODID_LIST_OBJECTS)))
-          .addMethod(
-              getRewriteObjectMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.RewriteObjectRequest,
-                      com.google.storage.v2.RewriteResponse>(this, METHODID_REWRITE_OBJECT)))
-          .addMethod(
-              getStartResumableWriteMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.StartResumableWriteRequest,
-                      com.google.storage.v2.StartResumableWriteResponse>(
-                      this, METHODID_START_RESUMABLE_WRITE)))
-          .addMethod(
-              getQueryWriteStatusMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.QueryWriteStatusRequest,
-                      com.google.storage.v2.QueryWriteStatusResponse>(
-                      this, METHODID_QUERY_WRITE_STATUS)))
-          .addMethod(
-              getGetServiceAccountMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.GetServiceAccountRequest,
-                      com.google.storage.v2.ServiceAccount>(this, METHODID_GET_SERVICE_ACCOUNT)))
-          .addMethod(
-              getCreateHmacKeyMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.CreateHmacKeyRequest,
-                      com.google.storage.v2.CreateHmacKeyResponse>(this, METHODID_CREATE_HMAC_KEY)))
-          .addMethod(
-              getDeleteHmacKeyMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.DeleteHmacKeyRequest, com.google.protobuf.Empty>(
-                      this, METHODID_DELETE_HMAC_KEY)))
-          .addMethod(
-              getGetHmacKeyMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.GetHmacKeyRequest,
-                      com.google.storage.v2.HmacKeyMetadata>(this, METHODID_GET_HMAC_KEY)))
-          .addMethod(
-              getListHmacKeysMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.ListHmacKeysRequest,
-                      com.google.storage.v2.ListHmacKeysResponse>(this, METHODID_LIST_HMAC_KEYS)))
-          .addMethod(
-              getUpdateHmacKeyMethod(),
-              io.grpc.stub.ServerCalls.asyncUnaryCall(
-                  new MethodHandlers<
-                      com.google.storage.v2.UpdateHmacKeyRequest,
-                      com.google.storage.v2.HmacKeyMetadata>(this, METHODID_UPDATE_HMAC_KEY)))
-          .build();
+    default void moveObject(
+        com.google.storage.v2.MoveObjectRequest request,
+        io.grpc.stub.StreamObserver<com.google.storage.v2.Object> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getMoveObjectMethod(), responseObserver);
     }
   }
 
   /**
-   *
+   * Base class for the server implementation of the service Storage.
    *
    * <pre>
    * ## API Overview and Naming Syntax
    * The Cloud Storage gRPC API allows applications to read and write data through
    * the abstractions of buckets and objects. For a description of these
-   * abstractions please see https://cloud.google.com/storage/docs.
+   * abstractions please see [Cloud Storage
+   * documentation](https://cloud.google.com/storage/docs).
    * Resources are named as follows:
    *   - Projects are referred to as they are defined by the Resource Manager API,
    *     using strings like `projects/123456` or `projects/my-string-id`.
    *   - Buckets are named using string names of the form:
-   *     `projects/{project}/buckets/{bucket}`
-   *     For globally unique buckets, `_` may be substituted for the project.
+   *     `projects/{project}/buckets/{bucket}`.
+   *     For globally unique buckets, `_` might be substituted for the project.
    *   - Objects are uniquely identified by their name along with the name of the
    *     bucket they belong to, as separate strings in this API. For example:
-   *       ReadObjectRequest {
+   *         ```
+   *         ReadObjectRequest {
    *         bucket: 'projects/_/buckets/my-bucket'
    *         object: 'my-object'
-   *       }
-   *     Note that object names can contain `/` characters, which are treated as
-   *     any other character (no special directory semantics).
+   *         }
+   *         ```
+   * Note that object names can contain `/` characters, which are treated as
+   * any other character (no special directory semantics).
+   * </pre>
+   */
+  public abstract static class StorageImplBase implements io.grpc.BindableService, AsyncService {
+
+    @java.lang.Override
+    public final io.grpc.ServerServiceDefinition bindService() {
+      return StorageGrpc.bindService(this);
+    }
+  }
+
+  /**
+   * A stub to allow clients to do asynchronous rpc calls to service Storage.
+   *
+   * <pre>
+   * ## API Overview and Naming Syntax
+   * The Cloud Storage gRPC API allows applications to read and write data through
+   * the abstractions of buckets and objects. For a description of these
+   * abstractions please see [Cloud Storage
+   * documentation](https://cloud.google.com/storage/docs).
+   * Resources are named as follows:
+   *   - Projects are referred to as they are defined by the Resource Manager API,
+   *     using strings like `projects/123456` or `projects/my-string-id`.
+   *   - Buckets are named using string names of the form:
+   *     `projects/{project}/buckets/{bucket}`.
+   *     For globally unique buckets, `_` might be substituted for the project.
+   *   - Objects are uniquely identified by their name along with the name of the
+   *     bucket they belong to, as separate strings in this API. For example:
+   *         ```
+   *         ReadObjectRequest {
+   *         bucket: 'projects/_/buckets/my-bucket'
+   *         object: 'my-object'
+   *         }
+   *         ```
+   * Note that object names can contain `/` characters, which are treated as
+   * any other character (no special directory semantics).
    * </pre>
    */
   public static final class StorageStub extends io.grpc.stub.AbstractAsyncStub<StorageStub> {
@@ -2074,6 +1800,25 @@ public final class StorageGrpc {
      *
      * <pre>
      * Permanently deletes an empty bucket.
+     * The request fails if there are any live or
+     * noncurrent objects in the bucket, but the request succeeds if the
+     * bucket only contains soft-deleted objects or incomplete uploads, such
+     * as ongoing XML API multipart uploads. Does not permanently delete
+     * soft-deleted objects.
+     * When this API is used to delete a bucket containing an object that has a
+     * soft delete policy
+     * enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the
+     * object.
+     * Objects and multipart uploads that were in the bucket at the time of
+     * deletion are also retained for the specified retention duration. When
+     * a soft-deleted bucket reaches the end of its retention duration, it
+     * is permanently deleted. The `hardDeleteTime` of the bucket always
+     * equals
+     * or exceeds the expiration time of the last soft-deleted object in the
+     * bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.delete` IAM permission on the bucket.
      * </pre>
      */
     public void deleteBucket(
@@ -2090,6 +1835,13 @@ public final class StorageGrpc {
      *
      * <pre>
      * Returns metadata for the specified bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.get`
+     * IAM permission on
+     * the bucket. Additionally, to return specific bucket metadata, the
+     * authenticated user must have the following permissions:
+     * - To return the IAM policies: `storage.buckets.getIamPolicy`
+     * - To return the bucket IP filtering rules: `storage.buckets.getIpFilter`
      * </pre>
      */
     public void getBucket(
@@ -2104,6 +1856,13 @@ public final class StorageGrpc {
      *
      * <pre>
      * Creates a new bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.create` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To enable object retention using the `enableObjectRetention` query
+     * parameter: `storage.buckets.enableObjectRetention`
+     * - To set the bucket IP filtering rules: `storage.buckets.setIpFilter`
      * </pre>
      */
     public void createBucket(
@@ -2119,7 +1878,14 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves a list of buckets for a given project.
+     * Retrieves a list of buckets for a given project, ordered
+     * lexicographically by name.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.list` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated
+     * user must have the following permissions:
+     * - To list the IAM policies: `storage.buckets.getIamPolicy`
+     * - To list the bucket IP filtering rules: `storage.buckets.getIpFilter`
      * </pre>
      */
     public void listBuckets(
@@ -2135,7 +1901,20 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Locks retention policy on a bucket.
+     * Permanently locks the retention
+     * policy that is
+     * currently applied to the specified bucket.
+     * Caution: Locking a bucket is an
+     * irreversible action. Once you lock a bucket:
+     * - You cannot remove the retention policy from the bucket.
+     * - You cannot decrease the retention period for the policy.
+     * Once locked, you must delete the entire bucket in order to remove the
+     * bucket's retention policy. However, before you can delete the bucket, you
+     * must delete all the objects in the bucket, which is only
+     * possible if all the objects have reached the retention period set by the
+     * retention policy.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
      * </pre>
      */
     public void lockBucketRetentionPolicy(
@@ -2151,7 +1930,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Gets the IAM policy for a specified bucket or object.
+     * Gets the IAM policy for a specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.getIamPolicy` on the bucket or
+     * `storage.managedFolders.getIamPolicy` IAM permission on the
+     * managed folder.
      * </pre>
      */
     public void getIamPolicy(
@@ -2167,7 +1954,11 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates an IAM policy for the specified bucket or object.
+     * Updates an IAM policy for the specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
      * </pre>
      */
     public void setIamPolicy(
@@ -2183,8 +1974,12 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Tests a set of permissions on the given bucket or object to see which, if
-     * any, are held by the caller.
+     * Tests a set of permissions on the given bucket, object, or managed folder
+     * to see which, if any, are held by the caller. The `resource` field in the
+     * request should be `projects/_/buckets/{bucket}` for a bucket,
+     * `projects/_/buckets/{bucket}/objects/{object}` for an object, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
      * </pre>
      */
     public void testIamPermissions(
@@ -2201,7 +1996,16 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates a bucket. Equivalent to JSON API's storage.buckets.patch method.
+     * Updates a bucket. Changes to the bucket are readable immediately after
+     * writing, but configuration changes might take time to propagate. This
+     * method supports `patch` semantics.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To set bucket IP filtering rules: `storage.buckets.setIpFilter`
+     * - To update public access prevention policies or access control lists
+     * (ACLs): `storage.buckets.setIamPolicy`
      * </pre>
      */
     public void updateBucket(
@@ -2217,76 +2021,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Permanently deletes a notification subscription.
-     * </pre>
-     */
-    public void deleteNotification(
-        com.google.storage.v2.DeleteNotificationRequest request,
-        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getDeleteNotificationMethod(), getCallOptions()),
-          request,
-          responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * View a notification config.
-     * </pre>
-     */
-    public void getNotification(
-        com.google.storage.v2.GetNotificationRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.Notification> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetNotificationMethod(), getCallOptions()),
-          request,
-          responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Creates a notification subscription for a given bucket.
-     * These notifications, when triggered, publish messages to the specified
-     * Pub/Sub topics.
-     * See https://cloud.google.com/storage/docs/pubsub-notifications.
-     * </pre>
-     */
-    public void createNotification(
-        com.google.storage.v2.CreateNotificationRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.Notification> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getCreateNotificationMethod(), getCallOptions()),
-          request,
-          responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Retrieves a list of notification subscriptions for a given bucket.
-     * </pre>
-     */
-    public void listNotifications(
-        com.google.storage.v2.ListNotificationsRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.ListNotificationsResponse>
-            responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListNotificationsMethod(), getCallOptions()),
-          request,
-          responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
      * Concatenates a list of existing objects into a new object in the same
-     * bucket.
+     * bucket. The existing source objects are unaffected by this operation.
+     * **IAM Permissions**:
+     * Requires the `storage.objects.create` and `storage.objects.get` IAM
+     * permissions to use this method. If the new composite object
+     * overwrites an existing object, the authenticated user must also have
+     * the `storage.objects.delete` permission. If the request body includes
+     * the retention property, the authenticated user must also have the
+     * `storage.objects.setRetention` IAM permission.
      * </pre>
      */
     public void composeObject(
@@ -2303,7 +2046,20 @@ public final class StorageGrpc {
      *
      * <pre>
      * Deletes an object and its metadata. Deletions are permanent if versioning
-     * is not enabled for the bucket, or if the `generation` parameter is used.
+     * is not enabled for the bucket, or if the generation parameter is used, or
+     * if soft delete is not
+     * enabled for the bucket.
+     * When this API is used to delete an object from a bucket that has soft
+     * delete policy enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the object.
+     * This API cannot be used to permanently delete soft-deleted objects.
+     * Soft-deleted objects are permanently deleted according to their
+     * `hardDeleteTime`.
+     * You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject]
+     * API to restore soft-deleted objects until the soft delete retention period
+     * has passed.
+     * **IAM Permissions**:
+     * Requires `storage.objects.delete` IAM permission on the bucket.
      * </pre>
      */
     public void deleteObject(
@@ -2319,7 +2075,59 @@ public final class StorageGrpc {
      *
      *
      * <pre>
+     * Restores a
+     * soft-deleted object.
+     * When a soft-deleted object is restored, a new copy of that object is
+     * created in the same bucket and inherits the same metadata as the
+     * soft-deleted object. The inherited metadata is the metadata that existed
+     * when the original object became soft deleted, with the following
+     * exceptions:
+     *   - The `createTime` of the new object is set to the time at which the
+     *   soft-deleted object was restored.
+     *   - The `softDeleteTime` and `hardDeleteTime` values are cleared.
+     *   - A new generation is assigned and the metageneration is reset to 1.
+     *   - If the soft-deleted object was in a bucket that had Autoclass enabled,
+     *   the new object is
+     *     restored to Standard storage.
+     *   - The restored object inherits the bucket's default object ACL, unless
+     *   `copySourceAcl` is `true`.
+     * If a live object using the same name already exists in the bucket and
+     * becomes overwritten, the live object becomes a noncurrent object if Object
+     * Versioning is enabled on the bucket. If Object Versioning is not enabled,
+     * the live object becomes soft deleted.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.restore`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
+     *   - `storage.objects.getIamPolicy` (only required if `projection` is `full`
+     *   and the relevant bucket
+     *     has uniform bucket-level access disabled)
+     *   - `storage.objects.setIamPolicy` (only required if `copySourceAcl` is
+     *   `true` and the relevant
+     *     bucket has uniform bucket-level access disabled)
+     * </pre>
+     */
+    public void restoreObject(
+        com.google.storage.v2.RestoreObjectRequest request,
+        io.grpc.stub.StreamObserver<com.google.storage.v2.Object> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRestoreObjectMethod(), getCallOptions()),
+          request,
+          responseObserver);
+    }
+
+    /**
+     *
+     *
+     * <pre>
      * Cancels an in-progress resumable upload.
+     * Any attempts to write to the resumable upload after cancelling the upload
+     * fail.
+     * The behavior for any in-progress write operations is not guaranteed;
+     * they could either complete before the cancellation or fail if the
+     * cancellation completes first.
      * </pre>
      */
     public void cancelResumableWrite(
@@ -2336,7 +2144,11 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves an object's metadata.
+     * Retrieves object metadata.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
+     * To return object ACLs, the authenticated user must also have
+     * the `storage.objects.getIamPolicy` permission.
      * </pre>
      */
     public void getObject(
@@ -2350,7 +2162,9 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Reads an object's data.
+     * Retrieves object data.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
      * </pre>
      */
     public void readObject(
@@ -2364,8 +2178,32 @@ public final class StorageGrpc {
      *
      *
      * <pre>
+     * Reads an object's data.
+     * This bi-directional API reads data from an object, allowing you to request
+     * multiple data ranges within a single stream, even across several messages.
+     * If an error occurs with any request, the stream closes with a relevant
+     * error code. Since you can have multiple outstanding requests, the error
+     * response includes a `BidiReadObjectError` proto in its `details` field,
+     * reporting the specific error, if any, for each pending `read_id`.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
+     * </pre>
+     */
+    public io.grpc.stub.StreamObserver<com.google.storage.v2.BidiReadObjectRequest> bidiReadObject(
+        io.grpc.stub.StreamObserver<com.google.storage.v2.BidiReadObjectResponse>
+            responseObserver) {
+      return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
+          getChannel().newCall(getBidiReadObjectMethod(), getCallOptions()), responseObserver);
+    }
+
+    /**
+     *
+     *
+     * <pre>
      * Updates an object's metadata.
-     * Equivalent to JSON API's storage.objects.patch.
+     * Equivalent to JSON API's `storage.objects.patch` method.
+     * **IAM Permissions**:
+     * Requires `storage.objects.update` IAM permission on the bucket.
      * </pre>
      */
     public void updateObject(
@@ -2397,38 +2235,48 @@ public final class StorageGrpc {
      * follows:
      *   - Check the result Status of the stream, to determine if writing can be
      *     resumed on this stream or must be restarted from scratch (by calling
-     *     `StartResumableWrite()`). The resumable errors are DEADLINE_EXCEEDED,
-     *     INTERNAL, and UNAVAILABLE. For each case, the client should use binary
-     *     exponential backoff before retrying.  Additionally, writes can be
-     *     resumed after RESOURCE_EXHAUSTED errors, but only after taking
-     *     appropriate measures, which may include reducing aggregate send rate
+     *     `StartResumableWrite()`). The resumable errors are `DEADLINE_EXCEEDED`,
+     *     `INTERNAL`, and `UNAVAILABLE`. For each case, the client should use
+     *     binary exponential backoff before retrying.  Additionally, writes can
+     *     be resumed after `RESOURCE_EXHAUSTED` errors, but only after taking
+     *     appropriate measures, which might include reducing aggregate send rate
      *     across clients and/or requesting a quota increase for your project.
      *   - If the call to `WriteObject` returns `ABORTED`, that indicates
      *     concurrent attempts to update the resumable write, caused either by
      *     multiple racing clients or by a single client where the previous
      *     request was timed out on the client side but nonetheless reached the
      *     server. In this case the client should take steps to prevent further
-     *     concurrent writes (e.g., increase the timeouts, stop using more than
-     *     one process to perform the upload, etc.), and then should follow the
-     *     steps below for resuming the upload.
+     *     concurrent writes. For example, increase the timeouts and stop using
+     *     more than one process to perform the upload. Follow the steps below for
+     *     resuming the upload.
      *   - For resumable errors, the client should call `QueryWriteStatus()` and
-     *     then continue writing from the returned `persisted_size`. This may be
+     *     then continue writing from the returned `persisted_size`. This might be
      *     less than the amount of data the client previously sent. Note also that
      *     it is acceptable to send data starting at an offset earlier than the
-     *     returned `persisted_size`; in this case, the service will skip data at
+     *     returned `persisted_size`; in this case, the service skips data at
      *     offsets that were already persisted (without checking that it matches
      *     the previously written data), and write only the data starting from the
-     *     persisted offset. This behavior can make client-side handling simpler
-     *     in some cases.
-     * The service will not view the object as complete until the client has
+     *     persisted offset. Even though the data isn't written, it might still
+     *     incur a performance cost over resuming at the correct write offset.
+     *     This behavior can make client-side handling simpler in some cases.
+     *   - Clients must only send data that is a multiple of 256 KiB per message,
+     *     unless the object is being finished with `finish_write` set to `true`.
+     * The service does not view the object as complete until the client has
      * sent a `WriteObjectRequest` with `finish_write` set to `true`. Sending any
      * requests on a stream after sending a request with `finish_write` set to
-     * `true` will cause an error. The client **should** check the response it
-     * receives to determine how much data the service was able to commit and
+     * `true` causes an error. The client must check the response it
+     * receives to determine how much data the service is able to commit and
      * whether the service views the object as complete.
-     * Attempting to resume an already finalized object will result in an OK
-     * status, with a WriteObjectResponse containing the finalized object's
+     * Attempting to resume an already finalized object results in an `OK`
+     * status, with a `WriteObjectResponse` containing the finalized object's
      * metadata.
+     * Alternatively, you can use the `BidiWriteObject` operation to write an
+     * object with controls over flushing and the ability to fetch the ability to
+     * determine the current persisted size.
+     * **IAM Permissions**:
+     * Requires `storage.objects.create`
+     * IAM permission on
+     * the bucket.
      * </pre>
      */
     public io.grpc.stub.StreamObserver<com.google.storage.v2.WriteObjectRequest> writeObject(
@@ -2441,7 +2289,39 @@ public final class StorageGrpc {
      *
      *
      * <pre>
+     * Stores a new object and metadata.
+     * This is similar to the `WriteObject` call with the added support for
+     * manual flushing of persisted state, and the ability to determine current
+     * persisted size without closing the stream.
+     * The client might specify one or both of the `state_lookup` and `flush`
+     * fields in each `BidiWriteObjectRequest`. If `flush` is specified, the data
+     * written so far is persisted to storage. If `state_lookup` is specified, the
+     * service responds with a `BidiWriteObjectResponse` that contains the
+     * persisted size. If both `flush` and `state_lookup` are specified, the flush
+     * always occurs before a `state_lookup`, so that both might be set in the
+     * same request and the returned state is the state of the object
+     * post-flush. When the stream is closed, a `BidiWriteObjectResponse`
+     * is always sent to the client, regardless of the value of `state_lookup`.
+     * </pre>
+     */
+    public io.grpc.stub.StreamObserver<com.google.storage.v2.BidiWriteObjectRequest>
+        bidiWriteObject(
+            io.grpc.stub.StreamObserver<com.google.storage.v2.BidiWriteObjectResponse>
+                responseObserver) {
+      return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
+          getChannel().newCall(getBidiWriteObjectMethod(), getCallOptions()), responseObserver);
+    }
+
+    /**
+     *
+     *
+     * <pre>
      * Retrieves a list of objects matching the criteria.
+     * **IAM Permissions**:
+     * The authenticated user requires `storage.objects.list`
+     * IAM permission to use this method. To return object ACLs, the
+     * authenticated user must also
+     * have the `storage.objects.getIamPolicy` permission.
      * </pre>
      */
     public void listObjects(
@@ -2474,9 +2354,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Starts a resumable write. How long the write operation remains valid, and
-     * what happens when the write operation becomes invalid, are
-     * service-dependent.
+     * Starts a resumable write operation. This
+     * method is part of the Resumable
+     * upload feature.
+     * This allows you to upload large objects in multiple chunks, which is more
+     * resilient to network interruptions than a single upload. The validity
+     * duration of the write operation, and the consequences of it becoming
+     * invalid, are service-dependent.
+     * **IAM Permissions**:
+     * Requires `storage.objects.create` IAM permission on the bucket.
      * </pre>
      */
     public void startResumableWrite(
@@ -2493,16 +2379,20 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Determines the `persisted_size` for an object that is being written, which
-     * can then be used as the `write_offset` for the next `Write()` call.
-     * If the object does not exist (i.e., the object has been deleted, or the
-     * first `Write()` has not yet reached the service), this method returns the
+     * Determines the `persisted_size` of an object that is being written. This
+     * method is part of the resumable
+     * upload feature.
+     * The returned value is the size of the object that has been persisted so
+     * far. The value can be used as the `write_offset` for the next `Write()`
+     * call.
+     * If the object does not exist, meaning if it was deleted, or the
+     * first `Write()` has not yet reached the service, this method returns the
      * error `NOT_FOUND`.
-     * The client **may** call `QueryWriteStatus()` at any time to determine how
-     * much data has been processed for this object. This is useful if the
-     * client is buffering data and needs to know which data can be safely
-     * evicted. For any sequence of `QueryWriteStatus()` calls for a given
-     * object name, the sequence of returned `persisted_size` values will be
+     * This method is useful for clients that buffer data and need to know which
+     * data can be safely evicted. The client can call `QueryWriteStatus()` at any
+     * time to determine how much data has been logged for this object.
+     * For any sequence of `QueryWriteStatus()` calls for a given
+     * object name, the sequence of returned `persisted_size` values are
      * non-decreasing.
      * </pre>
      */
@@ -2520,119 +2410,675 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves the name of a project's Google Cloud Storage service account.
+     * Moves the source object to the destination object in the same bucket.
+     * This operation moves a source object to a destination object in the
+     * same bucket by renaming the object. The move itself is an atomic
+     * transaction, ensuring all steps either complete successfully or no
+     * changes are made.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.move`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
      * </pre>
      */
-    public void getServiceAccount(
-        com.google.storage.v2.GetServiceAccountRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.ServiceAccount> responseObserver) {
+    public void moveObject(
+        com.google.storage.v2.MoveObjectRequest request,
+        io.grpc.stub.StreamObserver<com.google.storage.v2.Object> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetServiceAccountMethod(), getCallOptions()),
-          request,
-          responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Creates a new HMAC key for the given service account.
-     * </pre>
-     */
-    public void createHmacKey(
-        com.google.storage.v2.CreateHmacKeyRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.CreateHmacKeyResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getCreateHmacKeyMethod(), getCallOptions()),
-          request,
-          responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Deletes a given HMAC key.  Key must be in an INACTIVE state.
-     * </pre>
-     */
-    public void deleteHmacKey(
-        com.google.storage.v2.DeleteHmacKeyRequest request,
-        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getDeleteHmacKeyMethod(), getCallOptions()),
-          request,
-          responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Gets an existing HMAC key metadata for the given id.
-     * </pre>
-     */
-    public void getHmacKey(
-        com.google.storage.v2.GetHmacKeyRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.HmacKeyMetadata> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetHmacKeyMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Lists HMAC keys under a given project with the additional filters provided.
-     * </pre>
-     */
-    public void listHmacKeys(
-        com.google.storage.v2.ListHmacKeysRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.ListHmacKeysResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListHmacKeysMethod(), getCallOptions()),
-          request,
-          responseObserver);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Updates a given HMAC key state between ACTIVE and INACTIVE.
-     * </pre>
-     */
-    public void updateHmacKey(
-        com.google.storage.v2.UpdateHmacKeyRequest request,
-        io.grpc.stub.StreamObserver<com.google.storage.v2.HmacKeyMetadata> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getUpdateHmacKeyMethod(), getCallOptions()),
-          request,
-          responseObserver);
+          getChannel().newCall(getMoveObjectMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
   /**
-   *
+   * A stub to allow clients to do synchronous rpc calls to service Storage.
    *
    * <pre>
    * ## API Overview and Naming Syntax
    * The Cloud Storage gRPC API allows applications to read and write data through
    * the abstractions of buckets and objects. For a description of these
-   * abstractions please see https://cloud.google.com/storage/docs.
+   * abstractions please see [Cloud Storage
+   * documentation](https://cloud.google.com/storage/docs).
    * Resources are named as follows:
    *   - Projects are referred to as they are defined by the Resource Manager API,
    *     using strings like `projects/123456` or `projects/my-string-id`.
    *   - Buckets are named using string names of the form:
-   *     `projects/{project}/buckets/{bucket}`
-   *     For globally unique buckets, `_` may be substituted for the project.
+   *     `projects/{project}/buckets/{bucket}`.
+   *     For globally unique buckets, `_` might be substituted for the project.
    *   - Objects are uniquely identified by their name along with the name of the
    *     bucket they belong to, as separate strings in this API. For example:
-   *       ReadObjectRequest {
+   *         ```
+   *         ReadObjectRequest {
    *         bucket: 'projects/_/buckets/my-bucket'
    *         object: 'my-object'
-   *       }
-   *     Note that object names can contain `/` characters, which are treated as
-   *     any other character (no special directory semantics).
+   *         }
+   *         ```
+   * Note that object names can contain `/` characters, which are treated as
+   * any other character (no special directory semantics).
+   * </pre>
+   */
+  public static final class StorageBlockingV2Stub
+      extends io.grpc.stub.AbstractBlockingStub<StorageBlockingV2Stub> {
+    private StorageBlockingV2Stub(io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      super(channel, callOptions);
+    }
+
+    @java.lang.Override
+    protected StorageBlockingV2Stub build(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      return new StorageBlockingV2Stub(channel, callOptions);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Permanently deletes an empty bucket.
+     * The request fails if there are any live or
+     * noncurrent objects in the bucket, but the request succeeds if the
+     * bucket only contains soft-deleted objects or incomplete uploads, such
+     * as ongoing XML API multipart uploads. Does not permanently delete
+     * soft-deleted objects.
+     * When this API is used to delete a bucket containing an object that has a
+     * soft delete policy
+     * enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the
+     * object.
+     * Objects and multipart uploads that were in the bucket at the time of
+     * deletion are also retained for the specified retention duration. When
+     * a soft-deleted bucket reaches the end of its retention duration, it
+     * is permanently deleted. The `hardDeleteTime` of the bucket always
+     * equals
+     * or exceeds the expiration time of the last soft-deleted object in the
+     * bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.delete` IAM permission on the bucket.
+     * </pre>
+     */
+    public com.google.protobuf.Empty deleteBucket(com.google.storage.v2.DeleteBucketRequest request)
+        throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getDeleteBucketMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Returns metadata for the specified bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.get`
+     * IAM permission on
+     * the bucket. Additionally, to return specific bucket metadata, the
+     * authenticated user must have the following permissions:
+     * - To return the IAM policies: `storage.buckets.getIamPolicy`
+     * - To return the bucket IP filtering rules: `storage.buckets.getIpFilter`
+     * </pre>
+     */
+    public com.google.storage.v2.Bucket getBucket(com.google.storage.v2.GetBucketRequest request)
+        throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetBucketMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Creates a new bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.create` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To enable object retention using the `enableObjectRetention` query
+     * parameter: `storage.buckets.enableObjectRetention`
+     * - To set the bucket IP filtering rules: `storage.buckets.setIpFilter`
+     * </pre>
+     */
+    public com.google.storage.v2.Bucket createBucket(
+        com.google.storage.v2.CreateBucketRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateBucketMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Retrieves a list of buckets for a given project, ordered
+     * lexicographically by name.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.list` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated
+     * user must have the following permissions:
+     * - To list the IAM policies: `storage.buckets.getIamPolicy`
+     * - To list the bucket IP filtering rules: `storage.buckets.getIpFilter`
+     * </pre>
+     */
+    public com.google.storage.v2.ListBucketsResponse listBuckets(
+        com.google.storage.v2.ListBucketsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListBucketsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Permanently locks the retention
+     * policy that is
+     * currently applied to the specified bucket.
+     * Caution: Locking a bucket is an
+     * irreversible action. Once you lock a bucket:
+     * - You cannot remove the retention policy from the bucket.
+     * - You cannot decrease the retention period for the policy.
+     * Once locked, you must delete the entire bucket in order to remove the
+     * bucket's retention policy. However, before you can delete the bucket, you
+     * must delete all the objects in the bucket, which is only
+     * possible if all the objects have reached the retention period set by the
+     * retention policy.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
+     * </pre>
+     */
+    public com.google.storage.v2.Bucket lockBucketRetentionPolicy(
+        com.google.storage.v2.LockBucketRetentionPolicyRequest request)
+        throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getLockBucketRetentionPolicyMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Gets the IAM policy for a specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.getIamPolicy` on the bucket or
+     * `storage.managedFolders.getIamPolicy` IAM permission on the
+     * managed folder.
+     * </pre>
+     */
+    public com.google.iam.v1.Policy getIamPolicy(com.google.iam.v1.GetIamPolicyRequest request)
+        throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetIamPolicyMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Updates an IAM policy for the specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
+     * </pre>
+     */
+    public com.google.iam.v1.Policy setIamPolicy(com.google.iam.v1.SetIamPolicyRequest request)
+        throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getSetIamPolicyMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Tests a set of permissions on the given bucket, object, or managed folder
+     * to see which, if any, are held by the caller. The `resource` field in the
+     * request should be `projects/_/buckets/{bucket}` for a bucket,
+     * `projects/_/buckets/{bucket}/objects/{object}` for an object, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
+     * </pre>
+     */
+    public com.google.iam.v1.TestIamPermissionsResponse testIamPermissions(
+        com.google.iam.v1.TestIamPermissionsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getTestIamPermissionsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Updates a bucket. Changes to the bucket are readable immediately after
+     * writing, but configuration changes might take time to propagate. This
+     * method supports `patch` semantics.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To set bucket IP filtering rules: `storage.buckets.setIpFilter`
+     * - To update public access prevention policies or access control lists
+     * (ACLs): `storage.buckets.setIamPolicy`
+     * </pre>
+     */
+    public com.google.storage.v2.Bucket updateBucket(
+        com.google.storage.v2.UpdateBucketRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateBucketMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Concatenates a list of existing objects into a new object in the same
+     * bucket. The existing source objects are unaffected by this operation.
+     * **IAM Permissions**:
+     * Requires the `storage.objects.create` and `storage.objects.get` IAM
+     * permissions to use this method. If the new composite object
+     * overwrites an existing object, the authenticated user must also have
+     * the `storage.objects.delete` permission. If the request body includes
+     * the retention property, the authenticated user must also have the
+     * `storage.objects.setRetention` IAM permission.
+     * </pre>
+     */
+    public com.google.storage.v2.Object composeObject(
+        com.google.storage.v2.ComposeObjectRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getComposeObjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Deletes an object and its metadata. Deletions are permanent if versioning
+     * is not enabled for the bucket, or if the generation parameter is used, or
+     * if soft delete is not
+     * enabled for the bucket.
+     * When this API is used to delete an object from a bucket that has soft
+     * delete policy enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the object.
+     * This API cannot be used to permanently delete soft-deleted objects.
+     * Soft-deleted objects are permanently deleted according to their
+     * `hardDeleteTime`.
+     * You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject]
+     * API to restore soft-deleted objects until the soft delete retention period
+     * has passed.
+     * **IAM Permissions**:
+     * Requires `storage.objects.delete` IAM permission on the bucket.
+     * </pre>
+     */
+    public com.google.protobuf.Empty deleteObject(com.google.storage.v2.DeleteObjectRequest request)
+        throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getDeleteObjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Restores a
+     * soft-deleted object.
+     * When a soft-deleted object is restored, a new copy of that object is
+     * created in the same bucket and inherits the same metadata as the
+     * soft-deleted object. The inherited metadata is the metadata that existed
+     * when the original object became soft deleted, with the following
+     * exceptions:
+     *   - The `createTime` of the new object is set to the time at which the
+     *   soft-deleted object was restored.
+     *   - The `softDeleteTime` and `hardDeleteTime` values are cleared.
+     *   - A new generation is assigned and the metageneration is reset to 1.
+     *   - If the soft-deleted object was in a bucket that had Autoclass enabled,
+     *   the new object is
+     *     restored to Standard storage.
+     *   - The restored object inherits the bucket's default object ACL, unless
+     *   `copySourceAcl` is `true`.
+     * If a live object using the same name already exists in the bucket and
+     * becomes overwritten, the live object becomes a noncurrent object if Object
+     * Versioning is enabled on the bucket. If Object Versioning is not enabled,
+     * the live object becomes soft deleted.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.restore`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
+     *   - `storage.objects.getIamPolicy` (only required if `projection` is `full`
+     *   and the relevant bucket
+     *     has uniform bucket-level access disabled)
+     *   - `storage.objects.setIamPolicy` (only required if `copySourceAcl` is
+     *   `true` and the relevant
+     *     bucket has uniform bucket-level access disabled)
+     * </pre>
+     */
+    public com.google.storage.v2.Object restoreObject(
+        com.google.storage.v2.RestoreObjectRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRestoreObjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Cancels an in-progress resumable upload.
+     * Any attempts to write to the resumable upload after cancelling the upload
+     * fail.
+     * The behavior for any in-progress write operations is not guaranteed;
+     * they could either complete before the cancellation or fail if the
+     * cancellation completes first.
+     * </pre>
+     */
+    public com.google.storage.v2.CancelResumableWriteResponse cancelResumableWrite(
+        com.google.storage.v2.CancelResumableWriteRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCancelResumableWriteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Retrieves object metadata.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
+     * To return object ACLs, the authenticated user must also have
+     * the `storage.objects.getIamPolicy` permission.
+     * </pre>
+     */
+    public com.google.storage.v2.Object getObject(com.google.storage.v2.GetObjectRequest request)
+        throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetObjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Retrieves object data.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
+     * </pre>
+     */
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<?, com.google.storage.v2.ReadObjectResponse> readObject(
+        com.google.storage.v2.ReadObjectRequest request) {
+      return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
+          getChannel(), getReadObjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Reads an object's data.
+     * This bi-directional API reads data from an object, allowing you to request
+     * multiple data ranges within a single stream, even across several messages.
+     * If an error occurs with any request, the stream closes with a relevant
+     * error code. Since you can have multiple outstanding requests, the error
+     * response includes a `BidiReadObjectError` proto in its `details` field,
+     * reporting the specific error, if any, for each pending `read_id`.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
+     * </pre>
+     */
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<
+            com.google.storage.v2.BidiReadObjectRequest,
+            com.google.storage.v2.BidiReadObjectResponse>
+        bidiReadObject() {
+      return io.grpc.stub.ClientCalls.blockingBidiStreamingCall(
+          getChannel(), getBidiReadObjectMethod(), getCallOptions());
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Updates an object's metadata.
+     * Equivalent to JSON API's `storage.objects.patch` method.
+     * **IAM Permissions**:
+     * Requires `storage.objects.update` IAM permission on the bucket.
+     * </pre>
+     */
+    public com.google.storage.v2.Object updateObject(
+        com.google.storage.v2.UpdateObjectRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateObjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Stores a new object and metadata.
+     * An object can be written either in a single message stream or in a
+     * resumable sequence of message streams. To write using a single stream,
+     * the client should include in the first message of the stream an
+     * `WriteObjectSpec` describing the destination bucket, object, and any
+     * preconditions. Additionally, the final message must set 'finish_write' to
+     * true, or else it is an error.
+     * For a resumable write, the client should instead call
+     * `StartResumableWrite()`, populating a `WriteObjectSpec` into that request.
+     * They should then attach the returned `upload_id` to the first message of
+     * each following call to `WriteObject`. If the stream is closed before
+     * finishing the upload (either explicitly by the client or due to a network
+     * error or an error response from the server), the client should do as
+     * follows:
+     *   - Check the result Status of the stream, to determine if writing can be
+     *     resumed on this stream or must be restarted from scratch (by calling
+     *     `StartResumableWrite()`). The resumable errors are `DEADLINE_EXCEEDED`,
+     *     `INTERNAL`, and `UNAVAILABLE`. For each case, the client should use
+     *     binary exponential backoff before retrying.  Additionally, writes can
+     *     be resumed after `RESOURCE_EXHAUSTED` errors, but only after taking
+     *     appropriate measures, which might include reducing aggregate send rate
+     *     across clients and/or requesting a quota increase for your project.
+     *   - If the call to `WriteObject` returns `ABORTED`, that indicates
+     *     concurrent attempts to update the resumable write, caused either by
+     *     multiple racing clients or by a single client where the previous
+     *     request was timed out on the client side but nonetheless reached the
+     *     server. In this case the client should take steps to prevent further
+     *     concurrent writes. For example, increase the timeouts and stop using
+     *     more than one process to perform the upload. Follow the steps below for
+     *     resuming the upload.
+     *   - For resumable errors, the client should call `QueryWriteStatus()` and
+     *     then continue writing from the returned `persisted_size`. This might be
+     *     less than the amount of data the client previously sent. Note also that
+     *     it is acceptable to send data starting at an offset earlier than the
+     *     returned `persisted_size`; in this case, the service skips data at
+     *     offsets that were already persisted (without checking that it matches
+     *     the previously written data), and write only the data starting from the
+     *     persisted offset. Even though the data isn't written, it might still
+     *     incur a performance cost over resuming at the correct write offset.
+     *     This behavior can make client-side handling simpler in some cases.
+     *   - Clients must only send data that is a multiple of 256 KiB per message,
+     *     unless the object is being finished with `finish_write` set to `true`.
+     * The service does not view the object as complete until the client has
+     * sent a `WriteObjectRequest` with `finish_write` set to `true`. Sending any
+     * requests on a stream after sending a request with `finish_write` set to
+     * `true` causes an error. The client must check the response it
+     * receives to determine how much data the service is able to commit and
+     * whether the service views the object as complete.
+     * Attempting to resume an already finalized object results in an `OK`
+     * status, with a `WriteObjectResponse` containing the finalized object's
+     * metadata.
+     * Alternatively, you can use the `BidiWriteObject` operation to write an
+     * object with controls over flushing and the ability to fetch the ability to
+     * determine the current persisted size.
+     * **IAM Permissions**:
+     * Requires `storage.objects.create`
+     * IAM permission on
+     * the bucket.
+     * </pre>
+     */
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<
+            com.google.storage.v2.WriteObjectRequest, com.google.storage.v2.WriteObjectResponse>
+        writeObject() {
+      return io.grpc.stub.ClientCalls.blockingClientStreamingCall(
+          getChannel(), getWriteObjectMethod(), getCallOptions());
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Stores a new object and metadata.
+     * This is similar to the `WriteObject` call with the added support for
+     * manual flushing of persisted state, and the ability to determine current
+     * persisted size without closing the stream.
+     * The client might specify one or both of the `state_lookup` and `flush`
+     * fields in each `BidiWriteObjectRequest`. If `flush` is specified, the data
+     * written so far is persisted to storage. If `state_lookup` is specified, the
+     * service responds with a `BidiWriteObjectResponse` that contains the
+     * persisted size. If both `flush` and `state_lookup` are specified, the flush
+     * always occurs before a `state_lookup`, so that both might be set in the
+     * same request and the returned state is the state of the object
+     * post-flush. When the stream is closed, a `BidiWriteObjectResponse`
+     * is always sent to the client, regardless of the value of `state_lookup`.
+     * </pre>
+     */
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<
+            com.google.storage.v2.BidiWriteObjectRequest,
+            com.google.storage.v2.BidiWriteObjectResponse>
+        bidiWriteObject() {
+      return io.grpc.stub.ClientCalls.blockingBidiStreamingCall(
+          getChannel(), getBidiWriteObjectMethod(), getCallOptions());
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Retrieves a list of objects matching the criteria.
+     * **IAM Permissions**:
+     * The authenticated user requires `storage.objects.list`
+     * IAM permission to use this method. To return object ACLs, the
+     * authenticated user must also
+     * have the `storage.objects.getIamPolicy` permission.
+     * </pre>
+     */
+    public com.google.storage.v2.ListObjectsResponse listObjects(
+        com.google.storage.v2.ListObjectsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListObjectsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Rewrites a source object to a destination object. Optionally overrides
+     * metadata.
+     * </pre>
+     */
+    public com.google.storage.v2.RewriteResponse rewriteObject(
+        com.google.storage.v2.RewriteObjectRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRewriteObjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Starts a resumable write operation. This
+     * method is part of the Resumable
+     * upload feature.
+     * This allows you to upload large objects in multiple chunks, which is more
+     * resilient to network interruptions than a single upload. The validity
+     * duration of the write operation, and the consequences of it becoming
+     * invalid, are service-dependent.
+     * **IAM Permissions**:
+     * Requires `storage.objects.create` IAM permission on the bucket.
+     * </pre>
+     */
+    public com.google.storage.v2.StartResumableWriteResponse startResumableWrite(
+        com.google.storage.v2.StartResumableWriteRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getStartResumableWriteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Determines the `persisted_size` of an object that is being written. This
+     * method is part of the resumable
+     * upload feature.
+     * The returned value is the size of the object that has been persisted so
+     * far. The value can be used as the `write_offset` for the next `Write()`
+     * call.
+     * If the object does not exist, meaning if it was deleted, or the
+     * first `Write()` has not yet reached the service, this method returns the
+     * error `NOT_FOUND`.
+     * This method is useful for clients that buffer data and need to know which
+     * data can be safely evicted. The client can call `QueryWriteStatus()` at any
+     * time to determine how much data has been logged for this object.
+     * For any sequence of `QueryWriteStatus()` calls for a given
+     * object name, the sequence of returned `persisted_size` values are
+     * non-decreasing.
+     * </pre>
+     */
+    public com.google.storage.v2.QueryWriteStatusResponse queryWriteStatus(
+        com.google.storage.v2.QueryWriteStatusRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getQueryWriteStatusMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Moves the source object to the destination object in the same bucket.
+     * This operation moves a source object to a destination object in the
+     * same bucket by renaming the object. The move itself is an atomic
+     * transaction, ensuring all steps either complete successfully or no
+     * changes are made.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.move`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
+     * </pre>
+     */
+    public com.google.storage.v2.Object moveObject(com.google.storage.v2.MoveObjectRequest request)
+        throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getMoveObjectMethod(), getCallOptions(), request);
+    }
+  }
+
+  /**
+   * A stub to allow clients to do limited synchronous rpc calls to service Storage.
+   *
+   * <pre>
+   * ## API Overview and Naming Syntax
+   * The Cloud Storage gRPC API allows applications to read and write data through
+   * the abstractions of buckets and objects. For a description of these
+   * abstractions please see [Cloud Storage
+   * documentation](https://cloud.google.com/storage/docs).
+   * Resources are named as follows:
+   *   - Projects are referred to as they are defined by the Resource Manager API,
+   *     using strings like `projects/123456` or `projects/my-string-id`.
+   *   - Buckets are named using string names of the form:
+   *     `projects/{project}/buckets/{bucket}`.
+   *     For globally unique buckets, `_` might be substituted for the project.
+   *   - Objects are uniquely identified by their name along with the name of the
+   *     bucket they belong to, as separate strings in this API. For example:
+   *         ```
+   *         ReadObjectRequest {
+   *         bucket: 'projects/_/buckets/my-bucket'
+   *         object: 'my-object'
+   *         }
+   *         ```
+   * Note that object names can contain `/` characters, which are treated as
+   * any other character (no special directory semantics).
    * </pre>
    */
   public static final class StorageBlockingStub
@@ -2651,6 +3097,25 @@ public final class StorageGrpc {
      *
      * <pre>
      * Permanently deletes an empty bucket.
+     * The request fails if there are any live or
+     * noncurrent objects in the bucket, but the request succeeds if the
+     * bucket only contains soft-deleted objects or incomplete uploads, such
+     * as ongoing XML API multipart uploads. Does not permanently delete
+     * soft-deleted objects.
+     * When this API is used to delete a bucket containing an object that has a
+     * soft delete policy
+     * enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the
+     * object.
+     * Objects and multipart uploads that were in the bucket at the time of
+     * deletion are also retained for the specified retention duration. When
+     * a soft-deleted bucket reaches the end of its retention duration, it
+     * is permanently deleted. The `hardDeleteTime` of the bucket always
+     * equals
+     * or exceeds the expiration time of the last soft-deleted object in the
+     * bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.delete` IAM permission on the bucket.
      * </pre>
      */
     public com.google.protobuf.Empty deleteBucket(
@@ -2664,6 +3129,13 @@ public final class StorageGrpc {
      *
      * <pre>
      * Returns metadata for the specified bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.get`
+     * IAM permission on
+     * the bucket. Additionally, to return specific bucket metadata, the
+     * authenticated user must have the following permissions:
+     * - To return the IAM policies: `storage.buckets.getIamPolicy`
+     * - To return the bucket IP filtering rules: `storage.buckets.getIpFilter`
      * </pre>
      */
     public com.google.storage.v2.Bucket getBucket(com.google.storage.v2.GetBucketRequest request) {
@@ -2676,6 +3148,13 @@ public final class StorageGrpc {
      *
      * <pre>
      * Creates a new bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.create` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To enable object retention using the `enableObjectRetention` query
+     * parameter: `storage.buckets.enableObjectRetention`
+     * - To set the bucket IP filtering rules: `storage.buckets.setIpFilter`
      * </pre>
      */
     public com.google.storage.v2.Bucket createBucket(
@@ -2688,7 +3167,14 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves a list of buckets for a given project.
+     * Retrieves a list of buckets for a given project, ordered
+     * lexicographically by name.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.list` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated
+     * user must have the following permissions:
+     * - To list the IAM policies: `storage.buckets.getIamPolicy`
+     * - To list the bucket IP filtering rules: `storage.buckets.getIpFilter`
      * </pre>
      */
     public com.google.storage.v2.ListBucketsResponse listBuckets(
@@ -2701,7 +3187,20 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Locks retention policy on a bucket.
+     * Permanently locks the retention
+     * policy that is
+     * currently applied to the specified bucket.
+     * Caution: Locking a bucket is an
+     * irreversible action. Once you lock a bucket:
+     * - You cannot remove the retention policy from the bucket.
+     * - You cannot decrease the retention period for the policy.
+     * Once locked, you must delete the entire bucket in order to remove the
+     * bucket's retention policy. However, before you can delete the bucket, you
+     * must delete all the objects in the bucket, which is only
+     * possible if all the objects have reached the retention period set by the
+     * retention policy.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
      * </pre>
      */
     public com.google.storage.v2.Bucket lockBucketRetentionPolicy(
@@ -2714,7 +3213,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Gets the IAM policy for a specified bucket or object.
+     * Gets the IAM policy for a specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.getIamPolicy` on the bucket or
+     * `storage.managedFolders.getIamPolicy` IAM permission on the
+     * managed folder.
      * </pre>
      */
     public com.google.iam.v1.Policy getIamPolicy(com.google.iam.v1.GetIamPolicyRequest request) {
@@ -2726,7 +3233,11 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates an IAM policy for the specified bucket or object.
+     * Updates an IAM policy for the specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
      * </pre>
      */
     public com.google.iam.v1.Policy setIamPolicy(com.google.iam.v1.SetIamPolicyRequest request) {
@@ -2738,8 +3249,12 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Tests a set of permissions on the given bucket or object to see which, if
-     * any, are held by the caller.
+     * Tests a set of permissions on the given bucket, object, or managed folder
+     * to see which, if any, are held by the caller. The `resource` field in the
+     * request should be `projects/_/buckets/{bucket}` for a bucket,
+     * `projects/_/buckets/{bucket}/objects/{object}` for an object, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
      * </pre>
      */
     public com.google.iam.v1.TestIamPermissionsResponse testIamPermissions(
@@ -2752,7 +3267,16 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates a bucket. Equivalent to JSON API's storage.buckets.patch method.
+     * Updates a bucket. Changes to the bucket are readable immediately after
+     * writing, but configuration changes might take time to propagate. This
+     * method supports `patch` semantics.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To set bucket IP filtering rules: `storage.buckets.setIpFilter`
+     * - To update public access prevention policies or access control lists
+     * (ACLs): `storage.buckets.setIamPolicy`
      * </pre>
      */
     public com.google.storage.v2.Bucket updateBucket(
@@ -2765,63 +3289,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Permanently deletes a notification subscription.
-     * </pre>
-     */
-    public com.google.protobuf.Empty deleteNotification(
-        com.google.storage.v2.DeleteNotificationRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getDeleteNotificationMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * View a notification config.
-     * </pre>
-     */
-    public com.google.storage.v2.Notification getNotification(
-        com.google.storage.v2.GetNotificationRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetNotificationMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Creates a notification subscription for a given bucket.
-     * These notifications, when triggered, publish messages to the specified
-     * Pub/Sub topics.
-     * See https://cloud.google.com/storage/docs/pubsub-notifications.
-     * </pre>
-     */
-    public com.google.storage.v2.Notification createNotification(
-        com.google.storage.v2.CreateNotificationRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getCreateNotificationMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Retrieves a list of notification subscriptions for a given bucket.
-     * </pre>
-     */
-    public com.google.storage.v2.ListNotificationsResponse listNotifications(
-        com.google.storage.v2.ListNotificationsRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListNotificationsMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
      * Concatenates a list of existing objects into a new object in the same
-     * bucket.
+     * bucket. The existing source objects are unaffected by this operation.
+     * **IAM Permissions**:
+     * Requires the `storage.objects.create` and `storage.objects.get` IAM
+     * permissions to use this method. If the new composite object
+     * overwrites an existing object, the authenticated user must also have
+     * the `storage.objects.delete` permission. If the request body includes
+     * the retention property, the authenticated user must also have the
+     * `storage.objects.setRetention` IAM permission.
      * </pre>
      */
     public com.google.storage.v2.Object composeObject(
@@ -2835,7 +3311,20 @@ public final class StorageGrpc {
      *
      * <pre>
      * Deletes an object and its metadata. Deletions are permanent if versioning
-     * is not enabled for the bucket, or if the `generation` parameter is used.
+     * is not enabled for the bucket, or if the generation parameter is used, or
+     * if soft delete is not
+     * enabled for the bucket.
+     * When this API is used to delete an object from a bucket that has soft
+     * delete policy enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the object.
+     * This API cannot be used to permanently delete soft-deleted objects.
+     * Soft-deleted objects are permanently deleted according to their
+     * `hardDeleteTime`.
+     * You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject]
+     * API to restore soft-deleted objects until the soft delete retention period
+     * has passed.
+     * **IAM Permissions**:
+     * Requires `storage.objects.delete` IAM permission on the bucket.
      * </pre>
      */
     public com.google.protobuf.Empty deleteObject(
@@ -2848,7 +3337,56 @@ public final class StorageGrpc {
      *
      *
      * <pre>
+     * Restores a
+     * soft-deleted object.
+     * When a soft-deleted object is restored, a new copy of that object is
+     * created in the same bucket and inherits the same metadata as the
+     * soft-deleted object. The inherited metadata is the metadata that existed
+     * when the original object became soft deleted, with the following
+     * exceptions:
+     *   - The `createTime` of the new object is set to the time at which the
+     *   soft-deleted object was restored.
+     *   - The `softDeleteTime` and `hardDeleteTime` values are cleared.
+     *   - A new generation is assigned and the metageneration is reset to 1.
+     *   - If the soft-deleted object was in a bucket that had Autoclass enabled,
+     *   the new object is
+     *     restored to Standard storage.
+     *   - The restored object inherits the bucket's default object ACL, unless
+     *   `copySourceAcl` is `true`.
+     * If a live object using the same name already exists in the bucket and
+     * becomes overwritten, the live object becomes a noncurrent object if Object
+     * Versioning is enabled on the bucket. If Object Versioning is not enabled,
+     * the live object becomes soft deleted.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.restore`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
+     *   - `storage.objects.getIamPolicy` (only required if `projection` is `full`
+     *   and the relevant bucket
+     *     has uniform bucket-level access disabled)
+     *   - `storage.objects.setIamPolicy` (only required if `copySourceAcl` is
+     *   `true` and the relevant
+     *     bucket has uniform bucket-level access disabled)
+     * </pre>
+     */
+    public com.google.storage.v2.Object restoreObject(
+        com.google.storage.v2.RestoreObjectRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRestoreObjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
      * Cancels an in-progress resumable upload.
+     * Any attempts to write to the resumable upload after cancelling the upload
+     * fail.
+     * The behavior for any in-progress write operations is not guaranteed;
+     * they could either complete before the cancellation or fail if the
+     * cancellation completes first.
      * </pre>
      */
     public com.google.storage.v2.CancelResumableWriteResponse cancelResumableWrite(
@@ -2861,7 +3399,11 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves an object's metadata.
+     * Retrieves object metadata.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
+     * To return object ACLs, the authenticated user must also have
+     * the `storage.objects.getIamPolicy` permission.
      * </pre>
      */
     public com.google.storage.v2.Object getObject(com.google.storage.v2.GetObjectRequest request) {
@@ -2873,7 +3415,9 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Reads an object's data.
+     * Retrieves object data.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
      * </pre>
      */
     public java.util.Iterator<com.google.storage.v2.ReadObjectResponse> readObject(
@@ -2887,7 +3431,9 @@ public final class StorageGrpc {
      *
      * <pre>
      * Updates an object's metadata.
-     * Equivalent to JSON API's storage.objects.patch.
+     * Equivalent to JSON API's `storage.objects.patch` method.
+     * **IAM Permissions**:
+     * Requires `storage.objects.update` IAM permission on the bucket.
      * </pre>
      */
     public com.google.storage.v2.Object updateObject(
@@ -2901,6 +3447,11 @@ public final class StorageGrpc {
      *
      * <pre>
      * Retrieves a list of objects matching the criteria.
+     * **IAM Permissions**:
+     * The authenticated user requires `storage.objects.list`
+     * IAM permission to use this method. To return object ACLs, the
+     * authenticated user must also
+     * have the `storage.objects.getIamPolicy` permission.
      * </pre>
      */
     public com.google.storage.v2.ListObjectsResponse listObjects(
@@ -2927,9 +3478,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Starts a resumable write. How long the write operation remains valid, and
-     * what happens when the write operation becomes invalid, are
-     * service-dependent.
+     * Starts a resumable write operation. This
+     * method is part of the Resumable
+     * upload feature.
+     * This allows you to upload large objects in multiple chunks, which is more
+     * resilient to network interruptions than a single upload. The validity
+     * duration of the write operation, and the consequences of it becoming
+     * invalid, are service-dependent.
+     * **IAM Permissions**:
+     * Requires `storage.objects.create` IAM permission on the bucket.
      * </pre>
      */
     public com.google.storage.v2.StartResumableWriteResponse startResumableWrite(
@@ -2942,16 +3499,20 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Determines the `persisted_size` for an object that is being written, which
-     * can then be used as the `write_offset` for the next `Write()` call.
-     * If the object does not exist (i.e., the object has been deleted, or the
-     * first `Write()` has not yet reached the service), this method returns the
+     * Determines the `persisted_size` of an object that is being written. This
+     * method is part of the resumable
+     * upload feature.
+     * The returned value is the size of the object that has been persisted so
+     * far. The value can be used as the `write_offset` for the next `Write()`
+     * call.
+     * If the object does not exist, meaning if it was deleted, or the
+     * first `Write()` has not yet reached the service, this method returns the
      * error `NOT_FOUND`.
-     * The client **may** call `QueryWriteStatus()` at any time to determine how
-     * much data has been processed for this object. This is useful if the
-     * client is buffering data and needs to know which data can be safely
-     * evicted. For any sequence of `QueryWriteStatus()` calls for a given
-     * object name, the sequence of returned `persisted_size` values will be
+     * This method is useful for clients that buffer data and need to know which
+     * data can be safely evicted. The client can call `QueryWriteStatus()` at any
+     * time to determine how much data has been logged for this object.
+     * For any sequence of `QueryWriteStatus()` calls for a given
+     * object name, the sequence of returned `persisted_size` values are
      * non-decreasing.
      * </pre>
      */
@@ -2965,103 +3526,51 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves the name of a project's Google Cloud Storage service account.
+     * Moves the source object to the destination object in the same bucket.
+     * This operation moves a source object to a destination object in the
+     * same bucket by renaming the object. The move itself is an atomic
+     * transaction, ensuring all steps either complete successfully or no
+     * changes are made.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.move`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
      * </pre>
      */
-    public com.google.storage.v2.ServiceAccount getServiceAccount(
-        com.google.storage.v2.GetServiceAccountRequest request) {
+    public com.google.storage.v2.Object moveObject(
+        com.google.storage.v2.MoveObjectRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetServiceAccountMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Creates a new HMAC key for the given service account.
-     * </pre>
-     */
-    public com.google.storage.v2.CreateHmacKeyResponse createHmacKey(
-        com.google.storage.v2.CreateHmacKeyRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getCreateHmacKeyMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Deletes a given HMAC key.  Key must be in an INACTIVE state.
-     * </pre>
-     */
-    public com.google.protobuf.Empty deleteHmacKey(
-        com.google.storage.v2.DeleteHmacKeyRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getDeleteHmacKeyMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Gets an existing HMAC key metadata for the given id.
-     * </pre>
-     */
-    public com.google.storage.v2.HmacKeyMetadata getHmacKey(
-        com.google.storage.v2.GetHmacKeyRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetHmacKeyMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Lists HMAC keys under a given project with the additional filters provided.
-     * </pre>
-     */
-    public com.google.storage.v2.ListHmacKeysResponse listHmacKeys(
-        com.google.storage.v2.ListHmacKeysRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListHmacKeysMethod(), getCallOptions(), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Updates a given HMAC key state between ACTIVE and INACTIVE.
-     * </pre>
-     */
-    public com.google.storage.v2.HmacKeyMetadata updateHmacKey(
-        com.google.storage.v2.UpdateHmacKeyRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getUpdateHmacKeyMethod(), getCallOptions(), request);
+          getChannel(), getMoveObjectMethod(), getCallOptions(), request);
     }
   }
 
   /**
-   *
+   * A stub to allow clients to do ListenableFuture-style rpc calls to service Storage.
    *
    * <pre>
    * ## API Overview and Naming Syntax
    * The Cloud Storage gRPC API allows applications to read and write data through
    * the abstractions of buckets and objects. For a description of these
-   * abstractions please see https://cloud.google.com/storage/docs.
+   * abstractions please see [Cloud Storage
+   * documentation](https://cloud.google.com/storage/docs).
    * Resources are named as follows:
    *   - Projects are referred to as they are defined by the Resource Manager API,
    *     using strings like `projects/123456` or `projects/my-string-id`.
    *   - Buckets are named using string names of the form:
-   *     `projects/{project}/buckets/{bucket}`
-   *     For globally unique buckets, `_` may be substituted for the project.
+   *     `projects/{project}/buckets/{bucket}`.
+   *     For globally unique buckets, `_` might be substituted for the project.
    *   - Objects are uniquely identified by their name along with the name of the
    *     bucket they belong to, as separate strings in this API. For example:
-   *       ReadObjectRequest {
+   *         ```
+   *         ReadObjectRequest {
    *         bucket: 'projects/_/buckets/my-bucket'
    *         object: 'my-object'
-   *       }
-   *     Note that object names can contain `/` characters, which are treated as
-   *     any other character (no special directory semantics).
+   *         }
+   *         ```
+   * Note that object names can contain `/` characters, which are treated as
+   * any other character (no special directory semantics).
    * </pre>
    */
   public static final class StorageFutureStub
@@ -3080,6 +3589,25 @@ public final class StorageGrpc {
      *
      * <pre>
      * Permanently deletes an empty bucket.
+     * The request fails if there are any live or
+     * noncurrent objects in the bucket, but the request succeeds if the
+     * bucket only contains soft-deleted objects or incomplete uploads, such
+     * as ongoing XML API multipart uploads. Does not permanently delete
+     * soft-deleted objects.
+     * When this API is used to delete a bucket containing an object that has a
+     * soft delete policy
+     * enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the
+     * object.
+     * Objects and multipart uploads that were in the bucket at the time of
+     * deletion are also retained for the specified retention duration. When
+     * a soft-deleted bucket reaches the end of its retention duration, it
+     * is permanently deleted. The `hardDeleteTime` of the bucket always
+     * equals
+     * or exceeds the expiration time of the last soft-deleted object in the
+     * bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.delete` IAM permission on the bucket.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty>
@@ -3093,6 +3621,13 @@ public final class StorageGrpc {
      *
      * <pre>
      * Returns metadata for the specified bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.get`
+     * IAM permission on
+     * the bucket. Additionally, to return specific bucket metadata, the
+     * authenticated user must have the following permissions:
+     * - To return the IAM policies: `storage.buckets.getIamPolicy`
+     * - To return the bucket IP filtering rules: `storage.buckets.getIpFilter`
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Bucket>
@@ -3106,6 +3641,13 @@ public final class StorageGrpc {
      *
      * <pre>
      * Creates a new bucket.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.create` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To enable object retention using the `enableObjectRetention` query
+     * parameter: `storage.buckets.enableObjectRetention`
+     * - To set the bucket IP filtering rules: `storage.buckets.setIpFilter`
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Bucket>
@@ -3118,7 +3660,14 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves a list of buckets for a given project.
+     * Retrieves a list of buckets for a given project, ordered
+     * lexicographically by name.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.list` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated
+     * user must have the following permissions:
+     * - To list the IAM policies: `storage.buckets.getIamPolicy`
+     * - To list the bucket IP filtering rules: `storage.buckets.getIpFilter`
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<
@@ -3132,7 +3681,20 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Locks retention policy on a bucket.
+     * Permanently locks the retention
+     * policy that is
+     * currently applied to the specified bucket.
+     * Caution: Locking a bucket is an
+     * irreversible action. Once you lock a bucket:
+     * - You cannot remove the retention policy from the bucket.
+     * - You cannot decrease the retention period for the policy.
+     * Once locked, you must delete the entire bucket in order to remove the
+     * bucket's retention policy. However, before you can delete the bucket, you
+     * must delete all the objects in the bucket, which is only
+     * possible if all the objects have reached the retention period set by the
+     * retention policy.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Bucket>
@@ -3145,7 +3707,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Gets the IAM policy for a specified bucket or object.
+     * Gets the IAM policy for a specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.getIamPolicy` on the bucket or
+     * `storage.managedFolders.getIamPolicy` IAM permission on the
+     * managed folder.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.iam.v1.Policy>
@@ -3158,7 +3728,11 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates an IAM policy for the specified bucket or object.
+     * Updates an IAM policy for the specified bucket or managed folder.
+     * The `resource` field in the request should be
+     * `projects/_/buckets/{bucket}` for a bucket, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.iam.v1.Policy>
@@ -3171,8 +3745,12 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Tests a set of permissions on the given bucket or object to see which, if
-     * any, are held by the caller.
+     * Tests a set of permissions on the given bucket, object, or managed folder
+     * to see which, if any, are held by the caller. The `resource` field in the
+     * request should be `projects/_/buckets/{bucket}` for a bucket,
+     * `projects/_/buckets/{bucket}/objects/{object}` for an object, or
+     * `projects/_/buckets/{bucket}/managedFolders/{managedFolder}`
+     * for a managed folder.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<
@@ -3186,7 +3764,16 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Updates a bucket. Equivalent to JSON API's storage.buckets.patch method.
+     * Updates a bucket. Changes to the bucket are readable immediately after
+     * writing, but configuration changes might take time to propagate. This
+     * method supports `patch` semantics.
+     * **IAM Permissions**:
+     * Requires `storage.buckets.update` IAM permission on the bucket.
+     * Additionally, to enable specific bucket features, the authenticated user
+     * must have the following permissions:
+     * - To set bucket IP filtering rules: `storage.buckets.setIpFilter`
+     * - To update public access prevention policies or access control lists
+     * (ACLs): `storage.buckets.setIamPolicy`
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Bucket>
@@ -3199,64 +3786,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Permanently deletes a notification subscription.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty>
-        deleteNotification(com.google.storage.v2.DeleteNotificationRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getDeleteNotificationMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * View a notification config.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Notification>
-        getNotification(com.google.storage.v2.GetNotificationRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetNotificationMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Creates a notification subscription for a given bucket.
-     * These notifications, when triggered, publish messages to the specified
-     * Pub/Sub topics.
-     * See https://cloud.google.com/storage/docs/pubsub-notifications.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Notification>
-        createNotification(com.google.storage.v2.CreateNotificationRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getCreateNotificationMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Retrieves a list of notification subscriptions for a given bucket.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<
-            com.google.storage.v2.ListNotificationsResponse>
-        listNotifications(com.google.storage.v2.ListNotificationsRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListNotificationsMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
      * Concatenates a list of existing objects into a new object in the same
-     * bucket.
+     * bucket. The existing source objects are unaffected by this operation.
+     * **IAM Permissions**:
+     * Requires the `storage.objects.create` and `storage.objects.get` IAM
+     * permissions to use this method. If the new composite object
+     * overwrites an existing object, the authenticated user must also have
+     * the `storage.objects.delete` permission. If the request body includes
+     * the retention property, the authenticated user must also have the
+     * `storage.objects.setRetention` IAM permission.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Object>
@@ -3270,7 +3808,20 @@ public final class StorageGrpc {
      *
      * <pre>
      * Deletes an object and its metadata. Deletions are permanent if versioning
-     * is not enabled for the bucket, or if the `generation` parameter is used.
+     * is not enabled for the bucket, or if the generation parameter is used, or
+     * if soft delete is not
+     * enabled for the bucket.
+     * When this API is used to delete an object from a bucket that has soft
+     * delete policy enabled, the object becomes soft deleted, and the
+     * `softDeleteTime` and `hardDeleteTime` properties are set on the object.
+     * This API cannot be used to permanently delete soft-deleted objects.
+     * Soft-deleted objects are permanently deleted according to their
+     * `hardDeleteTime`.
+     * You can use the [`RestoreObject`][google.storage.v2.Storage.RestoreObject]
+     * API to restore soft-deleted objects until the soft delete retention period
+     * has passed.
+     * **IAM Permissions**:
+     * Requires `storage.objects.delete` IAM permission on the bucket.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty>
@@ -3283,7 +3834,56 @@ public final class StorageGrpc {
      *
      *
      * <pre>
+     * Restores a
+     * soft-deleted object.
+     * When a soft-deleted object is restored, a new copy of that object is
+     * created in the same bucket and inherits the same metadata as the
+     * soft-deleted object. The inherited metadata is the metadata that existed
+     * when the original object became soft deleted, with the following
+     * exceptions:
+     *   - The `createTime` of the new object is set to the time at which the
+     *   soft-deleted object was restored.
+     *   - The `softDeleteTime` and `hardDeleteTime` values are cleared.
+     *   - A new generation is assigned and the metageneration is reset to 1.
+     *   - If the soft-deleted object was in a bucket that had Autoclass enabled,
+     *   the new object is
+     *     restored to Standard storage.
+     *   - The restored object inherits the bucket's default object ACL, unless
+     *   `copySourceAcl` is `true`.
+     * If a live object using the same name already exists in the bucket and
+     * becomes overwritten, the live object becomes a noncurrent object if Object
+     * Versioning is enabled on the bucket. If Object Versioning is not enabled,
+     * the live object becomes soft deleted.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.restore`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
+     *   - `storage.objects.getIamPolicy` (only required if `projection` is `full`
+     *   and the relevant bucket
+     *     has uniform bucket-level access disabled)
+     *   - `storage.objects.setIamPolicy` (only required if `copySourceAcl` is
+     *   `true` and the relevant
+     *     bucket has uniform bucket-level access disabled)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Object>
+        restoreObject(com.google.storage.v2.RestoreObjectRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRestoreObjectMethod(), getCallOptions()), request);
+    }
+
+    /**
+     *
+     *
+     * <pre>
      * Cancels an in-progress resumable upload.
+     * Any attempts to write to the resumable upload after cancelling the upload
+     * fail.
+     * The behavior for any in-progress write operations is not guaranteed;
+     * they could either complete before the cancellation or fail if the
+     * cancellation completes first.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<
@@ -3297,7 +3897,11 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves an object's metadata.
+     * Retrieves object metadata.
+     * **IAM Permissions**:
+     * Requires `storage.objects.get` IAM permission on the bucket.
+     * To return object ACLs, the authenticated user must also have
+     * the `storage.objects.getIamPolicy` permission.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Object>
@@ -3311,7 +3915,9 @@ public final class StorageGrpc {
      *
      * <pre>
      * Updates an object's metadata.
-     * Equivalent to JSON API's storage.objects.patch.
+     * Equivalent to JSON API's `storage.objects.patch` method.
+     * **IAM Permissions**:
+     * Requires `storage.objects.update` IAM permission on the bucket.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Object>
@@ -3325,6 +3931,11 @@ public final class StorageGrpc {
      *
      * <pre>
      * Retrieves a list of objects matching the criteria.
+     * **IAM Permissions**:
+     * The authenticated user requires `storage.objects.list`
+     * IAM permission to use this method. To return object ACLs, the
+     * authenticated user must also
+     * have the `storage.objects.getIamPolicy` permission.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<
@@ -3352,9 +3963,15 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Starts a resumable write. How long the write operation remains valid, and
-     * what happens when the write operation becomes invalid, are
-     * service-dependent.
+     * Starts a resumable write operation. This
+     * method is part of the Resumable
+     * upload feature.
+     * This allows you to upload large objects in multiple chunks, which is more
+     * resilient to network interruptions than a single upload. The validity
+     * duration of the write operation, and the consequences of it becoming
+     * invalid, are service-dependent.
+     * **IAM Permissions**:
+     * Requires `storage.objects.create` IAM permission on the bucket.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<
@@ -3368,16 +3985,20 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Determines the `persisted_size` for an object that is being written, which
-     * can then be used as the `write_offset` for the next `Write()` call.
-     * If the object does not exist (i.e., the object has been deleted, or the
-     * first `Write()` has not yet reached the service), this method returns the
+     * Determines the `persisted_size` of an object that is being written. This
+     * method is part of the resumable
+     * upload feature.
+     * The returned value is the size of the object that has been persisted so
+     * far. The value can be used as the `write_offset` for the next `Write()`
+     * call.
+     * If the object does not exist, meaning if it was deleted, or the
+     * first `Write()` has not yet reached the service, this method returns the
      * error `NOT_FOUND`.
-     * The client **may** call `QueryWriteStatus()` at any time to determine how
-     * much data has been processed for this object. This is useful if the
-     * client is buffering data and needs to know which data can be safely
-     * evicted. For any sequence of `QueryWriteStatus()` calls for a given
-     * object name, the sequence of returned `persisted_size` values will be
+     * This method is useful for clients that buffer data and need to know which
+     * data can be safely evicted. The client can call `QueryWriteStatus()` at any
+     * time to determine how much data has been logged for this object.
+     * For any sequence of `QueryWriteStatus()` calls for a given
+     * object name, the sequence of returned `persisted_size` values are
      * non-decreasing.
      * </pre>
      */
@@ -3392,80 +4013,23 @@ public final class StorageGrpc {
      *
      *
      * <pre>
-     * Retrieves the name of a project's Google Cloud Storage service account.
+     * Moves the source object to the destination object in the same bucket.
+     * This operation moves a source object to a destination object in the
+     * same bucket by renaming the object. The move itself is an atomic
+     * transaction, ensuring all steps either complete successfully or no
+     * changes are made.
+     * **IAM Permissions**:
+     * Requires the following IAM permissions to use this method:
+     *   - `storage.objects.move`
+     *   - `storage.objects.create`
+     *   - `storage.objects.delete` (only required if overwriting an existing
+     *   object)
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.ServiceAccount>
-        getServiceAccount(com.google.storage.v2.GetServiceAccountRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.Object>
+        moveObject(com.google.storage.v2.MoveObjectRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetServiceAccountMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Creates a new HMAC key for the given service account.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<
-            com.google.storage.v2.CreateHmacKeyResponse>
-        createHmacKey(com.google.storage.v2.CreateHmacKeyRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getCreateHmacKeyMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Deletes a given HMAC key.  Key must be in an INACTIVE state.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty>
-        deleteHmacKey(com.google.storage.v2.DeleteHmacKeyRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getDeleteHmacKeyMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Gets an existing HMAC key metadata for the given id.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.HmacKeyMetadata>
-        getHmacKey(com.google.storage.v2.GetHmacKeyRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetHmacKeyMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Lists HMAC keys under a given project with the additional filters provided.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<
-            com.google.storage.v2.ListHmacKeysResponse>
-        listHmacKeys(com.google.storage.v2.ListHmacKeysRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListHmacKeysMethod(), getCallOptions()), request);
-    }
-
-    /**
-     *
-     *
-     * <pre>
-     * Updates a given HMAC key state between ACTIVE and INACTIVE.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.google.storage.v2.HmacKeyMetadata>
-        updateHmacKey(com.google.storage.v2.UpdateHmacKeyRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getUpdateHmacKeyMethod(), getCallOptions()), request);
+          getChannel().newCall(getMoveObjectMethod(), getCallOptions()), request);
     }
   }
 
@@ -3478,37 +4042,31 @@ public final class StorageGrpc {
   private static final int METHODID_SET_IAM_POLICY = 6;
   private static final int METHODID_TEST_IAM_PERMISSIONS = 7;
   private static final int METHODID_UPDATE_BUCKET = 8;
-  private static final int METHODID_DELETE_NOTIFICATION = 9;
-  private static final int METHODID_GET_NOTIFICATION = 10;
-  private static final int METHODID_CREATE_NOTIFICATION = 11;
-  private static final int METHODID_LIST_NOTIFICATIONS = 12;
-  private static final int METHODID_COMPOSE_OBJECT = 13;
-  private static final int METHODID_DELETE_OBJECT = 14;
-  private static final int METHODID_CANCEL_RESUMABLE_WRITE = 15;
-  private static final int METHODID_GET_OBJECT = 16;
-  private static final int METHODID_READ_OBJECT = 17;
-  private static final int METHODID_UPDATE_OBJECT = 18;
-  private static final int METHODID_LIST_OBJECTS = 19;
-  private static final int METHODID_REWRITE_OBJECT = 20;
-  private static final int METHODID_START_RESUMABLE_WRITE = 21;
-  private static final int METHODID_QUERY_WRITE_STATUS = 22;
-  private static final int METHODID_GET_SERVICE_ACCOUNT = 23;
-  private static final int METHODID_CREATE_HMAC_KEY = 24;
-  private static final int METHODID_DELETE_HMAC_KEY = 25;
-  private static final int METHODID_GET_HMAC_KEY = 26;
-  private static final int METHODID_LIST_HMAC_KEYS = 27;
-  private static final int METHODID_UPDATE_HMAC_KEY = 28;
-  private static final int METHODID_WRITE_OBJECT = 29;
+  private static final int METHODID_COMPOSE_OBJECT = 9;
+  private static final int METHODID_DELETE_OBJECT = 10;
+  private static final int METHODID_RESTORE_OBJECT = 11;
+  private static final int METHODID_CANCEL_RESUMABLE_WRITE = 12;
+  private static final int METHODID_GET_OBJECT = 13;
+  private static final int METHODID_READ_OBJECT = 14;
+  private static final int METHODID_UPDATE_OBJECT = 15;
+  private static final int METHODID_LIST_OBJECTS = 16;
+  private static final int METHODID_REWRITE_OBJECT = 17;
+  private static final int METHODID_START_RESUMABLE_WRITE = 18;
+  private static final int METHODID_QUERY_WRITE_STATUS = 19;
+  private static final int METHODID_MOVE_OBJECT = 20;
+  private static final int METHODID_BIDI_READ_OBJECT = 21;
+  private static final int METHODID_WRITE_OBJECT = 22;
+  private static final int METHODID_BIDI_WRITE_OBJECT = 23;
 
   private static final class MethodHandlers<Req, Resp>
       implements io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
           io.grpc.stub.ServerCalls.ServerStreamingMethod<Req, Resp>,
           io.grpc.stub.ServerCalls.ClientStreamingMethod<Req, Resp>,
           io.grpc.stub.ServerCalls.BidiStreamingMethod<Req, Resp> {
-    private final StorageImplBase serviceImpl;
+    private final AsyncService serviceImpl;
     private final int methodId;
 
-    MethodHandlers(StorageImplBase serviceImpl, int methodId) {
+    MethodHandlers(AsyncService serviceImpl, int methodId) {
       this.serviceImpl = serviceImpl;
       this.methodId = methodId;
     }
@@ -3564,27 +4122,6 @@ public final class StorageGrpc {
               (com.google.storage.v2.UpdateBucketRequest) request,
               (io.grpc.stub.StreamObserver<com.google.storage.v2.Bucket>) responseObserver);
           break;
-        case METHODID_DELETE_NOTIFICATION:
-          serviceImpl.deleteNotification(
-              (com.google.storage.v2.DeleteNotificationRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
-          break;
-        case METHODID_GET_NOTIFICATION:
-          serviceImpl.getNotification(
-              (com.google.storage.v2.GetNotificationRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.storage.v2.Notification>) responseObserver);
-          break;
-        case METHODID_CREATE_NOTIFICATION:
-          serviceImpl.createNotification(
-              (com.google.storage.v2.CreateNotificationRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.storage.v2.Notification>) responseObserver);
-          break;
-        case METHODID_LIST_NOTIFICATIONS:
-          serviceImpl.listNotifications(
-              (com.google.storage.v2.ListNotificationsRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.storage.v2.ListNotificationsResponse>)
-                  responseObserver);
-          break;
         case METHODID_COMPOSE_OBJECT:
           serviceImpl.composeObject(
               (com.google.storage.v2.ComposeObjectRequest) request,
@@ -3594,6 +4131,11 @@ public final class StorageGrpc {
           serviceImpl.deleteObject(
               (com.google.storage.v2.DeleteObjectRequest) request,
               (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
+          break;
+        case METHODID_RESTORE_OBJECT:
+          serviceImpl.restoreObject(
+              (com.google.storage.v2.RestoreObjectRequest) request,
+              (io.grpc.stub.StreamObserver<com.google.storage.v2.Object>) responseObserver);
           break;
         case METHODID_CANCEL_RESUMABLE_WRITE:
           serviceImpl.cancelResumableWrite(
@@ -3641,39 +4183,10 @@ public final class StorageGrpc {
               (io.grpc.stub.StreamObserver<com.google.storage.v2.QueryWriteStatusResponse>)
                   responseObserver);
           break;
-        case METHODID_GET_SERVICE_ACCOUNT:
-          serviceImpl.getServiceAccount(
-              (com.google.storage.v2.GetServiceAccountRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.storage.v2.ServiceAccount>) responseObserver);
-          break;
-        case METHODID_CREATE_HMAC_KEY:
-          serviceImpl.createHmacKey(
-              (com.google.storage.v2.CreateHmacKeyRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.storage.v2.CreateHmacKeyResponse>)
-                  responseObserver);
-          break;
-        case METHODID_DELETE_HMAC_KEY:
-          serviceImpl.deleteHmacKey(
-              (com.google.storage.v2.DeleteHmacKeyRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
-          break;
-        case METHODID_GET_HMAC_KEY:
-          serviceImpl.getHmacKey(
-              (com.google.storage.v2.GetHmacKeyRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.storage.v2.HmacKeyMetadata>)
-                  responseObserver);
-          break;
-        case METHODID_LIST_HMAC_KEYS:
-          serviceImpl.listHmacKeys(
-              (com.google.storage.v2.ListHmacKeysRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.storage.v2.ListHmacKeysResponse>)
-                  responseObserver);
-          break;
-        case METHODID_UPDATE_HMAC_KEY:
-          serviceImpl.updateHmacKey(
-              (com.google.storage.v2.UpdateHmacKeyRequest) request,
-              (io.grpc.stub.StreamObserver<com.google.storage.v2.HmacKeyMetadata>)
-                  responseObserver);
+        case METHODID_MOVE_OBJECT:
+          serviceImpl.moveObject(
+              (com.google.storage.v2.MoveObjectRequest) request,
+              (io.grpc.stub.StreamObserver<com.google.storage.v2.Object>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -3685,15 +4198,178 @@ public final class StorageGrpc {
     public io.grpc.stub.StreamObserver<Req> invoke(
         io.grpc.stub.StreamObserver<Resp> responseObserver) {
       switch (methodId) {
+        case METHODID_BIDI_READ_OBJECT:
+          return (io.grpc.stub.StreamObserver<Req>)
+              serviceImpl.bidiReadObject(
+                  (io.grpc.stub.StreamObserver<com.google.storage.v2.BidiReadObjectResponse>)
+                      responseObserver);
         case METHODID_WRITE_OBJECT:
           return (io.grpc.stub.StreamObserver<Req>)
               serviceImpl.writeObject(
                   (io.grpc.stub.StreamObserver<com.google.storage.v2.WriteObjectResponse>)
                       responseObserver);
+        case METHODID_BIDI_WRITE_OBJECT:
+          return (io.grpc.stub.StreamObserver<Req>)
+              serviceImpl.bidiWriteObject(
+                  (io.grpc.stub.StreamObserver<com.google.storage.v2.BidiWriteObjectResponse>)
+                      responseObserver);
         default:
           throw new AssertionError();
       }
     }
+  }
+
+  public static final io.grpc.ServerServiceDefinition bindService(AsyncService service) {
+    return io.grpc.ServerServiceDefinition.builder(getServiceDescriptor())
+        .addMethod(
+            getDeleteBucketMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.DeleteBucketRequest, com.google.protobuf.Empty>(
+                    service, METHODID_DELETE_BUCKET)))
+        .addMethod(
+            getGetBucketMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.GetBucketRequest, com.google.storage.v2.Bucket>(
+                    service, METHODID_GET_BUCKET)))
+        .addMethod(
+            getCreateBucketMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.CreateBucketRequest, com.google.storage.v2.Bucket>(
+                    service, METHODID_CREATE_BUCKET)))
+        .addMethod(
+            getListBucketsMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.ListBucketsRequest,
+                    com.google.storage.v2.ListBucketsResponse>(service, METHODID_LIST_BUCKETS)))
+        .addMethod(
+            getLockBucketRetentionPolicyMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.LockBucketRetentionPolicyRequest,
+                    com.google.storage.v2.Bucket>(service, METHODID_LOCK_BUCKET_RETENTION_POLICY)))
+        .addMethod(
+            getGetIamPolicyMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<com.google.iam.v1.GetIamPolicyRequest, com.google.iam.v1.Policy>(
+                    service, METHODID_GET_IAM_POLICY)))
+        .addMethod(
+            getSetIamPolicyMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<com.google.iam.v1.SetIamPolicyRequest, com.google.iam.v1.Policy>(
+                    service, METHODID_SET_IAM_POLICY)))
+        .addMethod(
+            getTestIamPermissionsMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.iam.v1.TestIamPermissionsRequest,
+                    com.google.iam.v1.TestIamPermissionsResponse>(
+                    service, METHODID_TEST_IAM_PERMISSIONS)))
+        .addMethod(
+            getUpdateBucketMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.UpdateBucketRequest, com.google.storage.v2.Bucket>(
+                    service, METHODID_UPDATE_BUCKET)))
+        .addMethod(
+            getComposeObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.ComposeObjectRequest, com.google.storage.v2.Object>(
+                    service, METHODID_COMPOSE_OBJECT)))
+        .addMethod(
+            getDeleteObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.DeleteObjectRequest, com.google.protobuf.Empty>(
+                    service, METHODID_DELETE_OBJECT)))
+        .addMethod(
+            getRestoreObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.RestoreObjectRequest, com.google.storage.v2.Object>(
+                    service, METHODID_RESTORE_OBJECT)))
+        .addMethod(
+            getCancelResumableWriteMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.CancelResumableWriteRequest,
+                    com.google.storage.v2.CancelResumableWriteResponse>(
+                    service, METHODID_CANCEL_RESUMABLE_WRITE)))
+        .addMethod(
+            getGetObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.GetObjectRequest, com.google.storage.v2.Object>(
+                    service, METHODID_GET_OBJECT)))
+        .addMethod(
+            getReadObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncServerStreamingCall(
+                new MethodHandlers<
+                    com.google.storage.v2.ReadObjectRequest,
+                    com.google.storage.v2.ReadObjectResponse>(service, METHODID_READ_OBJECT)))
+        .addMethod(
+            getBidiReadObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
+                new MethodHandlers<
+                    com.google.storage.v2.BidiReadObjectRequest,
+                    com.google.storage.v2.BidiReadObjectResponse>(
+                    service, METHODID_BIDI_READ_OBJECT)))
+        .addMethod(
+            getUpdateObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.UpdateObjectRequest, com.google.storage.v2.Object>(
+                    service, METHODID_UPDATE_OBJECT)))
+        .addMethod(
+            getWriteObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncClientStreamingCall(
+                new MethodHandlers<
+                    com.google.storage.v2.WriteObjectRequest,
+                    com.google.storage.v2.WriteObjectResponse>(service, METHODID_WRITE_OBJECT)))
+        .addMethod(
+            getBidiWriteObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
+                new MethodHandlers<
+                    com.google.storage.v2.BidiWriteObjectRequest,
+                    com.google.storage.v2.BidiWriteObjectResponse>(
+                    service, METHODID_BIDI_WRITE_OBJECT)))
+        .addMethod(
+            getListObjectsMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.ListObjectsRequest,
+                    com.google.storage.v2.ListObjectsResponse>(service, METHODID_LIST_OBJECTS)))
+        .addMethod(
+            getRewriteObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.RewriteObjectRequest,
+                    com.google.storage.v2.RewriteResponse>(service, METHODID_REWRITE_OBJECT)))
+        .addMethod(
+            getStartResumableWriteMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.StartResumableWriteRequest,
+                    com.google.storage.v2.StartResumableWriteResponse>(
+                    service, METHODID_START_RESUMABLE_WRITE)))
+        .addMethod(
+            getQueryWriteStatusMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.QueryWriteStatusRequest,
+                    com.google.storage.v2.QueryWriteStatusResponse>(
+                    service, METHODID_QUERY_WRITE_STATUS)))
+        .addMethod(
+            getMoveObjectMethod(),
+            io.grpc.stub.ServerCalls.asyncUnaryCall(
+                new MethodHandlers<
+                    com.google.storage.v2.MoveObjectRequest, com.google.storage.v2.Object>(
+                    service, METHODID_MOVE_OBJECT)))
+        .build();
   }
 
   private abstract static class StorageBaseDescriptorSupplier
@@ -3718,9 +4394,9 @@ public final class StorageGrpc {
 
   private static final class StorageMethodDescriptorSupplier extends StorageBaseDescriptorSupplier
       implements io.grpc.protobuf.ProtoMethodDescriptorSupplier {
-    private final String methodName;
+    private final java.lang.String methodName;
 
-    StorageMethodDescriptorSupplier(String methodName) {
+    StorageMethodDescriptorSupplier(java.lang.String methodName) {
       this.methodName = methodName;
     }
 
@@ -3751,27 +4427,21 @@ public final class StorageGrpc {
                       .addMethod(getSetIamPolicyMethod())
                       .addMethod(getTestIamPermissionsMethod())
                       .addMethod(getUpdateBucketMethod())
-                      .addMethod(getDeleteNotificationMethod())
-                      .addMethod(getGetNotificationMethod())
-                      .addMethod(getCreateNotificationMethod())
-                      .addMethod(getListNotificationsMethod())
                       .addMethod(getComposeObjectMethod())
                       .addMethod(getDeleteObjectMethod())
+                      .addMethod(getRestoreObjectMethod())
                       .addMethod(getCancelResumableWriteMethod())
                       .addMethod(getGetObjectMethod())
                       .addMethod(getReadObjectMethod())
+                      .addMethod(getBidiReadObjectMethod())
                       .addMethod(getUpdateObjectMethod())
                       .addMethod(getWriteObjectMethod())
+                      .addMethod(getBidiWriteObjectMethod())
                       .addMethod(getListObjectsMethod())
                       .addMethod(getRewriteObjectMethod())
                       .addMethod(getStartResumableWriteMethod())
                       .addMethod(getQueryWriteStatusMethod())
-                      .addMethod(getGetServiceAccountMethod())
-                      .addMethod(getCreateHmacKeyMethod())
-                      .addMethod(getDeleteHmacKeyMethod())
-                      .addMethod(getGetHmacKeyMethod())
-                      .addMethod(getListHmacKeysMethod())
-                      .addMethod(getUpdateHmacKeyMethod())
+                      .addMethod(getMoveObjectMethod())
                       .build();
         }
       }

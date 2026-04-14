@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.it.BucketCleaner;
 import com.google.cloud.storage.testing.RemoteStorageHelper;
 import com.google.cloud.testing.junit4.StdOutCaptureRule;
 import java.io.File;
@@ -28,9 +29,6 @@ import java.io.FileInputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
@@ -49,7 +47,7 @@ public class ITStorageSnippets {
   private static final Logger log = Logger.getLogger(ITStorageSnippets.class.getName());
   private static final String BUCKET = RemoteStorageHelper.generateBucketName();
   private static Storage storage;
-  private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
+  private static final String PROJECT_ID = Env.GOOGLE_CLOUD_PROJECT;
 
   @Rule public final StdOutCaptureRule stdOutCaptureRule = new StdOutCaptureRule();
 
@@ -65,18 +63,9 @@ public class ITStorageSnippets {
   }
 
   @AfterClass
-  public static void afterClass() throws ExecutionException, InterruptedException {
-    if (storage != null) {
-      // In beforeClass, we make buckets auto-delete blobs older than a day old.
-      // Here, delete all buckets older than 2 days. They should already be empty and easy.
-      long cleanTime = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(2);
-      long cleanTimeout = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(1);
-      RemoteStorageHelper.cleanBuckets(storage, cleanTime, cleanTimeout);
-
-      boolean wasDeleted = RemoteStorageHelper.forceDelete(storage, BUCKET, 1, TimeUnit.MINUTES);
-      if (!wasDeleted && log.isLoggable(Level.WARNING)) {
-        log.log(Level.WARNING, "Deletion of bucket {0} timed out, bucket is not empty", BUCKET);
-      }
+  public static void afterClass() throws Exception {
+    try (Storage ignore = storage) {
+      BucketCleaner.doCleanup(BUCKET, storage);
     }
   }
 
